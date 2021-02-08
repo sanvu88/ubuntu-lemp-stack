@@ -535,11 +535,15 @@ EOF
 
     apt-get -y install php"${PHP_VERSION}" php"${PHP_VERSION}"-fpm php"${PHP_VERSION}"-ldap php"${PHP_VERSION}"-zip \
         php"${PHP_VERSION}"-cli php"${PHP_VERSION}"-mysql php"${PHP_VERSION}"-gd php"${PHP_VERSION}"-xml \
-        php"${PHP_VERSION}"-mbstring php"${PHP_VERSION}"-common php"${PHP_VERSION}"-soap php"${PHP_VERSION}"-json \
+        php"${PHP_VERSION}"-mbstring php"${PHP_VERSION}"-common php"${PHP_VERSION}"-soap \
         php"${PHP_VERSION}"-curl php"${PHP_VERSION}"-bcmath php"${PHP_VERSION}"-snmp php"${PHP_VERSION}"-pspell \
         php"${PHP_VERSION}"-gmp php"${PHP_VERSION}"-intl php"${PHP_VERSION}"-imap php"${PHP_VERSION}"-enchant \
         php"${PHP_VERSION}"-xmlrpc php"${PHP_VERSION}"-tidy php"${PHP_VERSION}"-opcache php"${PHP_VERSION}"-cli \
         php"${PHP_VERSION}"-dev php"${PHP_VERSION}"-imagick
+
+        if [ "${PHP_VERSION}" != "8.0" ]; then
+            apt -y install php"${PHP_VERSION}"-json
+        fi
 
     if [ -f "/usr/lib/systemd/system/php${PHP_VERSION}-fpm.service" ]; then
         sed -i '/ExecReload=/a LimitNOFILE=65535' /usr/lib/systemd/system/php"${PHP_VERSION}"-fpm.service
@@ -569,11 +573,15 @@ EOF
 install_php_2() {
     apt-get -y install php"${PHP_VERSION_2}" php"${PHP_VERSION_2}"-fpm php"${PHP_VERSION_2}"-ldap php"${PHP_VERSION_2}"-zip \
         php"${PHP_VERSION_2}"-cli php"${PHP_VERSION_2}"-mysql php"${PHP_VERSION_2}"-gd php"${PHP_VERSION_2}"-xml \
-        php"${PHP_VERSION_2}"-mbstring php"${PHP_VERSION_2}"-common php"${PHP_VERSION_2}"-soap php"${PHP_VERSION_2}"-json \
+        php"${PHP_VERSION_2}"-mbstring php"${PHP_VERSION_2}"-common php"${PHP_VERSION_2}"-soap \
         php"${PHP_VERSION_2}"-curl php"${PHP_VERSION_2}"-bcmath php"${PHP_VERSION_2}"-snmp php"${PHP_VERSION_2}"-pspell \
         php"${PHP_VERSION_2}"-gmp php"${PHP_VERSION_2}"-intl php"${PHP_VERSION_2}"-imap php"${PHP_VERSION_2}"-enchant \
         php"${PHP_VERSION_2}"-xmlrpc php"${PHP_VERSION_2}"-tidy php"${PHP_VERSION_2}"-opcache php"${PHP_VERSION_2}"-cli \
         php"${PHP_VERSION_2}"-dev php"${PHP_VERSION_2}"-imagick
+
+    if [ "${PHP_VERSION_2}" != "8.0" ]; then
+        apt -y install php"${PHP_VERSION_2}"-json
+    fi
 
     PHP2_RELEASE="yes"
     if [ -f "/usr/lib/systemd/system/php${PHP_VERSION_2}-fpm.service" ]; then

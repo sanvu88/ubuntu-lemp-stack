@@ -2,8 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hostvn" beforeDir="false" afterPath="$PROJECT_DIR$/hostvn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/change_php1" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/change_php1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/change_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/change_php2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/install_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/install_php2" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -153,8 +157,10 @@
   </component>
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="vue.rearranger.settings.migration" value="true" />
   </component>
@@ -261,7 +267,7 @@
       <workItem from="1612709258030" duration="238000" />
       <workItem from="1612778148152" duration="1504000" />
       <workItem from="1612782915030" duration="5902000" />
-      <workItem from="1612799501586" duration="1146000" />
+      <workItem from="1612799501586" duration="2453000" />
     </task>
     <servers />
   </component>

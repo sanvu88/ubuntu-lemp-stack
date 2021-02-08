@@ -98,11 +98,15 @@ _remove_old_php(){
 _install_php(){
     apt -y install php"${PHP2_VERSION_NEW}" php"${PHP2_VERSION_NEW}"-fpm php"${PHP2_VERSION_NEW}"-ldap php"${PHP2_VERSION_NEW}"-zip \
         php"${PHP2_VERSION_NEW}"-cli php"${PHP2_VERSION_NEW}"-mysql php"${PHP2_VERSION_NEW}"-gd php"${PHP2_VERSION_NEW}"-xml \
-        php"${PHP2_VERSION_NEW}"-mbstring php"${PHP2_VERSION_NEW}"-common php"${PHP2_VERSION_NEW}"-soap php"${PHP2_VERSION_NEW}"-json \
+        php"${PHP2_VERSION_NEW}"-mbstring php"${PHP2_VERSION_NEW}"-common php"${PHP2_VERSION_NEW}"-soap \
         php"${PHP2_VERSION_NEW}"-curl php"${PHP2_VERSION_NEW}"-bcmath php"${PHP2_VERSION_NEW}"-snmp php"${PHP2_VERSION_NEW}"-pspell \
         php"${PHP2_VERSION_NEW}"-gmp php"${PHP2_VERSION_NEW}"-intl php"${PHP2_VERSION_NEW}"-imap php"${PHP2_VERSION_NEW}"-enchant \
         php"${PHP2_VERSION_NEW}"-xmlrpc php"${PHP2_VERSION_NEW}"-tidy php"${PHP2_VERSION_NEW}"-opcache php"${PHP2_VERSION_NEW}"-cli \
         php"${PHP2_VERSION_NEW}"-dev php"${PHP2_VERSION_NEW}"-imagick
+
+        if [ "${PHP2_VERSION_NEW}" != "8.0" ]; then
+            apt -y install php"${PHP2_VERSION_NEW}"-json
+        fi
 }
 
 _install_ig_binary(){
@@ -312,21 +316,26 @@ _run(){
 
         if [[ -z "${ALERT}" ]]; then
             _install_php
-            _install_igbinary
-            _install_php_memcached
-            _install_php_redis
-            _php_global_config
-            _hostvn_custom_ini
-            _php_opcache
+            if [ -d "/etc/php/${PHP2_VERSION_NEW}" ]; then
+                _install_igbinary
+                _install_php_memcached
+                _install_php_redis
+                _php_global_config
+                _hostvn_custom_ini
+                _php_opcache
 
-            _remove_old_php
+                _remove_old_php
 
-            systemctl restart php"${PHP2_VERSION_NEW}"-fpm
-            systemctl enable php"${PHP2_VERSION_NEW}"-fpm
-            _write_info
+                systemctl restart php"${PHP2_VERSION_NEW}"-fpm
+                systemctl enable php"${PHP2_VERSION_NEW}"-fpm
+                _write_info
 
-            clear
-            printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
+                clear
+                printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
+            else
+                clear
+                printf "%s\n" "${RED}Thay doi phien ban PHP that bai.${NC}"
+            fi
         else
             clear
             printf "%s\n" "${ALERT}"

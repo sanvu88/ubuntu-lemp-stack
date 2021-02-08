@@ -99,11 +99,15 @@ _remove_old_php(){
 _install_php(){
     apt -y install php"${PHP1_VERSION_NEW}" php"${PHP1_VERSION_NEW}"-fpm php"${PHP1_VERSION_NEW}"-ldap php"${PHP1_VERSION_NEW}"-zip \
         php"${PHP1_VERSION_NEW}"-cli php"${PHP1_VERSION_NEW}"-mysql php"${PHP1_VERSION_NEW}"-gd php"${PHP1_VERSION_NEW}"-xml \
-        php"${PHP1_VERSION_NEW}"-mbstring php"${PHP1_VERSION_NEW}"-common php"${PHP1_VERSION_NEW}"-soap php"${PHP1_VERSION_NEW}"-json \
+        php"${PHP1_VERSION_NEW}"-mbstring php"${PHP1_VERSION_NEW}"-common php"${PHP1_VERSION_NEW}"-soap \
         php"${PHP1_VERSION_NEW}"-curl php"${PHP1_VERSION_NEW}"-bcmath php"${PHP1_VERSION_NEW}"-snmp php"${PHP1_VERSION_NEW}"-pspell \
         php"${PHP1_VERSION_NEW}"-gmp php"${PHP1_VERSION_NEW}"-intl php"${PHP1_VERSION_NEW}"-imap php"${PHP1_VERSION_NEW}"-enchant \
         php"${PHP1_VERSION_NEW}"-xmlrpc php"${PHP1_VERSION_NEW}"-tidy php"${PHP1_VERSION_NEW}"-opcache php"${PHP1_VERSION_NEW}"-cli \
         php"${PHP1_VERSION_NEW}"-dev php"${PHP1_VERSION_NEW}"-imagick
+
+    if [ "${PHP1_VERSION_NEW}" != "8.0" ]; then
+        apt -y install php"${PHP1_VERSION_NEW}"-json
+    fi
 }
 
 # Install igbinary
@@ -314,21 +318,27 @@ _run(){
 
         if [[ -z "${ALERT}" ]]; then
             _install_php
-            _install_igbinary
-            _install_php_memcached
-            _install_php_redis
-            _php_global_config
-            _hostvn_custom_ini
-            _php_opcache
 
-            _remove_old_php
+            if [ -d "/etc/php/${PHP1_VERSION_NEW}" ]; then
+                _install_igbinary
+                _install_php_memcached
+                _install_php_redis
+                _php_global_config
+                _hostvn_custom_ini
+                _php_opcache
 
-            systemctl restart php"${PHP1_VERSION_NEW}"-fpm
-            systemctl enable php"${PHP1_VERSION_NEW}"-fpm
-            write_info
+                _remove_old_php
 
-            clear
-            printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
+                systemctl restart php"${PHP1_VERSION_NEW}"-fpm
+                systemctl enable php"${PHP1_VERSION_NEW}"-fpm
+                write_info
+
+                clear
+                printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
+            else
+                clear
+                printf "%s\n" "${RED}Thay doi phien ban PHP that bai.${NC}"
+            fi
         else
             clear
             printf "%s\n" "${ALERT}"

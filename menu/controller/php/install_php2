@@ -79,11 +79,15 @@ _check_duplicate_php(){
 _install_php(){
     apt -y install php"${PHP2_VERSION}" php"${PHP2_VERSION}"-fpm php"${PHP2_VERSION}"-ldap php"${PHP2_VERSION}"-zip \
         php"${PHP2_VERSION}"-cli php"${PHP2_VERSION}"-mysql php"${PHP2_VERSION}"-gd php"${PHP2_VERSION}"-xml \
-        php"${PHP2_VERSION}"-mbstring php"${PHP2_VERSION}"-common php"${PHP2_VERSION}"-soap php"${PHP2_VERSION}"-json \
+        php"${PHP2_VERSION}"-mbstring php"${PHP2_VERSION}"-common php"${PHP2_VERSION}"-soap \
         php"${PHP2_VERSION}"-curl php"${PHP2_VERSION}"-bcmath php"${PHP2_VERSION}"-snmp php"${PHP2_VERSION}"-pspell \
         php"${PHP2_VERSION}"-gmp php"${PHP2_VERSION}"-intl php"${PHP2_VERSION}"-imap php"${PHP2_VERSION}"-enchant \
         php"${PHP2_VERSION}"-xmlrpc php"${PHP2_VERSION}"-tidy php"${PHP2_VERSION}"-opcache php"${PHP2_VERSION}"-cli \
         php"${PHP2_VERSION}"-dev php"${PHP2_VERSION}"-imagick
+
+        if [ "${PHP2_VERSION}" != "8.0" ]; then
+            apt -y install php"${PHP2_VERSION}"-json
+        fi
 }
 
 _install_ig_binary(){
@@ -320,19 +324,25 @@ _run(){
 
         if [[ -z "${ALERT}" ]]; then
             _install_php
-            _install_igbinary
-            _install_php_memcached
-            _install_php_redis
-            _php_global_config
-            _hostvn_custom_ini
-            _php_opcache
 
-            systemctl restart php"${PHP2_VERSION}"-fpm
-            systemctl enable php"${PHP2_VERSION}"-fpm
-            _write_info
+            if [ -d "/etc/php/${PHP2_VERSION}" ]; then
+                _install_igbinary
+                _install_php_memcached
+                _install_php_redis
+                _php_global_config
+                _hostvn_custom_ini
+                _php_opcache
 
-            clear
-            printf "%s\n" "${GREEN}Cai dat phien ban PHP 2 thanh cong.${NC}"
+                systemctl restart php"${PHP2_VERSION}"-fpm
+                systemctl enable php"${PHP2_VERSION}"-fpm
+                _write_info
+
+                clear
+                printf "%s\n" "${GREEN}Cai dat phien ban PHP 2 thanh cong.${NC}"
+            else
+                clear
+                printf "%s\n" "${RED}Cai dat phien ban PHP 2 that bai.${NC}"
+            fi
         else
             clear
             printf "%s\n" "${ALERT}"

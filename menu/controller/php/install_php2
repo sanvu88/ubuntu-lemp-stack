@@ -1,0 +1,360 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+
+_set_var(){
+    MODULE_LINK="https://scripts.hostvn.net/modules"
+    #https://www.howtoforge.com/tutorial/linux-grep-command/
+    #https://stackoverflow.com/a/6284370
+    IG_BINARY_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "igbinary_version" | cut -f2 -d'=')
+    PHP_MEMCACHED_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "php_memcached_version" | cut -f2 -d'=')
+    PHP_REDIS_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "php_redis_version" | cut -f2 -d'=')
+    # shellcheck disable=SC2207
+    PHP_LIST=($(curl -s "${UPDATE_LINK}"/version | grep "php_list=" | cut -f2 -d'='))
+    PHP1_VERSION=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
+}
+
+_confirm(){
+    while true
+    do
+        read -r -p "Ban co muon cai dat phien ban PHP 2 khong ? (y/n) " prompt_install_php2
+        echo
+        if [[ "${prompt_install_php2}" =~ ^([yY])$ || "${prompt_install_php2}" =~ ^([nN])$ ]];
+        then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_select_php_ver(){
+    while true; do
+        printf "%s\n" "Lua chon phien ban PHP moi"
+        PS3="Nhap vao lua chon cua ban: "
+        select opt in "${PHP_LIST[@]}"; do
+            case $opt in
+            "$opt")
+                PHP2_VERSION="${opt}"
+                break
+                ;;
+            esac
+        done
+        echo
+
+        if [[ " ${PHP_LIST[*]} " == *" ${PHP2_VERSION} "* ]]; then
+            break
+        else
+            clear
+            printf "${RED}%s${NC}\n" "Lua chon khong chinh xac. Vui long chon lai."
+        fi
+    done
+    sleep 1
+
+    PHP2_VERSION=${PHP2_VERSION//php/}
+    PHP2_CONFIG_PATH="/etc/php/${PHP2_VERSION}/fpm"
+    PHP2_INI_PATH="${PHP2_CONFIG_PATH}/conf.d"
+    PHP2_POOL_PATH="${PHP2_CONFIG_PATH}/pool.d"
+    PHP2_CLI_PATH="/etc/php/${PHP2_VERSION}/cli/conf.d"
+}
+
+_check_duplicate_php(){
+    if [[ "${PHP2_VERSION}" == "${PHP1_VERSION}" ]]; then
+        ALERT=$(printf "%s\n" "${RED}Phien ban PHP 2 ban chon giong phien ban PHP 1. Huy cai dat.${NC}")
+    fi
+}
+
+_install_php(){
+    apt -y install php"${PHP2_VERSION}" php"${PHP2_VERSION}"-fpm php"${PHP2_VERSION}"-ldap php"${PHP2_VERSION}"-zip \
+        php"${PHP2_VERSION}"-cli php"${PHP2_VERSION}"-mysql php"${PHP2_VERSION}"-gd php"${PHP2_VERSION}"-xml \
+        php"${PHP2_VERSION}"-mbstring php"${PHP2_VERSION}"-common php"${PHP2_VERSION}"-soap php"${PHP2_VERSION}"-json \
+        php"${PHP2_VERSION}"-curl php"${PHP2_VERSION}"-bcmath php"${PHP2_VERSION}"-snmp php"${PHP2_VERSION}"-pspell \
+        php"${PHP2_VERSION}"-gmp php"${PHP2_VERSION}"-intl php"${PHP2_VERSION}"-imap php"${PHP2_VERSION}"-enchant \
+        php"${PHP2_VERSION}"-xmlrpc php"${PHP2_VERSION}"-tidy php"${PHP2_VERSION}"-opcache php"${PHP2_VERSION}"-cli \
+        php"${PHP2_VERSION}"-dev php"${PHP2_VERSION}"-imagick
+}
+
+_install_ig_binary(){
+    check_ig_binary_php1=$(php"${PHP1_VERSION}" -m | grep igbinary)
+
+    if [ -n "${check_ig_binary_php1}" ]; then
+        if [[ "${PHP2_VERSION}" == "5.6" ]]; then
+            IG_BINARY_VERSION="2.0.8"
+        fi
+
+        DIR="/opt/php-extension"
+        _cd_dir "${DIR}"
+        if [ -f "igbinary-${IG_BINARY_VERSION}.tgz" ]; then
+            rm -rf igbinary-"${IG_BINARY_VERSION}".tgz
+        fi
+        if [ -d "igbinary-${IG_BINARY_VERSION}" ]; then
+            rm -rf igbinary-"${IG_BINARY_VERSION}"
+        fi
+        wget "${MODULE_LINK}"/igbinary-"${IG_BINARY_VERSION}".tgz
+        tar -xvf igbinary-"${IG_BINARY_VERSION}".tgz
+        _cd_dir igbinary-"${IG_BINARY_VERSION}"
+        /usr/bin/phpize"${PHP2_VERSION}" && ./configure --with-php-config=/usr/bin/php-config"${PHP2_VERSION}"
+        make && make install
+        _cd_dir "${DIR}"
+        rm -rf igbinary-"${IG_BINARY_VERSION}" igbinary-"${IG_BINARY_VERSION}".tgz
+
+        cat >> "${PHP2_INI_PATH}/30-igbinary.ini" << EOF
+extension=igbinary.so
+EOF
+        cat >> "${PHP2_CLI_PATH}/30-igbinary.ini" << EOF
+extension=igbinary.so
+EOF
+    fi
+}
+
+_install_php_memcached(){
+    check_ig_binary_php2=$(php"${PHP2_VERSION}" -m | grep igbinary)
+
+    if [  -n "${check_ig_binary_php2}" ] && service_running 'memcached' ; then
+        if [[ "${PHP2_VERSION}" == "5.6" ]]; then
+            PHP_MEMCACHED_VERSION="2.2.0"
+        fi
+
+        DIR="/opt/php-extension"
+        _cd_dir "${DIR}"
+        if [ -f "memcached-${PHP_MEMCACHED_VERSION}.tgz" ]; then
+            rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz
+        fi
+        if [ -d "memcached-${PHP_MEMCACHED_VERSION}" ]; then
+            rm -rf memcached-"${PHP_MEMCACHED_VERSION}"
+        fi
+        wget "${MODULE_LINK}"/memcached-"${PHP_MEMCACHED_VERSION}".tgz
+        tar -xvf memcached-"${PHP_MEMCACHED_VERSION}".tgz
+        _cd_dir "memcached-${PHP_MEMCACHED_VERSION}"
+        /usr/bin/phpize"${PHP2_VERSION}" && ./configure --enable-memcached-igbinary --with-php-config=/usr/bin/php-config"${PHP2_VERSION}"
+        make && make install
+        cd "${DIR}" && rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz memcached-"${PHP_MEMCACHED_VERSION}"
+
+        cat >> "${PHP2_INI_PATH}/40-memcached.ini" << EOF
+extension=memcached.so
+EOF
+        cat >> "${PHP2_CLI_PATH}/40-memcached.ini" << EOF
+extension=memcached.so
+EOF
+    fi
+}
+
+_install_php_redis(){
+    check_ig_binary_php2=$(php"${PHP2_VERSION}" -m | grep igbinary)
+
+    if [  -n "${check_ig_binary_php2}" ] && service_running 'redis' ; then
+        if [[ "${PHP2_VERSION}" == "5.6" ]]; then
+            PHP_REDIS_VERSION="4.3.0"
+        fi
+
+        DIR="/opt/php-extension"
+        _cd_dir "${DIR}"
+        if [ -f "redis-${PHP_REDIS_VERSION}.tgz" ]; then
+            rm -rf redis-"${PHP_REDIS_VERSION}".tgz
+        fi
+        if [ -d "memcached-${PHP_REDIS_VERSION}" ]; then
+            rm -rf redis-"${PHP_REDIS_VERSION}"
+        fi
+        wget "${MODULE_LINK}"/redis-"${PHP_REDIS_VERSION}".tgz
+        tar -xvf redis-"${PHP_REDIS_VERSION}".tgz
+        _cd_dir "${DIR}/redis-${PHP_REDIS_VERSION}"
+        /usr/bin/phpize"${PHP2_VERSION}" && ./configure --enable-redis-igbinary --with-php-config=/usr/bin/php-config"${PHP2_VERSION}"
+        make && make install
+        cd "${DIR}" && rm -rf redis-"${PHP_REDIS_VERSION}".tgz redis-"${PHP_REDIS_VERSION}"
+
+        cat >> "${PHP2_INI_PATH}/50-redis.ini" << EOF
+extension=redis.so
+EOF
+        cat >> "${PHP2_CLI_PATH}/50-redis.ini" << EOF
+extension=redis.so
+EOF
+    fi
+}
+
+_php_global_config() {
+    if [[ -f "${PHP2_CONFIG_PATH}/php-fpm.conf" ]]; then
+        mv "${PHP2_CONFIG_PATH}"/php-fpm.conf "${PHP2_CONFIG_PATH}"/php-fpm.conf.orig
+    fi
+
+    cat >>"${PHP2_CONFIG_PATH}/php-fpm.conf" <<EOphp_fpm_conf
+;;;;;;;;;;;;;;;;;;;;;
+; FPM Configuration ;
+;;;;;;;;;;;;;;;;;;;;;
+
+include=${PHP2_POOL_PATH}/*.conf
+
+[global]
+pid = /run/php/php${PHP2_VERSION}-fpm.pid
+error_log = /var/log/php-fpm/error.log
+log_level = warning
+emergency_restart_threshold = 10
+emergency_restart_interval = 1m
+process_control_timeout = 10s
+daemonize = yes
+EOphp_fpm_conf
+
+    if [[ -f "${PHP2_POOL_PATH}/www.conf" ]]; then
+        mv "${PHP2_POOL_PATH}"/www.conf "${PHP2_POOL_PATH}"/www.conf."$(date +%Y-%m-%d)"
+    fi
+    cat >>"${PHP2_POOL_PATH}/www.conf" <<EOwww_conf
+[www]
+listen = /var/run/php2-fpm.sock;
+listen.allowed_clients = 127.0.0.1
+listen.owner = nginx
+listen.group = nginx
+listen.mode = 0660
+user = nginx
+group = nginx
+pm = ondemand
+pm.max_children = ${PM_MAX_CHILDREN}
+pm.max_requests = ${PM_MAX_REQUEST}
+pm.process_idle_timeout = 20
+;slowlog = /var/log/php-fpm/www-slow.log
+chdir = /
+php_admin_value[error_log] = /var/log/php-fpm/www-error.log
+php_admin_flag[log_errors] = on
+php_value[session.save_handler] = files
+php_value[session.save_path]    = /var/lib/php/session
+php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
+php_admin_value[disable_functions] = exec,system,passthru,shell_exec,proc_close,proc_open,dl,popen,show_source,posix_kill,posix_mkfifo,posix_getpwuid,posix_setpgid,posix_setsid,posix_setuid,posix_setgid,posix_seteuid,posix_setegid,posix_uname
+php_admin_value[open_basedir] = /usr/share/nginx/:/tmp/:/var/tmp/:/dev/urandom:/usr/share/php/:/dev/shm:/var/lib/php/sessions/
+security.limit_extensions = .php
+EOwww_conf
+
+    mkdir -p /var/lib/php/session
+    mkdir -p /var/lib/php/wsdlcache
+    mkdir -p /var/log/php-fpm
+    chown -R nginx:nginx /var/lib/php/session
+    chown -R nginx:nginx /var/lib/php/wsdlcache
+    chown -R nginx:nginx /var/log/php-fpm
+    chmod 755 /var/lib/php/session
+    chmod 755 /var/lib/php/wsdlcache
+}
+
+_hostvn_custom_ini(){
+    cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" <<EOhostvn_custom_ini_2
+date.timezone = Asia/Ho_Chi_Minh
+max_execution_time = 600
+max_input_time = 600
+short_open_tag = On
+realpath_cache_size = ${PHP_REAL_PATH_LIMIT}
+realpath_cache_ttl = ${PHP_REAL_PATH_TTL}
+memory_limit = ${MAX_MEMORY}M
+upload_max_filesize = ${MAX_MEMORY}M
+post_max_size = ${MAX_MEMORY}M
+expose_php = Off
+display_errors = Off
+mail.add_x_header = Off
+max_input_nesting_level = 128
+max_input_vars = ${MAX_INPUT_VARS}
+mysqlnd.net_cmd_buffer_size = 16384
+mysqlnd.collect_memory_statistics = Off
+mysqlnd.mempool_default_size = 16000
+always_populate_raw_post_data=-1
+EOhostvn_custom_ini_2
+
+    if [ -f "${PHP2_CLI_PATH}/00-hostvn-custom.ini" ]; then
+        rm -rf "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+    fi
+
+    cp "${PHP2_INI_PATH}"/00-hostvn-custom.ini "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+}
+
+_php_opcache(){
+    cat >> "${PHP2_INI_PATH}/10-opcache.ini" <<EOphp_opcache
+zend_extension=opcache.so
+opcache.enable=1
+opcache.memory_consumption=${OPCACHE_MEM}
+opcache.interned_strings_buffer=8
+opcache.max_wasted_percentage=5
+opcache.max_accelerated_files=65407
+opcache.revalidate_freq=180
+opcache.fast_shutdown=0
+opcache.enable_cli=0
+opcache.save_comments=1
+opcache.enable_file_override=1
+opcache.validate_timestamps=1
+opcache.blacklist_filename=${PHP2_INI_PATH}/opcache-default.blacklist
+EOphp_opcache
+
+    cat >> "${PHP2_INI_PATH}/opcache-default.blacklist" <<EOopcache_blacklist
+/home/*/*/public_html/wp-content/plugins/backwpup/*
+/home/*/*/public_html/wp-content/plugins/duplicator/*
+/home/*/*/public_html/wp-content/plugins/updraftplus/*
+/home/*/*/public_html/storage/*
+EOopcache_blacklist
+
+    rm -rf "${PHP2_CLI_PATH}"/10-opcache.ini
+    cp "${PHP2_INI_PATH}"/10-opcache.ini "${PHP2_CLI_PATH}"/10-opcache.ini
+}
+
+_write_info(){
+    sed -i '/php2_version=/d' "${FILE_INFO}"
+    sed -i '/php2_release=/d' "${FILE_INFO}"
+
+    {
+        echo "php2_version=${PHP2_VERSION}"
+        echo "php2_release=yes"
+    } >> "${FILE_INFO}"
+}
+
+_run(){
+    _set_var
+    _select_php_ver
+    if [ -z "${PHP2_VERSION}" ]; then
+        printf "%s\n" "${RED}Huy cai dat PHP 2.${NC}"
+    else
+        _check_duplicate_php
+
+        if [[ -z "${ALERT}" ]]; then
+            _install_php
+            _install_igbinary
+            _install_php_memcached
+            _install_php_redis
+            _php_global_config
+            _hostvn_custom_ini
+            _php_opcache
+
+            systemctl restart php"${PHP2_VERSION}"-fpm
+            systemctl enable php"${PHP2_VERSION}"-fpm
+            _write_info
+
+            clear
+            printf "%s\n" "${GREEN}Cai dat phien ban PHP 2 thanh cong.${NC}"
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+}
+
+prompt_install_php2=""
+PHP2_VERSION=""
+ALERT=""
+PHP2_RELEASE=$(grep -w "php2_release" "${FILE_INFO}" | cut -f2 -d'=')
+
+if [ "${PHP2_RELEASE}" == "yes" ]; then
+    clear
+    printf "${RED}%s${NC}\n" "PHP 2 da ton tai tren VPS."
+else
+    _confirm
+    if [[ "${prompt_install_php2}" =~ ^([yY])$ ]]; then
+        _run
+    else
+        printf "%s\n" "${GREEN}Ban da huy cai dat phien ban PHP 2.${NC}"
+    fi
+fi
+
+lemp_php

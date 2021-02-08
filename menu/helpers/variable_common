@@ -1,0 +1,45 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2034
+
+# Color
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+NC=$(tput sgr0)
+
+# other varialbe
+MENU_NAME="hostvn"
+AUTHOR="HOSTVN.VN"
+AUTHOR_WEB="HOSTVN.VN"
+UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
+CURRENT_DATE=$(date +%Y-%m-%d)
+
+# Set directory variables
+BASH_DIR="/var/hostvn"
+USER_DIR="/var/hostvn/users"
+TEMPLATE_DIR="${BASH_DIR}/menu/template"
+CUSTOM_DIR="BASH_DIR/custom"
+NGINX_CONF_DIR="/etc/nginx"
+VHOST_DIR="${NGINX_CONF_DIR}/conf.d"
+SSL_DIR="${NGINX_CONF_DIR}/ssl"
+ALIAS_DIR="${NGINX_CONF_DIR}/alias"
+REDIRECT_DIR="${NGINX_CONF_DIR}/redirect"
+PAGESPEED_DIR="${NGINX_CONF_DIR}/pagespeed"
+MYSQL_DIR="/var/lib/mysql"
+BACKUP_VHOST_DIR="${NGINX_CONF_DIR}/backup_vhost"
+FILE_INFO="${BASH_DIR}/.hostvn.conf"
+DEFAULT_DIR_WEB="/usr/share/nginx/html"
+DEFAULT_DIR_TOOL="/usr/share/nginx/private"
+WORDPRESS_CRON_DIR="/var/hostvn/wpcron"
+RULE_FILE="${BASH_DIR}/validate/rule"
+PLUGINS_LIST=("really-simple-ssl" "wps-hide-login" "wps-limit-login" "seo-by-rank-math")

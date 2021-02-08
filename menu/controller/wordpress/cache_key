@@ -1,0 +1,58 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_run() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    if [ ! -d "{WORDPRESS_CRON_DIR}" ]; then
+        mkdir -p "${WORDPRESS_CRON_DIR}"
+    fi
+
+    if [ ! -f "${WORDPRESS_CRON_DIR}/${domain}" ]; then
+        touch "${WORDPRESS_CRON_DIR}"/"${domain}"
+    fi
+
+    _cd_dir /home/"${user}"/"${domain}"/public_html
+    wp config set DISABLE_WP_CRON true --raw --allow-root
+
+    prefix=$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..6")
+    wp config set WP_CACHE_KEY_SALT "${domain}"_"${prefix}"_ --allow-root
+
+    cron_exists=$(crontab -l | grep -w 'wpcron')
+    if [ -z "${cron_exists}" ]; then
+        crontab -l >wpcron
+        echo "* * * * * bash /var/hostvn/menu/cronjob/wpcron >/dev/null 2>&1" >>wpcron
+        crontab wpcron
+        rm -rf wpcron
+    fi
+}
+
+domain=""
+ALERT=""
+
+_select_wordpress_website
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+wordpress_advanced_menu

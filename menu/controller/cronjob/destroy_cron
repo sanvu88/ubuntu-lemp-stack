@@ -1,0 +1,54 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_select_cron(){
+    echo "Lua chon Cronjob muon xoa ?"
+    PS3='Nhap lua chon cua ban (1 - 4): '
+    options=("Cronjob auto backup local" "Cronjob auto backup Google Drive" "Cronjob tuy chinh" "Cancel" )
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "Cronjob auto backup local") cron="backup_local"; break;;
+            "Cronjob auto backup Google Drive") cron="gg_drive"; break;;
+            "Cronjob tuy chinh") cron="custom"; break;;
+            "Cancel") cron="0"; break;;
+            *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}";;
+        esac
+    done
+}
+
+_destroy_cronjob(){
+    crontab -u root -l | grep -v "${cron}" | crontab -u root -
+}
+
+_run(){
+    _select_cron
+
+    if [ "${cron}" == "0" ]; then
+        printf "%s\n" "${RED}Huy xoa cronjob.${NC}"
+    elif [ "${cron}" == "custom" ]; then
+        clear
+        printf "Dang mo trinh soan thao nano.\n"
+        printf "Huong dan su dung nano: https://blog.hostvn.net/chia-se/huong-dan-su-dung-nano-tren-linux.html\n"
+        sleep 4
+        EDITOR=nano crontab -e
+    else
+        _destroy_cronjob
+        clear
+        printf "%s\n" "${GREEN}Xoa Cronjob thanh cong.${NC}"
+        echo ""
+    fi
+}
+
+cron=""
+_run
+menu_cronjob

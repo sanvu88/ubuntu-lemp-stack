@@ -1,0 +1,99 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_var() {
+    #https://www.howtoforge.com/tutorial/linux-grep-command/
+    #https://stackoverflow.com/a/6284370
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+}
+
+_backup_confirm() {
+    while true; do
+        read -r -p "Ban co muon backup du lieu truoc khi toi uu khong? (y/n) " prompt_backup
+        echo
+        if [[ "${prompt_backup}" =~ ^([yY])$ || "${prompt_backup}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_backup() {
+    _cd_dir /home/"${user}"/"${domain}"/public_html
+    if [[ -f "/home/backup/${CURRENT_DATE}/${domain}/${db_name}.sql" ]]; then
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${db_name}".sql
+    fi
+    if [[ -f "/home/backup/${CURRENT_DATE}/${domain}/${db_name}.sql.gz" ]]; then
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${db_name}".sql.gz
+    fi
+    if [[ ! -d "/home/backup/${CURRENT_DATE}/${domain}" ]]; then
+        mkdir -p /home/backup/"${CURRENT_DATE}"/"${domain}"
+    fi
+
+    _cd_dir /home/backup/"${CURRENT_DATE}"/"${domain}"
+    mysqldump -uadmin -p"${mysql_pwd}" "${db_name}" | gzip >"${db_name}".sql.gz
+}
+
+_optimize_db() {
+    _cd_dir /home/"${user}"/"${domain}"/public_html
+    wp db optimize --allow-root
+}
+
+_run() {
+    _set_var
+    check_is_wordpress "${user}" "${domain}"
+
+    if [ -z "${ALERT}" ]; then
+        _backup_confirm
+        if [[ "${prompt_backup}" =~ ^([yY])$ ]]; then
+            _make_backup_dir "${domain}"
+            _backup
+        fi
+        _optimize_db
+        if nginx -t; then
+            _restart_service
+            clear
+            printf "%s\n" "${GREEN}Toi uu database thanh cong.${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+}
+
+ALERT=""
+domain=""
+prompt_backup=""
+_select_wordpress_website
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_wordpress

@@ -1,0 +1,349 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+
+_confirm(){
+    while true
+    do
+        read -r -p "Ban co muon thay doi phien ban PHP mac dinh khong ? (y/n) " prompt_php1
+        echo
+        if [[ "${prompt_php1}" =~ ^([yY])$ || "${prompt_php1}" =~ ^([nN])$ ]];
+        then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_set_var(){
+    MODULE_LINK="https://scripts.hostvn.net/modules"
+    IG_BINARY_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "igbinary_version" | cut -f2 -d'=')
+    PHP_MEMCACHED_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "php_memcached_version" | cut -f2 -d'=')
+    PHP_REDIS_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "php_redis_version" | cut -f2 -d'=')
+    # shellcheck disable=SC2207
+    PHP_LIST=($(curl -s "${UPDATE_LINK}"/version | grep "php_list=" | cut -f2 -d'='))
+
+    PHP1_VERSION_OLD=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
+    PHP1_OLD_CLI_PATH="/etc/php/${PHP1_VERSION_OLD}/cli/conf.d"
+
+    PHP2_RELEASE=$(grep -w "php2_release" "${FILE_INFO}" | cut -f2 -d'=')
+    if [ "${PHP2_RELEASE}" == "yes" ]; then
+        PHP2_VERSION=$(grep -w "php2_version" "${FILE_INFO}" | cut -f2 -d'=')
+    fi
+}
+
+_check_duplicate_php(){
+    if [[ "${PHP1_VERSION_NEW}" == "${PHP1_VERSION_OLD}" ]]; then
+        ALERT=$(printf "%s\n" "${RED}Phien ban PHP mac dinh ban muon thay doi giong phien ban hien tai. Huy cai dat.${NC}")
+    fi
+
+    if [[ "${PHP2_RELEASE}" == "yes" && "${PHP1_VERSION_NEW}" == "${PHP2_VERSION}" ]]; then
+        ALERT=$(printf "%s\n" "${RED}Phien ban PHP mac dinh ban chon giong phien ban PHP 2. Huy cai dat.${NC}")
+    fi
+}
+
+_select_php_ver(){
+    while true; do
+        printf "%s\n" "Lua chon phien ban PHP moi"
+        PS3="Nhap vao lua chon cua ban: "
+        select opt in "${PHP_LIST[@]}"; do
+            case $opt in
+            "$opt")
+                PHP1_VERSION_NEW="${opt}"
+                break
+                ;;
+            esac
+        done
+        echo
+
+        if [[ " ${PHP_LIST[*]} " == *" ${PHP1_VERSION_NEW} "* ]]; then
+            break
+        else
+            clear
+            printf "${RED}%s${NC}\n" "Lua chon khong chinh xac. Vui long chon lai."
+        fi
+    done
+    sleep 1
+
+    PHP1_VERSION_NEW=${PHP1_VERSION_NEW//php/}
+    PHP1_NEW_CONFIG_PATH="/etc/php/${PHP1_VERSION_NEW}/fpm"
+    PHP1_NEW_INI_PATH="${PHP1_CONFIG_PATH}/conf.d"
+    PHP1_NEW_POOL_PATH="${PHP1_CONFIG_PATH}/pool.d"
+    PHP1_NEW_CLI_PATH="/etc/php/${PHP1_VERSION_NEW}/cli/conf.d"
+}
+
+_remove_old_php(){
+    apt -y remove php"${PHP1_VERSION_OLD}" php"${PHP1_VERSION_OLD}"-fpm php"${PHP1_VERSION_OLD}"-ldap php"${PHP1_VERSION_OLD}"-zip \
+        php"${PHP1_VERSION_OLD}"-cli php"${PHP1_VERSION_OLD}"-mysql php"${PHP1_VERSION_OLD}"-gd php"${PHP1_VERSION_OLD}"-xml \
+        php"${PHP1_VERSION_OLD}"-mbstring php"${PHP1_VERSION_OLD}"-common php"${PHP1_VERSION_OLD}"-soap php"${PHP1_VERSION_OLD}"-json \
+        php"${PHP1_VERSION_OLD}"-curl php"${PHP1_VERSION_OLD}"-bcmath php"${PHP1_VERSION_OLD}"-snmp php"${PHP1_VERSION_OLD}"-pspell \
+        php"${PHP1_VERSION_OLD}"-gmp php"${PHP1_VERSION_OLD}"-intl php"${PHP1_VERSION_OLD}"-imap php"${PHP1_VERSION_OLD}"-enchant \
+        php"${PHP1_VERSION_OLD}"-xmlrpc php"${PHP1_VERSION_OLD}"-tidy php"${PHP1_VERSION_OLD}"-opcache php"${PHP1_VERSION_OLD}"-cli \
+        php"${PHP1_VERSION_OLD}"-dev
+    apt autoremove -y
+}
+
+_install_php(){
+    apt -y install php"${PHP1_VERSION_NEW}" php"${PHP1_VERSION_NEW}"-fpm php"${PHP1_VERSION_NEW}"-ldap php"${PHP1_VERSION_NEW}"-zip \
+        php"${PHP1_VERSION_NEW}"-cli php"${PHP1_VERSION_NEW}"-mysql php"${PHP1_VERSION_NEW}"-gd php"${PHP1_VERSION_NEW}"-xml \
+        php"${PHP1_VERSION_NEW}"-mbstring php"${PHP1_VERSION_NEW}"-common php"${PHP1_VERSION_NEW}"-soap php"${PHP1_VERSION_NEW}"-json \
+        php"${PHP1_VERSION_NEW}"-curl php"${PHP1_VERSION_NEW}"-bcmath php"${PHP1_VERSION_NEW}"-snmp php"${PHP1_VERSION_NEW}"-pspell \
+        php"${PHP1_VERSION_NEW}"-gmp php"${PHP1_VERSION_NEW}"-intl php"${PHP1_VERSION_NEW}"-imap php"${PHP1_VERSION_NEW}"-enchant \
+        php"${PHP1_VERSION_NEW}"-xmlrpc php"${PHP1_VERSION_NEW}"-tidy php"${PHP1_VERSION_NEW}"-opcache php"${PHP1_VERSION_NEW}"-cli \
+        php"${PHP1_VERSION_NEW}"-dev php"${PHP1_VERSION_NEW}"-imagick
+}
+
+# Install igbinary
+_install_ig_binary(){
+    check_ig_binary_php1_old=$(php"${PHP1_VERSION_OLD}" -m | grep igbinary)
+
+    if [ -n "${check_ig_binary_php1_old}" ]; then
+        if [[ "${PHP1_VERSION_NEW}" == "5.6" ]]; then
+            IG_BINARY_VERSION="2.0.8"
+        fi
+
+        DIR="/opt/php-extension"
+        _cd_dir "${DIR}"
+        if [ -f "igbinary-${IG_BINARY_VERSION}.tgz" ]; then
+            rm -rf igbinary-"${IG_BINARY_VERSION}".tgz
+        fi
+        if [ -d "igbinary-${IG_BINARY_VERSION}" ]; then
+            rm -rf igbinary-"${IG_BINARY_VERSION}"
+        fi
+        wget "${MODULE_LINK}"/igbinary-"${IG_BINARY_VERSION}".tgz
+        tar -xvf igbinary-"${IG_BINARY_VERSION}".tgz
+        _cd_dir igbinary-"${IG_BINARY_VERSION}"
+        /usr/bin/phpize"${PHP1_VERSION_NEW}" && ./configure --with-php-config=/usr/bin/php-config"${PHP1_VERSION_NEW}"
+        make && make install
+        _cd_dir "${DIR}"
+        rm -rf igbinary-"${IG_BINARY_VERSION}" igbinary-"${IG_BINARY_VERSION}".tgz
+
+        cat >> "${PHP1_NEW_INI_PATH}/30-igbinary.ini" << EOF
+extension=igbinary.so
+EOF
+        cat >> "${PHP1_NEW_CLI_PATH}/30-igbinary.ini" << EOF
+extension=igbinary.so
+EOF
+    fi
+}
+
+_install_php_memcached(){
+    check_ig_binary_php1_new=$(php"${PHP1_VERSION_NEW}" -m | grep igbinary)
+
+    if [  -n "${check_ig_binary_php1_new}" ] && service_running 'memcached' ; then
+        if [[ "${PHP1_VERSION_NEW}" == "5.6" ]]; then
+            PHP_MEMCACHED_VERSION="2.2.0"
+        fi
+
+        DIR="/opt/php-extension"
+        _cd_dir "${DIR}"
+        if [ -f "memcached-${PHP_MEMCACHED_VERSION}.tgz" ]; then
+            rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz
+        fi
+        if [ -d "memcached-${PHP_MEMCACHED_VERSION}" ]; then
+            rm -rf memcached-"${PHP_MEMCACHED_VERSION}"
+        fi
+        wget "${MODULE_LINK}"/memcached-"${PHP_MEMCACHED_VERSION}".tgz
+        tar -xvf memcached-"${PHP_MEMCACHED_VERSION}".tgz
+        _cd_dir "memcached-${PHP_MEMCACHED_VERSION}"
+        /usr/bin/phpize"${PHP1_VERSION_NEW}" && ./configure --enable-memcached-igbinary --with-php-config=/usr/bin/php-config"${PHP1_VERSION_NEW}"
+        make && make install
+        cd "${DIR}" && rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz memcached-"${PHP_MEMCACHED_VERSION}"
+
+        cat >> "${PHP1_NEW_INI_PATH}/40-memcached.ini" << EOF
+extension=memcached.so
+EOF
+        cat >> "${PHP1_NEW_CLI_PATH}/40-memcached.ini" << EOF
+extension=memcached.so
+EOF
+    fi
+}
+
+_install_php_redis(){
+    check_ig_binary_php1_new=$(php"${PHP1_VERSION_NEW}" -m | grep igbinary)
+
+    if [  -n "${check_ig_binary_php1_new}" ] && service_running 'redis' ; then
+        if [[ "${PHP1_VERSION_NEW}" == "5.6" ]]; then
+            PHP_REDIS_VERSION="4.3.0"
+        fi
+
+        DIR="/opt/php-extension"
+        _cd_dir "${DIR}"
+        if [ -f "redis-${PHP_REDIS_VERSION}.tgz" ]; then
+            rm -rf redis-"${PHP_REDIS_VERSION}".tgz
+        fi
+        if [ -d "memcached-${PHP_REDIS_VERSION}" ]; then
+            rm -rf redis-"${PHP_REDIS_VERSION}"
+        fi
+        wget "${MODULE_LINK}"/redis-"${PHP_REDIS_VERSION}".tgz
+        tar -xvf redis-"${PHP_REDIS_VERSION}".tgz
+        _cd_dir "${DIR}/redis-${PHP_REDIS_VERSION}"
+        /usr/bin/phpize"${PHP1_VERSION_NEW}" && ./configure --enable-redis-igbinary --with-php-config=/usr/bin/php-config"${PHP1_VERSION_NEW}"
+        make && make install
+        cd "${DIR}" && rm -rf redis-"${PHP_REDIS_VERSION}".tgz redis-"${PHP_REDIS_VERSION}"
+
+        cat >> "${PHP1_NEW_INI_PATH}/50-redis.ini" << EOF
+extension=redis.so
+EOF
+        cat >> "${PHP1_NEW_CLI_PATH}/50-redis.ini" << EOF
+extension=redis.so
+EOF
+    fi
+}
+
+_php_global_config() {
+    if [[ -f "${PHP1_NEW_CONFIG_PATH}/php-fpm.conf" ]]; then
+        mv "${PHP1_NEW_CONFIG_PATH}"/php-fpm.conf "${PHP1_NEW_CONFIG_PATH}"/php-fpm.conf.orig
+    fi
+
+    cat >>"${PHP1_NEW_CONFIG_PATH}/php-fpm.conf" <<EOphp_fpm_conf
+;;;;;;;;;;;;;;;;;;;;;
+; FPM Configuration ;
+;;;;;;;;;;;;;;;;;;;;;
+
+include=${PHP1_NEW_POOL_PATH}/*.conf
+
+[global]
+pid = /run/php/php${PHP1_VERSION_NEW}-fpm.pid
+error_log = /var/log/php-fpm/error.log
+log_level = warning
+emergency_restart_threshold = 10
+emergency_restart_interval = 1m
+process_control_timeout = 10s
+daemonize = yes
+EOphp_fpm_conf
+
+    if [[ -f "${PHP1_NEW_POOL_PATH}/www.conf" ]]; then
+        mv "${PHP1_NEW_POOL_PATH}"/www.conf "${PHP1_NEW_POOL_PATH}"/www.conf.orig
+    fi
+    cat >>"${PHP1_NEW_POOL_PATH}/www.conf" <<EOwww_conf
+[www]
+listen = /var/run/php-fpm.sock;
+listen.allowed_clients = 127.0.0.1
+listen.owner = nginx
+listen.group = nginx
+listen.mode = 0660
+user = nginx
+group = nginx
+pm = ondemand
+pm.max_children = ${PM_MAX_CHILDREN}
+pm.max_requests = ${PM_MAX_REQUEST}
+pm.process_idle_timeout = 20
+;slowlog = /var/log/php-fpm/www-slow.log
+chdir = /
+php_admin_value[error_log] = /var/log/php-fpm/www-error.log
+php_admin_flag[log_errors] = on
+php_value[session.save_handler] = files
+php_value[session.save_path]    = /var/lib/php/session
+php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
+php_admin_value[disable_functions] = exec,system,passthru,shell_exec,proc_close,proc_open,dl,popen,show_source,posix_kill,posix_mkfifo,posix_getpwuid,posix_setpgid,posix_setsid,posix_setuid,posix_setgid,posix_seteuid,posix_setegid,posix_uname
+php_admin_value[open_basedir] = /usr/share/nginx/:/tmp/:/var/tmp/:/dev/urandom:/usr/share/php/:/dev/shm:/var/lib/php/sessions/
+security.limit_extensions = .php
+EOwww_conf
+
+    mkdir -p /var/lib/php/session
+    mkdir -p /var/lib/php/wsdlcache
+    mkdir -p /var/log/php-fpm
+    chown -R nginx:nginx /var/lib/php/session
+    chown -R nginx:nginx /var/lib/php/wsdlcache
+    chown -R nginx:nginx /var/log/php-fpm
+    chmod 755 /var/lib/php/session
+    chmod 755 /var/lib/php/wsdlcache
+}
+
+# Custom PHP Ini
+_hostvn_custom_ini(){
+    cp "${PHP1_OLD_CLI_PATH}"/00-hostvn-custom.ini "${PHP1_NEW_CLI_PATH}"/00-hostvn-custom.ini
+    cp "${PHP1_OLD_CLI_PATH}"/00-hostvn-custom.ini "${PHP1_NEW_INI_PATH}"/00-hostvn-custom.ini
+}
+
+_php_opcache(){
+    cat >> "${PHP1_NEW_INI_PATH}/10-opcache.ini" <<EOphp_opcache
+zend_extension=opcache.so
+opcache.enable=1
+opcache.memory_consumption=${OPCACHE_MEM}
+opcache.interned_strings_buffer=8
+opcache.max_wasted_percentage=5
+opcache.max_accelerated_files=65407
+opcache.revalidate_freq=180
+opcache.fast_shutdown=0
+opcache.enable_cli=0
+opcache.save_comments=1
+opcache.enable_file_override=1
+opcache.validate_timestamps=1
+opcache.blacklist_filename=${PHP1_NEW_INI_PATH}/opcache-default.blacklist
+EOphp_opcache
+
+    cat >> "${PHP1_NEW_INI_PATH}/opcache-default.blacklist" <<EOopcache_blacklist
+/home/*/*/public_html/wp-content/plugins/backwpup/*
+/home/*/*/public_html/wp-content/plugins/duplicator/*
+/home/*/*/public_html/wp-content/plugins/updraftplus/*
+/home/*/*/public_html/wp-content/cache/*
+/home/*/*/public_html/storage/*
+EOopcache_blacklist
+
+    rm -rf "${PHP1_NEW_CLI_PATH}"/10-opcache.ini
+    cp "${PHP1_NEW_INI_PATH}"/10-opcache.ini "${PHP1_NEW_CLI_PATH}"/10-opcache.ini
+}
+
+_write_info(){
+    sed -i '/php1_version=/d' "${FILE_INFO}"
+    echo "php1_version=${PHP1_VERSION_NEW}" >> "${FILE_INFO}"
+}
+
+_run(){
+    _set_var
+    _select_php_ver
+    if [ -z "${PHP1_VERSION_NEW}" ]; then
+        printf "%s\n" "${RED}Huy thay doi phien ban PHP.${NC}"
+    else
+        _check_duplicate_php
+
+        if [[ -z "${ALERT}" ]]; then
+            _install_php
+            _install_igbinary
+            _install_php_memcached
+            _install_php_redis
+            _php_global_config
+            _hostvn_custom_ini
+            _php_opcache
+
+            _remove_old_php
+
+            systemctl restart php"${PHP1_VERSION_NEW}"-fpm
+            systemctl enable php"${PHP1_VERSION_NEW}"-fpm
+            write_info
+
+            clear
+            printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+}
+
+prompt_php1=""
+PHP1_VERSION_NEW=""
+ALERT=""
+_confirm
+if [[ "${prompt_php1}" =~ ^([yY])$ ]]; then
+    _run
+else
+    printf "%s\n" "${GREEN}Ban da huy thay doi phien ban PHP.${NC}"
+fi
+
+lemp_php

@@ -1,0 +1,93 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+
+CHOICE=1
+php1_version=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
+php2_release=$(grep -w "php2_release" "${FILE_INFO}" | cut -f2 -d'=')
+if [ "${php2_release}" == "yes" ]; then
+    php2_version=$(grep -w "php2_version" "${FILE_INFO}" | cut -f2 -d'=')
+fi
+
+printf "%s==================================%s\n" "${GREEN}" "${NC}"
+printf "%s           PHP Manager            %s\n" "${GREEN}" "${NC}"
+printf "%s                                  %s\n" "${GREEN}" "${NC}"
+printf "%s PHP 1: ${php1_version}%s\n" "${GREEN}" "${NC}"
+if [ -n "${php2_version}" ]; then
+    printf "%s PHP 2: ${php2_version} %s\n" "${GREEN}" "${NC}"
+fi
+printf "%s==================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "%s1. Restart PHP              %s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${lang_configure_php_parameters}          %s\n" "${GREEN}" "${NC}"
+    printf "%s3. ${lang_change_default_php_ver}%s\n" "${GREEN}" "${NC}"
+    printf "%s4. ${lang_change_second_php_version}       %s\n" "${GREEN}" "${NC}"
+    printf "%s5. ${lang_install_php_2}    %s\n" "${GREEN}" "${NC}"
+    printf "%s6. Install ionCube    %s\n" "${GREEN}" "${NC}"
+    printf "%s7. On/Off Open Basedir    %s\n" "${GREEN}" "${NC}"
+    printf "%s8. Change PHP Process Manager type%s\n" "${GREEN}" "${NC}"
+    printf "%s====================================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        systemctl restart php"${php1_version}"-fpm
+        if [[ "${php2_release}" == "yes" ]]; then
+            systemctl restart php"${php2_version}"-fpm
+        fi
+        clear
+        printf "%s\n" "${GREEN}Restart PHP successfully.${NC}"
+        lemp_php
+        ;;
+    2)
+        clear
+        lemp_php_setting
+        ;;
+    3)
+        clear
+        lemp_php1_change
+        ;;
+    4)
+        clear
+        lemp_php2_change
+        ;;
+    5)
+        clear
+        lemp_install_php2
+        ;;
+    6)
+        clear
+        lemp_install_ioncube
+        ;;
+    7)
+        clear
+        lemp_php_open_basedir
+        ;;
+    8)
+        clear
+        lemp_php_process_manager
+        ;;
+    0)
+        clear
+        menu_lemp
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}${WRONG_OPTION}${NC}"
+        ;;
+    esac
+done

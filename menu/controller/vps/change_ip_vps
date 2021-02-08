@@ -1,0 +1,81 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_confirm(){
+    while true
+    do
+        read -r -p "Ban chac chan muon thay doi IP (y/n): " confirm_ip
+        echo
+        if [[ "$confirm_ip" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+            break
+        else
+            clear
+            printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_input_ip(){
+    while true
+    do
+        read -r -p "Nhap vao IP moi [0 = Thoat]: " new_ip
+        echo
+        if valid_ip "${new_ip}" || [ "${new_ip}" == "0" ]; then
+            break
+        else
+            clear
+            printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_run(){
+    sed -i "s/${IPADDRESS}/${new_ip}/g" "${NGINX_CONF_DIR}"/web_apps.conf
+    sed -i '/IPADDRESS/d' /var/hostvn/ipaddress
+    cat >> "/var/hostvn/ipaddress" <<EOchange_ip
+IPADDRESS="${new_ip}"
+EOchange_ip
+    if nginx -t; then
+        systemctl reload nginx
+        clear
+        printf "%s\n" "${GREEN}Doi IP VPS thanh cong.${NC}"
+        printf "%s\n" "${GREEN}Vui long thoat menu va mo lai de thay doi co hieu luc.${NC}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+new_ip=""
+confirm_ip=""
+
+_input_ip
+
+if [ "${new_ip}" == "0" ]; then
+    clear
+    printf "%s\n" "${RED}Huy thao tac.${NC}"
+else
+    _confirm
+    if [[ "$confirm_ip" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    fi
+fi
+
+menu_vps_manage

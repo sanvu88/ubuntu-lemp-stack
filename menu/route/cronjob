@@ -1,0 +1,54 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s==============================================%s\n" "${GREEN}" "${NC}"
+printf "%s                Cronjob manager               %s\n" "${GREEN}" "${NC}"
+printf "%s==============================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "%s1. ${lang_list_cronjob} %s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${lang_cronjob_backup_local} %s\n" "${GREEN}" "${NC}"
+    printf "%s3. ${lang_cronjob_backup_to_gg}%s\n" "${GREEN}" "${NC}"
+    printf "%s4. ${lang_custom_cronjob}%s\n" "${GREEN}" "${NC}"
+    printf "%s5. Delete cronjob%s\n" "${GREEN}" "${NC}"
+    printf "%s=============================================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1)
+            echo ""
+            cron=$(crontab -l)
+            printf "${RED}${cron}%s\n"
+            echo ""
+            ;;
+        2) clear; cron_backup_local ;;
+        3) clear; cron_backup_google ;;
+        4)
+            clear
+            printf "%s\n" "${lang_open_nano}."
+            printf "%s\n" "${lang_instructions_for_using_nano}: https://blog.hostvn.net/chia-se/huong-dan-su-dung-nano-tren-linux.html"
+            sleep 4
+            EDITOR=nano crontab -e
+            menu_cronjob
+            ;;
+        5) clear; cron_destroy ;;
+        0) clear; menu_primary ;;
+        *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

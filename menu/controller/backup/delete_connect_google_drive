@@ -1,0 +1,52 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/ipaddress
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_confirm_destroy() {
+    while true; do
+        read -r -p "Ban muon xoa remote ? (y/n) " prompt_destroy
+        echo
+        if [[ "${prompt_destroy}" =~ ^([yY])$ || "${prompt_destroy}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_run() {
+    _select_remote
+    if [ -z "${remote}" ]; then
+        clear
+        printf "%s\n" "${RED}Ban da huy hanh dong.${NC}"
+    else
+        rclone config delete "${remote}"
+        clear
+        printf "%s\n" "${GREEN}Xoa remote thanh cong.${NC}"
+    fi
+}
+
+prompt_destroy="n"
+remote=""
+_confirm_destroy
+
+if [[ -z "${prompt_destroy}" || "${prompt_destroy}" == "n" ]]; then
+    clear
+    printf "%s\n" "${RED}Huy thao tac.${NC}"
+else
+    _run
+fi
+
+menu_backup

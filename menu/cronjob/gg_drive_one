@@ -1,0 +1,45 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/ipaddress
+source /var/hostvn/.hostvn.conf
+source /var/hostvn/menu/helpers/variable_common
+
+for domains in "${BASH_DIR}"/ggdrive/*; do
+    domain=$(echo "$domains" | cut -f5 -d'/')
+    if [[ -f "${USER_DIR}/.${domain}.conf" ]]; then
+        user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        if [[ ! -d "/home/backup/${CURRENT_DATE}/${domain}" ]]; then
+            mkdir -p /home/backup/"${CURRENT_DATE}"/"${domain}"
+        fi
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/*
+        cd /home/backup/"${CURRENT_DATE}"/"${domain}" || exit
+        mysqldump -uadmin -p"${mysql_pwd}" "${db_name}" | gzip > "${db_name}".sql.gz
+
+        cd /home/"${user}"/"${domain}" || exit
+        if [[ ! -f "/home/${user}/${domain}/public_html/wp-config.php" && -f "/home/${user}/${domain}/wp-config.php" ]]; then
+            cp /home/"${user}"/"${domain}"/wp-config.php /home/"${user}"/"${domain}"/public_html/wp-config.php
+        fi
+        tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz "public_html" \
+                        --exclude "public_html/wp-content/cache" --exclude "public_html/storage/framework/cache" \
+                        --exclude "public_html/storage/framework/view"
+        rclone copy /home/backup/"${CURRENT_DATE}"/"${domain}" "${remote}":"${IPADDRESS}"/"${CURRENT_DATE}"/"${domain}" --bwlimit 30M >> /var/log/rclone.log 2>&1
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"
+        if [[ -f "/home/${user}/${domain}/public_html/wp-config.php" && -f "/home/${user}/${domain}/wp-config.php" ]]; then
+            rm -rf /home/"${user}"/"${domain}"/public_html/wp-config.php
+        fi
+    fi
+done
+
+rclone -q --min-age "${backup_num}"d delete "${remote}:$IPADDRESS" >> /var/log/rclone.log 2>&1
+rclone -q --min-age "${backup_num}"d rmdirs "${remote}:$IPADDRESS" >> /var/log/rclone.log 2>&1

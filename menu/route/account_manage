@@ -1,0 +1,61 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "${GREEN}%s${NC}\n" "================================"
+printf "  ${GREEN}%s${NC}\n" "${account_information}"
+printf "${GREEN}%s${NC}\n" "================================"
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "%s1. ${admin_tool_login_information}%s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${phpmyadmin_login_information}%s\n" "${GREEN}" "${NC}"
+    printf "%s3. SSH/SFTP Port%s\n" "${GREEN}" "${NC}"
+    printf "%s4. ${website_information}%s\n" "${GREEN}" "${NC}"
+#    printf "%s5. Doi mat khau tai khoan SFTP website%s\n" "${GREEN}" "${NC}"
+    printf "%s================================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        account_admin_tool
+        ;;
+    2)
+        clear
+        account_phpmyadmin
+        ;;
+    3)
+        clear
+        printf "\n"
+        printf "SSH/SFTP PORT      : %s\n" "${RED}${ssh_port}${NC}"
+        printf "\n"
+        menu_account
+        ;;
+    4)
+        clear
+        account_website_info
+        ;;
+    0)
+        clear
+        menu_primary
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}${WRONG_OPTION}${NC}"
+        ;;
+    esac
+done

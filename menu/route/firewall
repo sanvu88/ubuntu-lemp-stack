@@ -1,0 +1,128 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s=====================================%s\n" "${GREEN}" "${NC}"
+printf "%s           Quan ly Firewall          %s\n" "${GREEN}" "${NC}"
+printf "%s=====================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "${GREEN}%s${NC}\n" "1. Open Port"
+    printf "${GREEN}%s${NC}\n" "2. ${lang_blocked_ip_list}"
+    printf "${GREEN}%s${NC}\n" "3. Block IP"
+    printf "${GREEN}%s${NC}\n" "4. Unblock IP"
+#    printf "${GREEN}%s${NC}\n" "5. Allow IP"
+    printf "${GREEN}%s${NC}\n" "5. Restart Firewall"
+    printf "${GREEN}%s${NC}\n" "6. Disable Firewall"
+    printf "${GREEN}%s${NC}\n" "7. Enable Firewall"
+    #printf "${GREEN}%s${NC}\n" "8. Block country"
+    printf "%s ============================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) clear;
+            read -r -p "${lang_input_port}: " port
+            if [[ ${port} =~ ^-?[0-9]+$ ]]; then
+                ufw allow "${port}"/tcp
+                systemctl restart ufw
+                notify="${GREEN}${lang_open_port_success}.${NC}"
+            else
+                notify="${RED}${lang_port_wrong_format}${NC}"
+            fi
+
+            clear
+            printf "%s\n" "${notify}"
+            menu_firewall
+            ;;
+        2)
+            clear
+            printf "%s\n" "${RED}${lang_blocked_ip_list}${NC}"
+            printf "\n"
+            fail2ban-client status | grep "Jail list:" | sed "s/ //g" | awk '{split($2,a,",");for(i in a) system("fail2ban-client status " a[i])}' | grep "Status\|IP list"
+            printf "\n"
+            menu_firewall
+            ;;
+        3)
+            read -r -p "${lang_enter_ip}: " ip
+            fail2ban-client set sshd banip "${ip}"
+            fail2ban-client set nginx-http-aut banip "${ip}"
+            clear
+            printf "%s\n" "${GREEN}${lang_block_ip_success}.${NC}"
+            echo ""
+            menu_firewall
+            ;;
+        4)
+            read -r -p "${lang_enter_ip}: " ip
+            fail2ban-client set sshd unbanip "${ip}"
+            fail2ban-client set nginx-http-auth unbanip "${ip}"
+            clear
+            printf "%s\n" "${GREEN}${lang_unblock_ip_success}.${NC}"
+            echo ""
+            menu_firewall
+            ;;
+#        5)
+#            read -r -p "Nhap vao IP muon allow: " ip
+#            sed -i "/#ignoreip = 127/a ignoreip = ${ip}" /etc/fail2ban/jail.local
+#            clear
+#            printf "%s\n" "${GREEN}Allow IP thanh cong.${NC}"
+#            echo ""
+#            menu_firewall
+#            ;;
+        5)
+            systemctl restart ufw
+            systemctl restart fail2ban
+            clear
+            printf "%s\n" "${GREEN}${lang_restart_firewall_success}.${NC}"
+            echo ""
+            menu_firewall
+            ;;
+        6)
+            systemctl stop ufw
+            systemctl disable ufw
+            systemctl stop fail2ban
+            systemctl disable fail2ban
+            ufw disable << EOF
+y
+EOF
+            clear
+            printf "%s\n" "${GREEN}Tat Firewall thanh cong.${NC}"
+            echo ""
+            menu_firewall
+            ;;
+        7)
+            systemctl start ufw
+            systemctl enable ufw
+            systemctl restart fail2ban
+            systemctl enable fail2ban
+            ufw enable << EOF
+y
+EOF
+            clear
+            printf "%s\n" "${GREEN}${lang_stop_firewall_success}.${NC}"
+            echo ""
+            menu_firewall
+            ;;
+#        8)
+#            clear
+#            block_country
+#            menu_firewall
+#            ;;
+        0) clear; menu_primary ;;
+        *) clear; printf "%s\n"  "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

@@ -1,0 +1,48 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_clear_cache() {
+    printf "${GREEN}%s\n${NC}" "Dang xoa cache. Vui long doi..."
+    sleep 1
+    if service_running 'redis'; then
+        systemctl restart redis
+    fi
+    if service_running 'memcached'; then
+        systemctl restart memcached
+    fi
+
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        _cd_dir "${USER_DIR}"
+        for entry_domain in .*.conf; do
+            domain=${entry_domain/.}
+            domain=${domain//.conf}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [ -d "/home/${user}/${domain}/ngx_pagespeed" ]; then
+                rm -rf /home/"${user}"/"${domain}"/ngx_pagespeed/*
+            fi
+
+            if [ -d "/home/${user}/${domain}/cache" ]; then
+                rm -rf /home/"${user}"/"${domain}"/cache/*
+            fi
+        done
+    fi
+
+    _restart_service
+    clear
+    printf "%s\n" "${GREEN}Xoa cache thanh cong.${NC}"
+}
+
+_clear_cache
+menu_cache

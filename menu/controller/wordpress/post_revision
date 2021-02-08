@@ -1,0 +1,71 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_backup_confirm() {
+    while true; do
+        read -r -p "Ban co muon backup Database khong? (y/n) " prompt_backup_db
+        echo
+        if [[ "${prompt_backup_db}" =~ ^([yY])$ || "${prompt_backup_db}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_backup_db() {
+    if [[ "${prompt_backup_db}" =~ ^([yY])$ ]]; then
+        db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        _cd_dir /home/backup/"${CURRENT_DATE}"/"${domain}"
+        if [ ! -d "/home/backup/${CURRENT_DATE}/${domain}" ]; then
+            mkdir -p "/home/backup/${CURRENT_DATE}/${domain}"
+        fi
+        if [ -f "/home/backup/${CURRENT_DATE}/${domain}/${db_name}.sql.gz" ]; then
+            rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${db_name}".sql.gz
+        fi
+        mysqldump -uadmin -p"${mysql_pwd}" "${db_name}" | gzip >"${db_name}".sql.gz
+    fi
+}
+
+_run() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    _backup_confirm
+    _backup_db
+
+    cd_dir /home/"${user}"/"${domain}"/public_html
+    wp revisions clean -1 --allow-root
+    clear
+    printf "%s\n" "${GREEN}Xoa post revisions thanh cong.${NC}"
+}
+
+domain=""
+prompt_backup_db="y"
+
+_select_wordpress_website
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_wordpress

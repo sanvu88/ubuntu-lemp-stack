@@ -1,0 +1,163 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_webp_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Disable Webp Express" "Enable Webp Express" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Disable Webp Express")
+            action="disable"
+            break
+            ;;
+        "Enable Webp Express")
+            action="enable"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai." ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_site_enable_webp() {
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            check_webp_include=$(grep -w "webp_express" "${VHOST_DIR}/${domain}.conf")
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && -z "${check_webp_include}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Tat ca cac website WordPress da duoc thiet lap Webp Express.${NC}")
+        else
+            echo "Select website"
+            PS3="${INPUT_SELECT} [0 = Exit]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_site_disable_webp() {
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            check_webp_include=$(grep -w "webp_express" "${VHOST_DIR}/${domain}.conf")
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && -n "${check_webp_include}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website WordPress duoc thiet lap Webp Express.${NC}")
+        else
+            echo "Select website"
+            PS3="${INPUT_SELECT} [0 = Exit]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_enable_webp(){
+    sed -i "/server_name/a include /etc/nginx/wordpress/webp_express.conf;" "${VHOST_DIR}"/"${domain}".conf
+    notify="${GREEN}Bat cau hinh Webp Express thanh cong.${NC}"
+}
+
+_disable_webp(){
+    sed -i '/webp_express/d' "${VHOST_DIR}"/"${domain}".conf
+    notify="${GREEN}Tat cau hinh Webp Express thanh cong.${NC}"
+}
+
+_run(){
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    if [ "${action}" == "enable" ]; then
+        _enable_webp
+    fi
+    if [ "${action}" == "disable" ]; then
+        _disable_webp
+    fi
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "%s\n" "${notify}"
+    else
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+action=""
+
+_select_webp_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+else
+    if [ "${action}" == "enable" ]; then
+        _select_site_enable_webp
+    fi
+
+    if [ "${action}" == "disable" ]; then
+        _select_site_disable_webp
+    fi
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            _run
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+menu_wordpress

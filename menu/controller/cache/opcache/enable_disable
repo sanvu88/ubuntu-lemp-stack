@@ -1,0 +1,65 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_opcache_status() {
+    #https://www.howtoforge.com/tutorial/linux-grep-command/
+    #https://stackoverflow.com/a/6284370
+    opcache1_status=$(grep -w "opcache.enable" "/etc/php/${php1_version}/fpm/conf.d/10-opcache.ini" | cut -f2 -d'=')
+    if [ "${php2_release}" == "yes" ]; then
+        opcache2_status=$(grep -w "opcache.enable" "/etc/php/${php2_version}/fpm/conf.d/10-opcache.ini" | cut -f2 -d'=')
+    fi
+}
+
+_change_opcache_php1() {
+    if [[ ${opcache1_status} -eq 1 ]]; then
+        sed -i 's|opcache.enable=1|opcache.enable=0|g' /etc/php/"${php1_version}"/fpm/conf.d/10-opcache.ini
+        notify="Tat Opcache thanh cong."
+    else
+        sed -i 's|opcache.enable=0|opcache.enable=1|g' /etc/php/"${php1_version}"/fpm/conf.d/10-opcache.ini
+        notify="Bat Opcache thanh cong."
+    fi
+}
+
+_change_opcache_php2() {
+    if [[ ${opcache2_status} -eq 1 ]]; then
+        sed -i 's|opcache.enable=1|opcache.enable=0|g' /etc/php/"${php2_version}"/fpm/conf.d/10-opcache.ini
+    else
+        sed -i 's|opcache.enable=0|opcache.enable=1|g' /etc/php/"${php2_version}"/fpm/conf.d/10-opcache.ini
+    fi
+}
+
+_run() {
+    _set_opcache_status
+
+    _change_opcache_php1
+
+    if [ "${php2_release}" == "yes" ]; then
+        _change_opcache_php2
+    fi
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "${GREEN}%s${NC}\n" "${notify}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+_run
+cache_manage_opcache

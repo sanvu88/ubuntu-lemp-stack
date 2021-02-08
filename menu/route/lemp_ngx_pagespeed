@@ -1,0 +1,76 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "${GREEN}%s${NC}\n" "======================="
+printf "${GREEN}%s${NC}\n" "    Nginx Pagespeed    "
+printf "${GREEN}%s${NC}\n" "======================="
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "${GREEN}%s${NC}\n" "1. On/Off Ngx_pagespeed"
+#    printf "${GREEN}%s${NC}\n" "2. Gop JS"
+    printf "${GREEN}%s${NC}\n" "2. Combine (Gop) CSS"
+    printf "${GREEN}%s${NC}\n" "3. Minify CSS"
+    printf "${GREEN}%s${NC}\n" "4. Minify JS"
+    printf "${GREEN}%s${NC}\n" "5. Minify HTML"
+    printf "${GREEN}%s${NC}\n" "6. Compress Image"
+    printf "${GREEN}%s${NC}\n" "7. ${lang_convert_image}"
+    printf "${GREEN}%s${NC}\n" "==================="
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        ngx_pagespeed_on_off
+        ;;
+#    2)
+#        clear
+#        ngx_pagespeed_combine_js
+#        ;;
+    2)
+        clear
+        ngx_pagespeed_combine_css
+        ;;
+    3)
+        clear
+        ngx_pagespeed_minify_css
+        ;;
+    4)
+        clear
+        ngx_pagespeed_minify_js
+        ;;
+    5)
+        clear
+        ngx_pagespeed_minify_html
+        ;;
+    6)
+        clear
+        ngx_pagespeed_compress_image
+        ;;
+    7)
+        clear
+        ngx_pagespeed_convert_img_to_webp
+        ;;
+    0)
+        clear
+        menu_primary
+        ;;
+    *)
+        clear
+        printf "${RED}%s${NC}\n" "${WRONG_OPTION}"
+        ;;
+    esac
+done

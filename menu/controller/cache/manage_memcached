@@ -1,0 +1,117 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC1091
+source /var/hostvn/menu/route/parent
+source /var/hostvn/menu/validate/rule
+
+CHOICE=1
+memcached_status=$(pgrep memcached >/dev/null && printf "%s\n" "${GREEN}Hoat dong${NC}" || printf "%s\n" "${GREEN}Khong hoat dong${NC}")
+if [ ! -f "/etc/memcached.conf" ]; then
+    memcached_status="Chua cai dat"
+fi
+
+printf "${GREEN}%s${NC}\n" "====================="
+printf "${GREEN}%s${NC}\n" "Quan ly Memcached"
+printf "%s\n" "${GREEN}Trang thai:${NC} ${memcached_status}"
+printf "%s=====================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "${GREEN}%s${NC}\n" "1. Mo Memcached"
+    printf "${GREEN}%s${NC}\n" "2. Tat Memcached"
+    printf "${GREEN}%s${NC}\n" "3. Cai dat Memcached"
+    printf "${GREEN}%s${NC}\n" "4. Go bo Memcached"
+    printf "=====================\n"
+    read -r -p " Nhap vao lua chon cua ban [0 = Thoat] " CHOICE
+
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        if [ ! -f "/etc/memcached.conf" ]; then
+            clear
+            printf "${RED}%s${NC}\n" "Memcached chua duoc cai dat."
+        elif service_running "redis"; then
+            clear
+            printf "${RED}%s${NC}\n" "Redis dang hoat dong. Ban chi nen su dung mot loai cache."
+        elif service_running "memcached"; then
+            clear
+            printf "${GREEN}%s${NC}\n" "Memcached dang hoat dong."
+        else
+            printf "${GREEN}%s${NC}\n" "Dang tien hanh mo Memcached..."
+            sleep 2
+            systemctl start memcached
+            systemctl enable memcached
+            cron_exists=$(crontab -l | grep -w 'memcached')
+            if [ -z "${cron_exists}" ]; then
+                crontab -l >clear_memcached
+                echo "23 */37 * * * systemctl restart memcached >/dev/null 2>&1" >>clear_memcached
+                crontab clear_memcached
+                rm -rf clear_memcached
+            fi
+            clear
+            printf "${GREEN}%s${NC}\n" "Da bat Memcached."
+        fi
+
+        cache_manage_memcached
+        ;;
+    2)
+        if service_running "memcached"; then
+            printf "${GREEN}%s${NC}\n" "Dang tien hanh tat Memcached..."
+            sleep 1
+            systemctl stop memcached
+            systemctl disable memcached
+            cron_exists=$(crontab -l | grep -w 'memcached')
+            if [ -n "${cron_exists}" ]; then
+                crontab -u root -l | grep -v "memcached" | crontab -u root -
+            fi
+            clear
+            printf "${GREEN}%s${NC}\n" "Da tat Memcached."
+        else
+            clear
+            printf "${RED}%s${NC}\n" "Memcached hien khong hoat dong hoac chua duoc cai dat."
+        fi
+
+        cache_manage_memcached
+        ;;
+    3) cache_install_memcached ;;
+    4)
+        if [ -f "/etc/memcached.conf" ]; then
+            systemctl stop memcached
+            apt-get purge --auto-remove memcached -y
+            apt autoremove -y
+            rm -rf /etc/memcached.conf
+            cron_exists=$(crontab -l | grep -w 'memcached')
+            if [ -n "${cron_exists}" ]; then
+                crontab -u root -l | grep -v "memcached" | crontab -u root -
+            fi
+            systemctl daemon-reload
+            clear
+            printf "${GREEN}%s\n${NC}" "Go bo Memcached thanh cong."
+        else
+            clear
+            printf "${GREEN}%s\n${NC}" "Memcached chua duoc cai dat."
+        fi
+        cache_manage_memcached
+        ;;
+    0)
+        clear
+        menu_cache
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long chon lai.${NC}"
+        ;;
+    esac
+done

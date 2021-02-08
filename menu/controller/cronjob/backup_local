@@ -1,0 +1,105 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_time(){
+    echo "Lua chon thoi gian ?"
+    PS3='Nhap lua chon cua ban (1-4): '
+    options=("Backup 1 lan/ngay" "Backup 1 lan/tuan" "Backup 1 lan/thang" "Backup 1 lan/nam" "Huy tao cronjob")
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "Backup 1 lan/ngay") time="@midnight"; break;;
+            "Backup 1 lan/tuan") time="@weekly"; break;;
+            "Backup 1 lan/thang") time="@monthly"; break;;
+            "Backup 1 lan/nam") time="@yearly"; break;;
+            "Huy tao cronjob") time="0"; break;;
+            *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}";;
+        esac
+    done
+}
+
+_input_backup_num(){
+    echo "Nhap so ban backup ban muon luu tru: "
+    echo "VD: 14 - Se luu 14 ban backup gan nhap - Cac ban cu hon se bi xoa"
+
+    while true
+    do
+        read -r -p "Nhap vao lua chon cua ban [0 = Thoat]:" backup_num
+        echo
+        if [[ "${backup_num}" =~ ^[0-9]+$ ]]; then
+            break
+        else
+            printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_set_backup_time(){
+    _input_backup_num
+    if [[ "${time}" == "@weekly" ]]; then
+        backup_num=$((backup_num*7))
+    elif [[ "${time}" == "@monthly" ]]; then
+        backup_num=$((backup_num*30))
+    elif [[ "${time}" == "@yearly" ]]; then
+        backup_num=$((backup_num*365))
+    else
+        backup_num="${backup_num}"
+    fi
+
+    sed -i '/backup_num=/d' "${FILE_INFO}"
+    echo "backup_num=${backup_num}" >> "${FILE_INFO}"
+}
+
+_create_cron(){
+    cron_exists=$(crontab -l | grep -w 'backup_local')
+    if [ -z "${cron_exists}" ]; then
+        crontab -l > backuplocal
+        echo "${time} bash /var/hostvn/menu/cronjob/backup_local >/dev/null 2>&1" >> backuplocal
+        crontab backuplocal
+        rm -rf backuplocal
+    fi
+
+    clear
+    printf "%s\n" "${GREEN}Tao cronjob thanh cong.${NC}"
+}
+
+_run(){
+    _select_time
+    if [ "${time}" == "0" ]; then
+        clear
+        printf "%s\n" "${RED}Huy tao cronjob.${NC}"
+    else
+        _set_backup_time
+        if [ "${backup_num}" == "0" ]; then
+            clear
+            printf "%s\n" "${RED}Huy tao cronjob.${NC}"
+        else
+            _create_cron
+        fi
+    fi
+}
+
+time=""
+backup_num=""
+cron_exists=$(crontab -l | grep -w 'backup_local')
+
+if [ -z "${cron_exists}" ]; then
+    _run
+else
+    clear
+    printf "%s\n" "${RED}Cronjob da ton tai.${NC}"
+fi
+
+menu_cronjob

@@ -1,0 +1,362 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+source /var/hostvn/menu/helpers/mysql_variable
+
+_confirm(){
+    clear
+    while true
+    do
+        read -r -p "Ban muon cap nhat lai thong so SCRIPT ? (y/n) " prompt_update
+        echo
+        if [[ "${prompt_update}" =~ ^([yY])$ ]] || [[ "${prompt_update}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac, vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_config_my_cnf(){
+    mv /etc/mysql/my.cnf /etc/mysql/my.cnf."${CURRENT_DATE}"
+    cat >>"/etc/mysql/my.cnf" <<EOmy_cnf
+[client-server]
+socket = /run/mysqld/mysqld.sock
+
+[mysql]
+max_allowed_packet = ${max_allowed_packet}
+
+[mysqld]
+local-infile=0
+#ignore-db-dir=lost+found
+character-set-server  = utf8
+collation-server      = utf8_general_ci
+datadir=/var/lib/mysql
+socket = /run/mysqld/mysqld.sock
+
+#bind-address=127.0.0.1
+
+tmpdir=/tmp
+
+innodb=ON
+#skip-federated
+#skip-pbxt
+#skip-pbxt_statistics
+#skip-archive
+#skip-name-resolve
+#old_passwords
+back_log = ${back_log}
+max_connections = ${max_connections}
+key_buffer_size = ${key_buffer_size}
+myisam_sort_buffer_size = ${myisam_sort_buffer_size}
+myisam_max_sort_file_size = ${myisam_max_sort_file_size}
+join_buffer_size = ${join_buffer_size}
+read_buffer_size = ${read_buffer_size}
+sort_buffer_size = ${sort_buffer_size}
+table_definition_cache = ${table_definition_cache}
+table_open_cache = ${table_open_cache}
+thread_cache_size = ${thread_cache_size}
+wait_timeout = 1800
+connect_timeout = 10
+tmp_table_size = ${tmp_table_size}
+max_heap_table_size = ${max_heap_table_size}
+max_allowed_packet = ${max_allowed_packet}
+#max_seeks_for_key = 4294967295
+#group_concat_max_len = 1024
+max_length_for_sort_data = 1024
+net_buffer_length = ${net_buffer_length}
+max_connect_errors = 100000
+concurrent_insert = 2
+read_rnd_buffer_size = ${read_rnd_buffer_size}
+bulk_insert_buffer_size = 8M
+# query_cache boost for MariaDB >10.1.2+
+query_cache_limit = ${query_cache_limit}
+query_cache_size = ${query_cache_size}
+query_cache_type = 1
+query_cache_min_res_unit = 2K
+query_prealloc_size = 262144
+query_alloc_block_size = 65536
+transaction_alloc_block_size = 8192
+transaction_prealloc_size = 4096
+default-storage-engine = InnoDB
+
+log_warnings=1
+slow_query_log=0
+long_query_time=1
+slow_query_log_file=/var/lib/mysql/slowq.log
+log-error=/var/log/mysql/mysqld.log
+
+# innodb settings
+#innodb_large_prefix=1
+innodb_purge_threads=1
+#innodb_file_format = Barracuda
+innodb_file_per_table = 1
+innodb_open_files = ${innodb_open_files}
+innodb_data_file_path= ibdata1:10M:autoextend
+innodb_buffer_pool_size = ${innodb_buffer_pool_size}
+
+## https://mariadb.com/kb/en/mariadb/xtradbinnodb-server-system-variables/#innodb_buffer_pool_instances
+#innodb_buffer_pool_instances=2
+
+#innodb_log_files_in_group = 2
+innodb_log_file_size = ${innodb_log_file_size}
+innodb_log_buffer_size = ${innodb_log_buffer_size}
+innodb_flush_log_at_trx_commit = 2
+innodb_thread_concurrency = 0
+innodb_lock_wait_timeout=50
+innodb_flush_method = O_DIRECT
+#innodb_support_xa=1
+
+# 200 * # DISKS
+innodb_io_capacity = ${innodb_io_capacity}
+innodb_io_capacity_max = 2000
+innodb_read_io_threads = ${innodb_read_io_threads}
+innodb_write_io_threads = 2
+innodb_flush_neighbors = 1
+
+# mariadb settings
+[mariadb]
+#thread-handling = pool-of-threads
+#thread-pool-size= 20
+#mysql --port=3307 --protocol=tcp
+#extra-port=3307
+#extra-max-connections=1
+
+userstat = 0
+key_cache_segments = 1
+aria_group_commit = none
+aria_group_commit_interval = 0
+aria_log_file_size = ${aria_log_file_size}
+aria_log_purge_type = immediate
+aria_pagecache_buffer_size = ${aria_pagecache_buffer_size}
+aria_sort_buffer_size = ${aria_sort_buffer_size}
+
+[mariadb-5.5]
+innodb_file_format = Barracuda
+innodb_file_per_table = 1
+
+#ignore_db_dirs=
+query_cache_strip_comments=0
+
+innodb_read_ahead = linear
+innodb_adaptive_flushing_method = estimate
+innodb_flush_neighbor_pages = 1
+innodb_stats_update_need_lock = 0
+innodb_log_block_size = 512
+
+log_slow_filter =admin,filesort,filesort_on_disk,full_join,full_scan,query_cache,query_cache_miss,tmp_table,tmp_table_on_disk
+
+[mysqld_safe]
+socket=/var/lib/mysql/mysql.sock
+log-error=/var/log/mysqld/mysqld.log
+#nice = -5
+open-files-limit = 8192
+
+[mysqldump]
+quick
+max_allowed_packet = ${max_allowed_packet}
+
+[myisamchk]
+tmpdir=/tmp
+key_buffer = ${key_buffer}
+sort_buffer = ${sort_buffer}
+read_buffer = ${read_buffer}
+write_buffer = ${write_buffer}
+
+[mysqlhotcopy]
+interactive-timeout
+
+[mariadb-10.0]
+innodb_file_format = Barracuda
+innodb_file_per_table = 1
+
+# 2 variables needed to switch from XtraDB to InnoDB plugins
+#plugin-load=ha_innodb
+#ignore_builtin_innodb
+
+## MariaDB 10 only save and restore buffer pool pages
+## warm up InnoDB buffer pool on server restarts
+innodb_buffer_pool_dump_at_shutdown=1
+innodb_buffer_pool_load_at_startup=1
+innodb_buffer_pool_populate=0
+## Disabled settings
+performance_schema=OFF
+innodb_stats_on_metadata=OFF
+innodb_sort_buffer_size=2M
+innodb_online_alter_log_max_size=128M
+query_cache_strip_comments=0
+log_slow_filter =admin,filesort,filesort_on_disk,full_join,full_scan,query_cache,query_cache_miss,tmp_table,tmp_table_on_disk
+EOmy_cnf
+}
+
+_php_global_config(){
+    sed -i '/pm.max_children/d' /etc/php/"${php1_version}"/fpm/pool.d/www.conf
+    sed -i '/pm.max_requests/d' /etc/php/"${php1_version}"/fpm/pool.d/www.conf
+    {
+        echo "pm.max_children = ${PM_MAX_CHILDREN}"
+        echo "pm.max_requests = ${PM_MAX_REQUEST}"
+    } >> /etc/php/"${php1_version}"/fpm/pool.d/www.conf
+}
+
+_php_global_config_2(){
+    sed -i '/pm.max_children/d' /etc/php/"${php2_version}"/fpm/pool.d/www.conf
+    sed -i '/pm.start_servers/d' /etc/php/"${php2_version}"/fpm/pool.d/www.conf
+
+    {
+        echo "pm.max_children = ${PM_MAX_CHILDREN}"
+        echo "pm.max_requests = ${PM_MAX_REQUEST}"
+    } >> /etc/php/"${php2_version}"/fpm/pool.d/www.conf
+}
+
+# Custom PHP Ini
+_hostvn_custom_ini(){
+    sed -i '/realpath_cache_size/d' /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/realpath_cache_ttl/d' /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/memory_limit/d' /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/upload_max_filesize/d' /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/post_max_size/d' /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/max_input_vars/d' /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+    {
+        echo "realpath_cache_size = ${PHP_REAL_PATH_LIMIT}"
+        echo "realpath_cache_ttl = ${PHP_REAL_PATH_TTL}"
+        echo "memory_limit = ${MAX_MEMORY}M"
+        echo "upload_max_filesize = ${MAX_MEMORY}M"
+        echo "post_max_size = ${MAX_MEMORY}M"
+        echo "max_input_vars = ${MAX_INPUT_VARS}"
+    } >> /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini
+
+    rm -rf /etc/php/"${php1_version}"/cli/conf.d/00-hostvn-custom.ini
+    cp /etc/php/"${php1_version}"/fpm/conf.d/00-hostvn-custom.ini /etc/php/"${php1_version}"/cli/conf.d/00-hostvn-custom.ini
+}
+
+_hostvn_custom_ini_2(){
+    sed -i '/realpath_cache_size/d' /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/realpath_cache_ttl/d' /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/memory_limit/d' /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/upload_max_filesize/d' /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/post_max_size/d' /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+    sed -i '/max_input_vars/d' /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+    {
+        echo "realpath_cache_size = ${PHP_REAL_PATH_LIMIT}"
+        echo "realpath_cache_ttl = ${PHP_REAL_PATH_TTL}"
+        echo "memory_limit = ${MAX_MEMORY}M"
+        echo "upload_max_filesize = ${MAX_MEMORY}M"
+        echo "post_max_size = ${MAX_MEMORY}M"
+        echo "max_input_vars = ${MAX_INPUT_VARS}"
+    } >> /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini
+
+    rm -rf /etc/php/"${php2_version}"/cli/conf.d/00-hostvn-custom.ini
+    cp /etc/php/"${php2_version}"/fpm/conf.d/00-hostvn-custom.ini /etc/php/"${php2_version}"/cli/conf.d/00-hostvn-custom.ini
+}
+
+# Config PHP Opcache
+_php_opcache(){
+    sed -i '/memory_consumption=/d' /etc/php/"${php1_version}"/fpm/conf.d/10-opcache.ini
+    echo "opcache.memory_consumption=${OPCACHE_MEM}" >> /etc/php/"${php1_version}"/fpm/conf.d/10-opcache.ini
+
+    rm -rf /etc/php/"${php1_version}"/cli/conf.d/10-opcache.ini
+    cp /etc/php/"${php1_version}"/fpm/conf.d/10-opcache.ini /etc/php/"${php1_version}"/cli/conf.d/10-opcache.ini
+}
+
+_php_opcache_2(){
+    sed -i '/memory_consumption=/d' /etc/php/"${php2_version}"/fpm/conf.d/10-opcache.ini
+    echo "opcache.memory_consumption=${OPCACHE_MEM}" >> /etc/php/"${php2_version}"/fpm/conf.d/10-opcache.ini
+
+    rm -rf /etc/php/"${php2_version}"/cli/conf.d/10-opcache.ini
+    cp /etc/php/"${php2_version}"/fpm/conf.d/10-opcache.ini /etc/php/"${php2_version}"/cli/conf.d/10-opcache.ini
+}
+
+# Change php user config
+_change_php_user(){
+    _cd_dir "${USER_DIR}"
+    for entry in .*.conf; do
+        domain=${entry/.}
+        domain=${domain//.conf}
+        user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        php_version=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        php_pm=$(grep -w "php_pm" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+        php_conf_file="/etc/php/${php_version}/fpm/pool.d/${domain}.conf"
+        SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
+        ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
+        TMP_DIR="/home/${user}/tmp"
+        SESSION_PATH="/home/${user}/php/session"
+        CACHE_DIR="/home/${user}/php/wsdlcache"
+
+        rm -rf "${php_conf_file}"
+
+        if [ -f "${CUSTOM_DIR}/php_${php_pm}.conf" ]; then
+            cp "${CUSTOM_DIR}"/php_"${php_pm}".conf "${php_conf_file}"
+        else
+            cp "${TEMPLATE_DIR}"/php_"${php_pm}".conf "${php_conf_file}"
+        fi
+
+        sed -i "s|WEBSITE_USER|${user}|g" "${php_conf_file}"
+        sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${php_conf_file}"
+        sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${php_conf_file}"
+        sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${php_conf_file}"
+        sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${php_conf_file}"
+        sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${php_conf_file}"
+        sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${php_conf_file}"
+        sed -i "s|TMP_DIR|${TMP_DIR}|g" "${php_conf_file}"
+        sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${php_conf_file}"
+        sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${php_conf_file}"
+        sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${php_conf_file}"
+    done
+}
+
+_run(){
+    _config_my_cnf
+
+    _php_global_config
+    _php_opcache
+    _hostvn_custom_ini
+
+    if [ "${php2_release}" == "yes" ]; then
+        _php_global_config_2
+        _hostvn_custom_ini_2
+        _php_opcache_2
+    fi
+
+    _change_php_user
+
+    if nginx -t; then
+        systemctl restart nginx
+        systemctl restart php"${php1_version}"-fpm
+        if [ "${php2_release}" == "yes" ]; then
+            systemctl restart php"${php2_version}"-fpm
+        fi
+        systemctl restart mariadb
+        clear
+        printf "%s\n" "${GREEN}Cap nhat lai thong so thanh cong.${NC}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+prompt_update="n"
+
+_confirm
+
+if [[ "${prompt_update}" =~ ^([yY])$ ]]; then
+    _run
+else
+    clear
+    printf "%s\n" "${GREEN}Ban da huy cap nhat lai thong so SCRIPT.${NC}"
+fi
+
+menu_vps_manage

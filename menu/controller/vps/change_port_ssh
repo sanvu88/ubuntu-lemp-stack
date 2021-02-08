@@ -1,0 +1,118 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+printf "%s=================%s\n" "${GREEN}" "${NC}"
+printf "%sThay đoi port SSH%s\n" "${GREEN}" "${NC}"
+printf "%sSSH/SFTP Port: ${ssh_port}%s\n" "${GREEN}" "${NC}"
+printf "%s=================%s\n" "${GREEN}" "${NC}"
+
+_set_var(){
+    current_port=$(grep -w "Port" /etc/ssh/sshd_config | cut -f2 -d" ")
+    admin_port=$(grep -w "admin_port" "${FILE_INFO}" | cut -f2 -d'=')
+}
+
+_input(){
+    clear
+    while true
+    do
+        read -r -p "Nhap vao port ban muon đoi [0 = Thoat]: " port_new
+        echo
+        if [[ ${port_new} =~ ^-?[0-9]+$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Port khong dung dinh dang, vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_check_port(){
+    if [ -z "${port_new}" ]; then
+        ALERT=$(printf "%s\n" "${RED}Ban chua nhap Port.${NC}")
+    fi
+
+    port_array=("${current_port}" "${admin_port}" "21" "11211" "6379")
+
+    if [[ " ${port_array[*]} " == *" ${port_new} "* ]] || check_port_exists "${port_new}"; then
+        ALERT=$(printf "%s\n" "${RED}Port ban chon da duoc su dung. Vui long chon port khac.${NC}")
+    fi
+}
+
+_change_port(){
+    echo "Dang tien hanh thay đoi port SSH..."
+    echo ""
+    sleep 1
+    if [[ ! -f "/etc/ssh/sshd_config.orig" ]]; then
+        cp /etc/ssh/sshd_config /etc/ssh/sshd_config."${CURRENT_DATE}"
+    fi
+
+    check_port_config=$(grep -w "#Port" /etc/ssh/sshd_config | cut -f2 -d" ")
+
+    if [ -z "${check_port_config}" ]; then
+        sed -i "s/Port ${current_port}/Port ${port_new}/g" /etc/ssh/sshd_config
+    else
+        sed -i "s/#Port ${current_port}/Port ${port_new}/g" /etc/ssh/sshd_config
+    fi
+
+    sed -i '/ssh_port=/d' "${FILE_INFO}"
+    echo "ssh_port=${port_new}" >> "${FILE_INFO}"
+
+    ufw allow "${port_new}"/tcp
+    ufw delete allow "${current_port}"
+
+    systemctl restart sshd
+    systemctl restart ufw
+
+    rm -rf /etc/fail2ban/jail.local
+    if [ -f "${CUSTOM_DIR}/fail2ban/jail.local" ]; then
+        cp "${CUSTOM_DIR}"/fail2ban/jail.local /etc/fail2ban/jail.local
+    else
+        cp "${TEMPLATE_DIR}"/fail2ban/jail.local /etc/fail2ban/jail.local
+    fi
+
+    admin_email=$(grep -w "admin_email" "${FILE_INFO}" | cut -f2 -d'=')
+    sed -i "s/SSH_PORT/${port_new}/g" /etc/fail2ban/jail.local
+    sed -i "s/ADMIN_PORT/${admin_port}/g" /etc/fail2ban/jail.local
+    sed -i "s/ADMIN_EMAIL/${admin_email}/g" /etc/fail2ban/jail.local
+    sed -i "s/${current_port}/${port_new}/g" /etc/fail2ban/jail.d/sshd.local
+    systemctl restart fail2ban
+
+    clear
+    printf "%s%s%s\n" "${GREEN}" "Da thay đoi Port SSH sang ${port_new} thanh cong." "${NC}"
+}
+
+_run(){
+    _set_var
+    _check_port
+    if [ -z "${ALERT}" ]; then
+        _change_port
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+}
+
+ALERT=""
+port_new=""
+
+_input
+
+if [[ "${port_new}" == "0" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thay doi Port.${NC}"
+else
+    _run
+fi
+
+vps_ssh

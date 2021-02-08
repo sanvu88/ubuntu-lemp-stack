@@ -1,0 +1,120 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_var(){
+    #https://www.howtoforge.com/tutorial/linux-grep-command/
+    #https://stackoverflow.com/a/6284370
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+    php_version=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+}
+
+_input(){
+    false
+    while [ $? -eq 1 ]
+    do
+        read -r -p "Nhap domain moi (Khong co www) [0 = Thoat]: " newDomain
+        if [ "${newDomain}" == "0" ]; then
+            break
+        else
+            newDomain=$(echo "${newDomain}" | tr '[:upper:]' '[:lower:]')
+            echo "${newDomain}" | grep -q "\."
+            if [ $? -eq 0 ]; then
+                "${BASH_DIR}"/menu/validate/check_value domain "${newDomain}"
+                if [[ $? -eq 1 ]]; then
+                    clear
+                    printf "%s\n" "${RED}Ten mien ban nhap khong chinh xac vui long nhap lai.${NC}"
+                    false
+                fi
+            else
+                clear
+                printf "%s\n" "${RED}Ten mien ban nhap khong chinh xac vui long nhap lai.${NC}"
+                false
+            fi
+        fi
+    done
+}
+
+_change_path(){
+    mv /home/"${user}"/"${domain}" /home/"${user}"/"${newDomain}"
+}
+
+_change_vhost(){
+    mv "${NGINX_CONF_DIR}"/conf.d/"${domain}".conf "${NGINX_CONF_DIR}"/conf.d/"${newDomain}".conf
+    sed -i "s|${domain}|${newDomain}|g" "${NGINX_CONF_DIR}"/conf.d/"${newDomain}".conf
+}
+
+_change_php_config(){
+    php_conf_path="/etc/php/${php_version}/fpm/pool.d"
+    mv "${php_conf_path}"/"${domain}".conf "${php_conf_path}"/"${newDomain}".conf
+    sed -i "s|${domain}|${newDomain}|g" "${php_conf_path}"/"${newDomain}".conf
+}
+
+_change_user_config(){
+    mv "${USER_DIR}"/."${domain}".conf "${USER_DIR}"/."${newDomain}".conf
+}
+
+_change_domain_in_db(){
+    if [ -d "/home/${user}/${newDomain}/public_html/wp-includes" ]; then
+        _cd_dir /home/"${user}"/"${newDomain}"/public_html
+        wp search-replace --allow-root "${domain}" "${newDomain}"
+    fi
+}
+
+_run(){
+    _change_path
+    _change_user_config
+    _change_vhost
+    _change_php_config
+    _change_domain_in_db
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "%s\n" "${GREEN}Doi domain thanh cong.${NC}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}Loi cau hinh vHost Nginx. Vui long kiem tra lai.${NC}"
+        printf "%s\n" "${RED}Ban co the su dung menu Rewrite Config (1 - 5) neu khong the tu sua loi.${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+newDomain=""
+
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _set_var
+        _input
+        if [ "${newDomain}" == "0" ]; then
+            clear
+            printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+        else
+            _run
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_domain

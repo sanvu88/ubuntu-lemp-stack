@@ -1,0 +1,61 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "${GREEN}%s${NC}\n" "==================="
+printf "${GREEN}%s${NC}\n" "LEMP Stack Manager "
+printf "${GREEN}%s${NC}\n" "==================="
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "${GREEN}%s${NC}\n" "1. Nginx"
+    printf "${GREEN}%s${NC}\n" "2. PHP"
+    printf "${GREEN}%s${NC}\n" "3. Database"
+    printf "${GREEN}%s${NC}\n" "4. Log"
+    printf "${GREEN}%s${NC}\n" "5. Ngx_pagespeed"
+    printf "${GREEN}%s${NC}\n" "==================="
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        lemp_nginx
+        ;;
+    2)
+        clear
+        lemp_php
+        ;;
+    3)
+        clear
+        lemp_database
+        ;;
+    4)
+        clear
+        lemp_log
+        ;;
+    5)
+        clear
+        lemp_ngx_pagespeed
+        ;;
+    0)
+        clear
+        menu_primary
+        ;;
+    *)
+        clear
+        printf "${RED}%s${NC}\n" "${WRONG_OPTION}"
+        ;;
+    esac
+done

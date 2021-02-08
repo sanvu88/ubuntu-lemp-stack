@@ -1,0 +1,62 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s========================+%s\n" "${GREEN}" "${NC}"
+printf "%s  Let's Encrypt Manager  %s\n" "${GREEN}" "${NC}"
+printf "%s========================+%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "%s1. ${lang_register_renew} Let's Encrypt%s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${lang_register} SSL Alias domain%s\n" "${GREEN}" "${NC}"
+    printf "%s3. ${lang_remove} Let's Encrypt%s\n" "${GREEN}" "${NC}"
+    printf "%s4. CloudFlare DNS API%s\n" "${GREEN}" "${NC}"
+    #    printf "%s2. Let's Encrypt Wildcard%s\n" "${GREEN}" "${NC}"
+    #    printf "%s3. Cau hinh Wildcard cho Subdomain%s\n" "${GREEN}" "${NC}"
+    #    printf "%s4. Kiem tra thoi han%s\n" "${GREEN}" "${NC}"
+    printf "%s========================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        ssl_le_create
+        ;;
+    2)
+        clear
+        ssl_le_alias_domain
+        ;;
+    3)
+        clear
+        ssl_le_remove
+        ;;
+    4)
+        clear
+        ssl_le_cf_api
+        ;;
+        #        2) clear; le_wildcard ;;
+        #        3) clear; le_wildcard_subdomain ;;
+        #        4) clear; le_check_expired ;;
+    0)
+        clear
+        menu_ssl
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}${WRONG_OPTION}${NC}"
+        ;;
+    esac
+done

@@ -1,0 +1,54 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_language() {
+    clear
+    printf "%s\n" "Select your language"
+    PS3="Enter your select [ 1 - 3 ]: "
+    options=("English" "Vietnamese" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "English")
+            lang="en"
+            break
+            ;;
+        "Vietnamese")
+            lang="vi"
+            break
+            ;;
+        "Cancel")
+            lang="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Your selection is not correct, please choose again." ;;
+        esac
+    done
+}
+
+lang=""
+_select_language
+
+if [[ "${lang}" == "cancel" || -z "${lang}" ]]; then
+    clear
+    printf "%s\n" "${RED}Cancel.${NC}"
+else
+    sed -i '/lang/d' "${FILE_INFO}"
+    echo "lang=${lang}" >> "${FILE_INFO}"
+    clear
+    printf "%s\n" "${GREEN}Successful language change .${NC}"
+    exit
+fi
+
+menu_primary

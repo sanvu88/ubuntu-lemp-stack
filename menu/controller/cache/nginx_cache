@@ -1,0 +1,245 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_nginx_cache_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Bat Nginx Fastcgi cache" "Tat Nginx Fastcgi cache" "Xoa cache" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Tat Nginx Fastcgi cache")
+            action="disable"
+            break
+            ;;
+        "Bat Nginx Fastcgi cache")
+            action="enable"
+            break
+            ;;
+        "Xoa cache")
+            action="destroy"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_domain_enable_cache() {
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            check_cache_config=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf")
+            if [[ -z "${check_cache_config}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Tat ca cac website deu da duoc cau hinh Nginx Fastcgi cache.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_domain_disable_cache() {
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            check_cache_config=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf")
+            if [[ -n "${check_cache_config}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc cau hinh Nginx Fastcgi cache.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_confirm_enable_cache() {
+    while true; do
+        read -r -p "Ban co muon cau hinh Nginx cache cho website ${domain} khong (y/n)? " prompt_enable_cache
+        echo
+        if [[ "${prompt_enable_cache}" =~ ^([yY])$ || "${prompt_enable_cache}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_confirm_disable_cache() {
+    while true; do
+        read -r -p "Ban muon tat Nginx cache cho website ${domain} (y/n)? " prompt_disable_cache
+        echo
+        if [[ "${prompt_disable_cache}" =~ ^([yY])$ || "${prompt_disable_cache}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_enable_cache() {
+    if [ -d "/home/${user}/${domain}/public_html/wp-content/plugins/woocommerce" ]; then
+        if [ ! -f "${NGINX_CONF_DIR}/php/${domain}/php_cache_woo.conf" ]; then
+            if [ -f "${CUSTOM_DIR}/php_cache_woo.conf" ]; then
+                cp "${CUSTOM_DIR}"/php_cache_woo.conf "${NGINX_CONF_DIR}"/php/"${domain}"/php_php_cache_woocache.conf
+            else
+                cp "${TEMPLATE_DIR}"/php_cache_woo.conf "${NGINX_CONF_DIR}"/php/"${domain}"/php_cache_woo.conf
+            fi
+        fi
+
+        sed -i "s|php_no_cache.conf|php_cache_woo.conf|g" "${VHOST_DIR}"/"${domain}".conf
+    else
+        sed -i "s|php_no_cache.conf|php_cache.conf|g" "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    if [ ! -d "/home/${user}/${domain}/cache" ]; then
+        mkdir -p "/home/${user}/${domain}/cache"
+        chown -R "${user}":"${user}" /home/"${user}"/"${domain}"/cache
+    fi
+
+    check_keys_zone=$(grep -w "${user}" "${NGINX_CONF_DIR}/extra/nginx_cache.conf")
+
+    if [ -z "${check_keys_zone}" ]; then
+        check_cache_level=$(grep -w "levels=1:2" "${NGINX_CONF_DIR}/extra/nginx_cache.conf")
+        if [ -z "${check_cache_level}" ]; then
+            cat >>"${NGINX_CONF_DIR}/extra/nginx_cache.conf" <<END
+fastcgi_cache_path /home/${user}/${domain}/cache levels=1:2 keys_zone=${user}:100m max_size=1G inactive=60m;
+END
+        else
+            cat >>"${NGINX_CONF_DIR}/extra/nginx_cache.conf" <<END
+fastcgi_cache_path /home/${user}/${domain}/cache levels= keys_zone=${user}:100m max_size=1G inactive=60m;
+END
+        fi
+    fi
+
+    notify="Cau hinh Nginx Cache thanh cong."
+}
+
+_disable_cache() {
+    check_php_cache_woo=$(grep -w "php_cache_woo.conf" "${VHOST_DIR}/${domain}.conf")
+    sed -i "/${user}/d" "${NGINX_CONF_DIR}"/extra/nginx_cache.conf
+    if [ -n "${check_php_cache_woo}" ]; then
+        sed -i "s|php_cache_woo.conf|php_no_cache.conf|g" "${VHOST_DIR}"/"${domain}".conf
+    else
+        sed -i "s|php_cache.conf|php_no_cache.conf|g" "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    notify="Tat Nginx Cache thanh cong."
+}
+
+_run() {
+    if [ "${action}" == "enable" ]; then
+        _confirm_enable_cache
+        if [[ "${prompt_enable_cache}" =~ ^([yY])$ ]]; then
+            _enable_cache
+        else
+            ALERT=$(printf "%s\n" "${RED}Huy thao tac.${NC}")
+        fi
+    elif [ "${action}" == "disable" ]; then
+        _confirm_disable_cache
+        if [[ "${prompt_disable_cache}" =~ ^([yY])$ ]]; then
+            _disable_cache
+            rm -rf /home/"${user}"/"${domain}"/cache/*
+        else
+            ALERT=$(printf "%s\n" "${RED}Huy thao tac.${NC}")
+        fi
+    else
+        rm -rf /home/"${user}"/"${domain}"/cache/*
+        notify="Xoa cache thanh cong."
+    fi
+
+    if [ -z "${ALERT}" ]; then
+        if nginx -t; then
+            _restart_service
+            clear
+            printf "%s\n" "${GREEN}${notify}${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+}
+
+domain=""
+ALERT=""
+action=""
+
+_nginx_cache_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+else
+    if [ "${action}" == "enable" ]; then
+        _select_domain_enable_cache
+    else
+        _select_domain_disable_cache
+    fi
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            _run
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+menu_cache

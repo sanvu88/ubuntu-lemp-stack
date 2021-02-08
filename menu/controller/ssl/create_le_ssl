@@ -1,0 +1,223 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+printf "%s========================%s\n" "${GREEN}" "${NC}"
+printf "%s Cau hinh Let's Encrypt %s\n" "${GREEN}" "${NC}"
+printf "%s========================%s\n" "${GREEN}" "${NC}"
+echo
+
+_confirm_sign_ssl() {
+    printf "${RED}%s${NC}\n" "Luu y: Let's Encrypt gioi han so request SSL vi vay viec tao qua nhieu request SSL se bi chan ko tao duoc SSL."
+    while true; do
+        read -r -p "Ban muon cai dat SSL cho Domain ${domain} ? (y/n) " promt_sign_ssl
+        echo
+        if [[ "${promt_sign_ssl}" =~ ^([yY])$ || "${promt_sign_ssl}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+
+    if [[ "${promt_sign_ssl}" =~ ^([yY])$ ]]; then
+        echo "Ten mien cua ban la ten mien chinh hay sub-domain ?"
+        PS3="Nhap vao cau tra loi cua ban: "
+        options=(
+            "Ten mien chinh (Bao gom dang www.domain.com)"
+            "Sub-domain"
+        )
+        select opt in "${options[@]}"; do
+            case $opt in
+            "Ten mien chinh (Bao gom dang www.domain.com)")
+                domain_type="1"
+                break
+                ;;
+            "Sub-domain")
+                domain_type="2"
+                break
+                ;;
+            *) printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long chon lai${NC}" ;;
+            esac
+        done
+    fi
+}
+
+_method_verify() {
+    clear
+    printf "%s\n" "Lua chon phuong thuc xac thuc"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options_method=("HTTP" "CloudFlare DNS API" "Cancel")
+    select opt_method in "${options_method[@]}"; do
+        case $opt_method in
+        "HTTP")
+            method="http"
+            break
+            ;;
+        "CloudFlare DNS API")
+            method="cf_api"
+            break
+            ;;
+        "Cancel")
+            method="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+}
+
+_sign_ssl() {
+    if [ -d "/root/.acme.sh/${domain}" ]; then
+        rm -rf /root/.acme.sh/"${domain}"
+    fi
+    /root/.acme.sh/acme.sh --upgrade
+    clear
+
+    if [[ -n "${method}" && "${method}" == "cf_api" ]]; then
+        if [ "${domain_type}" == "2" ]; then
+            /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --force
+        else
+            /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --force
+        fi
+    elif [[ -n "${method}" && "${method}" == "cancel" ]]; then
+        cancel="${RED}Huy thao tac.${NC}"
+    else
+        if [ "${domain_type}" == "2" ]; then
+            /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" --force
+        else
+            /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" -d "www.${domain}" --force
+        fi
+    fi
+
+    if [ ! -d "${SSL_DIR}/${domain}" ]; then
+        mkdir -p "${SSL_DIR}"/"${domain}"
+    fi
+
+    if [ -f "${SSL_DIR}/${domain}/key.pem" ]; then
+        rm -rf "${SSL_DIR}"/"${domain}"/key.pem
+    fi
+
+    if [ -f "${SSL_DIR}/${domain}/cert.pem" ]; then
+        rm -rf "${SSL_DIR}"/"${domain}"/cert.pem
+    fi
+
+    /root/.acme.sh/acme.sh --install-cert -d "${domain}" \
+        --key-file "${SSL_DIR}"/"${domain}"/key.pem \
+        --fullchain-file "${SSL_DIR}"/"${domain}"/cert.pem
+}
+
+_edit_vhost() {
+    sed -i '/https.conf/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+
+    sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${domain}".conf
+
+    sed -i "/listen 443/a ssl_certificate ${SSL_DIR}/${domain}/cert.pem;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;" "${VHOST_DIR}"/"${domain}".conf
+}
+
+_run() {
+    _confirm_sign_ssl
+    if [[ "${promt_sign_ssl}" =~ ^([yY])$ ]]; then
+        check_nginx_status
+
+        if [ -z "${ALERT}" ]; then
+            if [ -f "/root/.acme.sh/account.conf" ]; then
+                check_cf_config=$(grep -w "CF_Token" "/root/.acme.sh/account.conf")
+                if [ -n "${check_cf_config}" ]; then
+                    _method_verify
+                fi
+            fi
+
+            if [ "${method}" == "http" ]; then
+                check_a_record "${domain}"
+            fi
+        fi
+
+        if [ -z "${ALERT}" ]; then
+
+            _sign_ssl
+
+            if [ -n "${cancel}" ]; then
+                clear
+                printf "%s\n" "${cancel}"
+            else
+                if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+                    _edit_vhost
+                    sleep 2
+                    if nginx -t; then
+                        _restart_service
+                        clear
+                        echo
+                        printf "%s\n" "${GREEN}Cau hinh SSL thanh cong.${NC}"
+                        echo
+                    else
+                        clear
+                        nginx -t
+                        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+                        echo
+                    fi
+                else
+                    echo
+                    printf "%s\n" "${RED}Cau hinh SSL that bai.${NC}"
+                    echo
+                fi
+            fi
+        else
+            clear
+            echo
+            printf "%s\n" "${ALERT}"
+            echo
+        fi
+    else
+        clear
+        echo
+        printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+        echo
+    fi
+}
+
+ALERT=""
+domain=""
+method=""
+cancel=""
+check_ssl_config=""
+
+_select_domain
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    echo
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+    echo
+else
+    if [ -z "${ALERT}" ]; then
+        check_ssl_config=$(grep -w "https.conf" "${VHOST_DIR}"/"${domain}".conf)
+        if [ -n "${check_ssl_config}" ]; then
+            clear
+            printf "%s\n" "${RED}Ten mien da duoc cau hinh SSL. Vui long xoa cau hinh SSL cu truoc.${NC}"
+        else
+            _run
+        fi
+    else
+        clear
+        echo
+        printf "%s\n" "${ALERT}"
+        echo
+    fi
+fi
+
+ssl_le

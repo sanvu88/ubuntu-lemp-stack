@@ -1,0 +1,581 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+
+_confirm_move() {
+    action=""
+    echo "Lua chon hanh dong ban muon thuc hien (Luu y chu ho tro move qua VPS Ubuntu khac.)"
+    PS3="Nhap vao lua chon cua ban: "
+    options=(
+        "Chuyen du lieu sang VPS khac"
+        "Hoan tat chuyen du lieu"
+        "Cancel"
+    )
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Chuyen du lieu sang VPS khac")
+            action="1"
+            break
+            ;;
+        "Hoan tat chuyen du lieu")
+            action="2"
+            break
+            ;;
+        "Cancel")
+            action="3"
+            break
+            ;;
+        *) printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long chon lai.${NC}" ;;
+        esac
+    done
+}
+
+_select_old_os() {
+    os=""
+    echo "Lua chon he dieu hanh cua VPS cu"
+    PS3="Nhap vao lua chon cua ban: "
+    options=(
+        "centOS"
+        "Ubuntu"
+        "Cancel"
+    )
+    select opt in "${options[@]}"; do
+        case $opt in
+        "centOS")
+            os="centos"
+            break
+            ;;
+        "Ubuntu")
+            os="ubuntu"
+            break
+            ;;
+        "Cancel")
+            os="cancel"
+            break
+            ;;
+        *) printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long chon lai.${NC}" ;;
+        esac
+    done
+}
+
+_create_sftp_connect() {
+    while true; do
+        read -r -p "Nhap vao IP VPS moi [0 = Thoat]: " new_vps_ip
+        echo
+        if valid_ip "${new_vps_ip}" || [ "${new_vps_ip}" == "0" ]; then
+            break
+        else
+            clear
+            printf "%s\n" "${RED}IP khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+
+    if [ "${new_vps_ip}" != "0" ]; then
+        while true; do
+            read -r -p "Nhap vao Port SSH cua VPS moi [0 = Thoat]: " ssh_port
+            echo
+            if [[ "${ssh_port}" =~ ^[0-9]+$ ]]; then
+                break
+            else
+                clear
+                printf "%s\n" "${RED}Port SSH khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [ "${ssh_port}" != 0 ]; then
+            while true; do
+                read -r -p "Nhap vao Mat khau SSH cua VPS moi [0 = Thoat]: " ssh_pwd
+                echo
+                if [[ -n "${ssh_pwd}" ]]; then
+                    break
+                else
+                    clear
+                    printf "%s\n" "${RED}Mat khau SSH la bat buoc.${NC}"
+                fi
+            done
+
+            if [ "${ssh_pwd}" != 0 ]; then
+                remote_name=${new_vps_ip//[.]/}
+                encrypt_pwd=$(rclone obscure "${ssh_pwd}" --crypt-password string)
+
+                if [[ -n "${new_vps_ip}" && -n "${ssh_port}" && -n "${ssh_pwd}" ]]; then
+                    rclone config create "${remote_name}" sftp host "${new_vps_ip}" user root port "${ssh_port}" pass "${encrypt_pwd}"
+                fi
+            fi
+        fi
+    fi
+}
+
+_sync_nginx_conf() {
+    clear
+    printf "%s\n" "Move du lieu Nginx config..."
+    rclone sync "${NGINX_CONF_DIR}"/conf.d "${remote_name}":"${NGINX_CONF_DIR}"/conf.d
+    if [ -d "${SSL_DIR}" ]; then
+        mv "${SSL_DIR}"/server "${SSL_DIR}"/server.bak
+        rclone sync "${SSL_DIR}" "${remote_name}":"${SSL_DIR}"
+        mv "${SSL_DIR}"/server.bak "${SSL_DIR}"/server
+    fi
+    if [ -d "${ALIAS_DIR}" ]; then
+        rclone sync "${ALIAS_DIR}" "${remote_name}":"${ALIAS_DIR}"
+    fi
+    if [ -d "${REDIRECT_DIR}" ]; then
+        rclone sync "${REDIRECT_DIR}" "${remote_name}":"${REDIRECT_DIR}"
+    fi
+    if [ -d "${NGINX_CONF_DIR}/hotlink" ]; then
+        rclone sync "${NGINX_CONF_DIR}"/hotlink "${remote_name}":"${NGINX_CONF_DIR}"/hotlink
+    fi
+
+    rclone sync "${NGINX_CONF_DIR}"/php "${remote_name}":"${NGINX_CONF_DIR}"/php
+}
+
+_sync_php_conf() {
+    clear
+    printf "%s\n" "Move du lieu PHP config..."
+    rclone sync /etc/php/"${php1_version}"/fpm/pool.d "${remote_name}":/etc/php/"${php1_version}"/fpm/pool.d
+    rclone sync /etc/php/"${php1_version}"/fpm/pool.d "${remote_name}":/etc/php/"${php1_version}"/fpm/pool.d
+    if [ "${php2_realese}" == "yes" ]; then
+        rclone sync /etc/php/"${php2_version}"/fpm/pool.d "${remote_name}":/etc/php/"${php2_version}"/fpm/pool.d
+    fi
+}
+
+_sync_user_conf() {
+    clear
+    printf "%s\n" "Move du lieu User config..."
+    rclone sync "${BASH_DIR}"/users "${remote_name}":"${BASH_DIR}"/users
+}
+
+_sync_wp_cron() {
+    clear
+    printf "%s\n" "Move du lieu Cronjob..."
+    if [ -d "${BASH_DIR}/wpcron" ]; then
+        rclone sync "${BASH_DIR}"/wpcron "${remote_name}":"${BASH_DIR}"/wpcron
+    fi
+}
+
+_sync_gg_drive() {
+    clear
+    printf "%s\n" "Move config Auto backup..."
+    if [ -d "${BASH_DIR}/ggdrive" ]; then
+        rclone sync "${BASH_DIR}"/ggdrive "${remote_name}":"${BASH_DIR}"/ggdrive
+    fi
+}
+
+_sync_let_encrypt() {
+    clear
+    printf "%s\n" "Move Du lieu Let's Encrypt..."
+    _cd_dir "${USER_DIR}"
+    for entry in .*.conf; do
+        domain=${entry/./}
+        domain=${domain//.conf/}
+        if [ -d "/root/.acme.sh/${domain}" ]; then
+            rclone sync /root/.acme.sh/"${domain}" "${remote_name}":/root/.acme.sh/"${domain}"
+        fi
+    done
+}
+
+_sync_ssl_conf() {
+    clear
+    printf "%s\n" "Move Du lieu SSL config..."
+    _cd_dir "${USER_DIR}"
+    for entry in .*.conf; do
+        domain=${entry/./}
+        domain=${domain//.conf/}
+        if [ -d "${SSL_DIR}/${domain}" ]; then
+            rclone sync "${SSL_DIR}"/"${domain}" "${remote_name}":"${SSL_DIR}"/"${domain}"
+        fi
+    done
+}
+
+_sync_db() {
+    clear
+    printf "%s\n" "Move Database..."
+    mkdir -p /home/move_vps/sql
+
+    _cd_dir /home/move_vps/sql
+    for DB in $(mysql -uadmin -p"${mysql_pwd}" -e 'show databases' -s --skip-column-names); do
+        if [[ "${DB}" != "information_schema" && "${DB}" != "performance_schema" && "${DB}" != "mysql" && "${DB}" != "phpmyadmin" ]]; then
+            mysqldump -uadmin -p"${mysql_pwd}" "${DB}" >"${DB}.sql"
+        fi
+    done
+
+    mkdir -p /home/move_vps/mysql_user
+    mysql -uadmin -p"${mysql_pwd}" --skip-column-names -A -e "SELECT CONCAT('SHOW GRANTS FOR ''',user,'''@''',host,''';') AS query FROM mysql.user WHERE user NOT IN ('root','pma','phpmyadmin','admin','mysql','mariadb.sys')" | mysql --skip-column-names -A | sed 's/$/;/g' >/home/move_vps/mysql_user/mysql_users.sql
+
+    rclone sync /home/move_vps/mysql_user "${remote_name}":/home/move_vps/mysql_user
+}
+
+_sync_rclone() {
+    clear
+    printf "%s\n" "Move Rclone config..."
+    if [ -f "/root/.config/rclone/rclone.conf" ]; then
+        mkdir -p /home/move_vps/rclone
+        cp /root/.config/rclone/rclone.conf /home/move_vps/rclone/rclone.conf
+        rclone sync /home/move_vps/rclone "${remote_name}":/home/move_vps/rclone
+    fi
+}
+
+_sync_cronjob() {
+    clear
+    printf "%s\n" "Move Cron Task..."
+    mkdir -p /home/move_vps/cronjob
+    crontab -l >/home/move_vps/cronjob/crontab.bak
+    rclone sync /home/move_vps/cronjob "${remote_name}":/home/move_vps/cronjob
+}
+
+_sync_home() {
+    clear
+    printf "%s\n" "Move /home..."
+    rclone sync /home "${remote_name}":/home --bwlimit 30M
+}
+
+_create_user_config() {
+    clear
+    printf "%s\n" "Cau hinh user config..."
+    _cd_dir /home/move_vps/user_conf
+    for entry_user in .*.conf; do
+        user=$(grep -w "username" "${entry_user}" | cut -f2 -d'=')
+        user_pass=$(grep -w "user_pass" "${entry_user}" | cut -f2 -d'=')
+        db_user=$(grep -w "db_user" "${entry_user}" | cut -f2 -d'=')
+        db_password=$(grep -w "db_password" "${entry_user}" | cut -f2 -d'=')
+        php_version=$(grep -w "php_version" "${entry_user}" | cut -f2 -d'=')
+        plugins_seo=$(grep -w "plugins_seo" "${entry_user}" | cut -f2 -d'=')
+        plugin_cache=$(grep -w "plugin_cache" "${entry_user}" | cut -f2 -d'=')
+        domain=$(echo "${entry_user}" | cut -f2 -d'.')
+        php_version=${php_version//php/}
+        php_version=$(echo "${php_version}" | fold -w1 | paste -sd'.')
+
+        if [ -z "${user_pass}" ]; then
+            user_pass=$(_gen_pass)
+            sed -i '/user_pass/d' "${USER_DIR}"/."${domain}".conf
+            sed -i "/user_pass=${user_pass}/d" "${USER_DIR}"/."${domain}".conf
+        fi
+
+        cat >>"${USER_DIR}/${entry_user}" <<END
+[${domain}]
+username=${user}
+user_pass=${user_pass}
+domain=${domain}
+db_name=${db_name}
+db_user=${db_user}
+db_password=${db_password}
+public_html=/home/${user}/${domain}/public_html
+php_pm=ondemand
+php_version=${php_version}
+plugin_seo=${plugins_seo}
+plugin_cache=${plugin_cache}
+disable_xmlrpc=yes
+disable_user_api=yes
+disable_file_edit=no
+lock_folder=no
+END
+    done
+}
+
+_create_php_conf() {
+    clear
+    printf "%s\n" "Cau hinh PHP config..."
+    _cd_dir "${USER_DIR}"
+    for entry_user in .*.conf; do
+        domain=${entry_user/./}
+        domain=${domain//.conf/}
+        user=$(grep -w "username" "${entry_user}" | cut -f2 -d'=')
+        php_version=$(grep -w "php_version" "${entry_user}" | cut -f2 -d'=')
+        php_conf_file="/etc/php/$php_version/fpm/pool.d/${domain}.conf"
+        SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
+        ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
+        TMP_DIR="/home/${user}/tmp"
+        SESSION_PATH="/home/${user}/php/session"
+        CACHE_DIR="/home/${user}/php/wsdlcache"
+
+        mkdir -p "${TMP_DIR}"
+        mkdir -p "${SESSION_PATH}"
+        mkdir -p "${CACHE_DIR}"
+        chmod 700 "${SESSION_PATH}"
+        chmod 700 "${CACHE_DIR}"
+
+        if [ -f "${php_conf_file}" ]; then
+            rm -rf "${php_conf_file}"
+        fi
+
+        cp "${TEMPLATE_DIR}/php_ondemand.conf" "${php_conf_file}"
+
+        sed -i "s|WEBSITE_USER|${user}|g" "${php_conf_file}"
+        sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${php_conf_file}"
+        sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${php_conf_file}"
+        sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${php_conf_file}"
+        sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${php_conf_file}"
+        sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${php_conf_file}"
+        sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${php_conf_file}"
+        sed -i "s|TMP_DIR|${TMP_DIR}|g" "${php_conf_file}"
+        sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${php_conf_file}"
+        sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${php_conf_file}"
+        sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${php_conf_file}"
+    done
+}
+
+_create_vhost() {
+    clear
+    printf "%s\n" "Cau hinh Nginx vHost..."
+    _cd_dir "${USER_DIR}"
+    for entry_user in .*.conf; do
+        domain=${entry_user/./}
+        domain=${domain//.conf/}
+        user=$(grep -w "username" "${entry_user}" | cut -f2 -d'=')
+        plugin_seo=$(grep -w "plugin_seo" "${entry_user}" | cut -f2 -d'=')
+        plugin_cache=$(grep -w "plugin_cache" "${entry_user}" | cut -f2 -d'=')
+        check_magento=$(grep -w "MAGE_ROOT" /home/move_vps/nginx_conf/conf.d/"${domain}".conf)
+        check_nodejs=$(grep -w "proxy_cache_bypass" /home/move_vps/nginx_conf/conf.d/"${domain}".conf)
+        check_laravel=$(grep -w "public_html/public" /home/move_vps/nginx_conf/conf.d/"${domain}".conf)
+        check_cakephp=$(grep -w "public_html/webroot" /home/move_vps/nginx_conf/conf.d/"${domain}".conf)
+
+        rm -rf "${VHOST_DIR}"/"$domain".conf
+
+        if [ -n "${check_magento}" ]; then
+            cp "${TEMPLATE_DIR}"/magento2.conf "${VHOST_DIR}"/"$domain".conf
+        elif [ -n "${check_nodejs}" ]; then
+            cp "${TEMPLATE_DIR}"/nodejs.conf "${VHOST_DIR}"/"$domain".conf
+            notify="Ban phai rewrite config tai menu 1 - 5 voi website su dung Nodejs de dam bao hoat dong on dinh."
+        elif [ -n "${check_laravel}" ]; then
+            cp "${TEMPLATE_DIR}"/laravel.conf "${VHOST_DIR}"/"$domain".conf
+        elif [ -n "${check_cakephp}" ]; then
+            cp "${TEMPLATE_DIR}"/cakephp.conf "${VHOST_DIR}"/"$domain".conf
+        elif [[ -n "${plugin_seo}" || -n "${plugin_cache}" ]]; then
+            cp "${TEMPLATE_DIR}"/wordpress.conf "${VHOST_DIR}"/"$domain".conf
+            if [[ -n "${plugin_seo}" && -f "${NGINX_CONF_DIR}/wordpress/${plugin_seo}.conf" ]]; then
+                sed -i "s|PLUGIN_SEO|include ${NGINX_CONF_DIR}/wordpress/${plugin_seo}.conf|g" "${VHOST_DIR}"/"$domain".conf
+            else
+                sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"${domain}".conf
+                notify="Ban can cau hinh lại Nginx config cho plugin Seo."
+            fi
+            if [[ -n "${plugin_cache}" && -f "${NGINX_CONF_DIR}/wordpress/${plugin_cache}.conf" ]]; then
+                sed -i "s|PLUGIN_CACHE|include ${NGINX_CONF_DIR}/wordpress/${plugin_cache}.conf|g" "${VHOST_DIR}"/"$domain".conf
+            else
+                sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
+                notify="Ban can cau hinh lai Nginx config cho plugin Cache."
+            fi
+        else
+            cp "${TEMPLATE_DIR}"/default.conf "${VHOST_DIR}"/"$domain".conf
+            sed -i "s|WEBSITE_SOURCE|default|g" "${VHOST_DIR}"/"$domain".conf
+            notify="Neu ma nguon cua ban su dung khong phai WordpPress, Laravel, cakephp, Magento"
+            notify2="ban nen chay chuc nang rewrite config tai menu 1 - 5 de dam bao website hoat dong on dinh."
+        fi
+
+        mkdir -p "${NGINX_CONF_DIR}"/php/"${domain}"
+        cp "${TEMPLATE_DIR}"/php_cache.conf "${NGINX_CONF_DIR}"/php/"${domain}"
+        cp "${TEMPLATE_DIR}"/php_cache_woo.conf "${NGINX_CONF_DIR}"/php/"${domain}"
+        cp "${TEMPLATE_DIR}"/php_no_cache.conf "${NGINX_CONF_DIR}"/php/"${domain}"
+
+        sed -i "s|WEBSITE_USER|${user}|g" "${NGINX_CONF_DIR}"/php/"${domain}"/php_cache.conf
+        sed -i "s|WEBSITE_USER|${user}|g" "${NGINX_CONF_DIR}"/php/"${domain}"/php_cache_woo.conf
+        sed -i "s|WEBSITE_USER|${user}|g" "${NGINX_CONF_DIR}"/php/"${domain}"/php_no_cache.conf
+        sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    done
+}
+
+_create_linux_user() {
+    clear
+    printf "%s\n" "Tao SFTP User..."
+    _cd_dir "${USER_DIR}"
+    for entry_user in .*.conf; do
+        user=$(grep -w "username" "${entry_user}" | cut -f2 -d'=')
+        user_pass=$(grep -w "user_pass" "${entry_user}" | cut -f2 -d'=')
+
+        if [ -z "${user_pass}" ]; then
+            user_pass=$(_gen_pass)
+            sed -i '/user_pass/d' "${USER_DIR}"/."${domain}".conf
+            sed -i "/user_pass=${user_pass}/d" "${USER_DIR}"/."${domain}".conf
+        fi
+
+        if ! if_user_exists "${user}"; then
+            useradd --shell /sbin/nologin "${user}"
+            usermod -G filetransfer "${user}"
+            passwd "${user}" <<EOF
+${user_pass}
+${user_pass}
+EOF
+        fi
+    done
+}
+
+_run() {
+    _confirm_move
+
+    if [ "${action}" == "1" ]; then
+        _create_sftp_connect
+        if [[ "${new_vps_ip}" == "0" || "${ssh_port}" == "0" || "${ssh_pwd}" == "0" ]]; then
+            ALERT=$(printf "%s\n" "${RED}Huy thao tac.${NC}")
+        fi
+
+        if [ -z "${ALERT}" ]; then
+            clear
+            echo
+            printf "%s\n" "${RED}Luu y: VPS moi phai duoc cai dat giong VPS cu.${NC}"
+            printf "%s\n" "${GREEN}Bat dau qua trinh chuyen du lieu...${NC}"
+            printf "%s\n" "${GREEN}Thoi gian phu thuoc vao dung luong va toc do mang tren vps.${NC}"
+            printf "%s\n" "${GREEN}Vui long khong tat SSH cho toi khi nhan duoc thong bao qua trinh hoan tat.${NC}"
+            echo
+            sleep 2
+            rm -rf /home/move_vps/*
+
+            _sync_db
+            _sync_nginx_conf
+            _sync_php_conf
+            _sync_user_conf
+            _sync_wp_cron
+            _sync_gg_drive
+            _sync_let_encrypt
+            _sync_ssl_conf
+            _sync_cronjob
+            _sync_rclone
+            _sync_home
+            rclone config delete "${remote_name}"
+            rm -rf /home/move_vps/*
+            clear
+            echo
+            printf "%s\n" "${GREEN}Chuyen du lieu hoan tat. Tiep theo ban can sang VPS moi va su dung Menu${NC} ${RED}Hoan tat chuyen du lieu.${NC}"
+            echo
+        else
+            clear
+            echo
+            printf "%s\n" "${ALERT}"
+            echo
+        fi
+    elif [ "${action}" == "2" ]; then
+        _select_old_os
+        if [ "${os}" == "cancel" ]; then
+            clear
+            printf "%s\n" "${RED}Huy thao tac.${NC}"
+        else
+            clear
+            printf "%s\n" "${GREEN}Bat dau hoan tat chuyen du lieu...${NC}"
+            sleep 2
+            if [[ ! -d "/home/move_vps/sql" || ! -f "/home/move_vps/mysql_user/mysql_users.sql" ]]; then
+                ALERT=$(printf "%s\n" "${RED}Khong tim thay file SQL. Vui long kiem tra va tien hanh dong bo lai.${NC}")
+            fi
+
+            if [ -z "${ALERT}" ]; then
+                clear
+                printf "%s\n" "Import Database..."
+                # Create and import DB
+                _cd_dir /home/move_vps/sql
+                for entry_db in *.sql; do
+                    db_name=${entry_db//.sql/}
+                    mysql -uadmin -p"${mysql_pwd}" -e "CREATE DATABASE IF NOT EXISTS ${db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+                    if [[ -f "${entry_db}" && "${entry_db}" != "mysql_users.sql" ]]; then
+                        mysql -uadmin -p"${mysql_pwd}" "${db_name}" <"${entry_db}"
+                    fi
+                done
+                rm -rf /home/move_vps/sql
+
+                # Import mysql user
+                if [ -f "/home/move_vps/mysql_user/mysql_users.sql" ]; then
+                    mysql -uadmin -p"${mysql_pwd}" </home/move_vps/mysql_user/mysql_users.sql
+                    rm -rf /home/move_vps/mysql_user
+                fi
+
+                # Import cronjob
+                if [ -f "/home/move_vps/cronjob/crontab.bak" ]; then
+                    crontab /home/move_vps/cronjob/crontab.bak
+                    rm -rf /home/move_vps/cronjob
+                fi
+
+                # Create User
+                if [ "${os}" == "centos" ]; then
+                    _create_user_config
+                    _create_php_conf
+                    _create_vhost
+                fi
+                _create_linux_user
+
+                # Set chown, chmod
+                clear
+                printf "%s\n" "${GREEN}Dang phan quyen. Vui long doi.${NC}"
+                sleep 2
+                _cd_dir "${USER_DIR}"
+                for entry_domain in .*.conf; do
+                    domain=${entry_domain/./}
+                    domain=${domain//.conf/}
+                    #https://www.howtoforge.com/tutorial/linux-grep-command/
+                    #https://stackoverflow.com/a/6284370
+                    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+                    chmod 711 /home
+                    chmod 755 /home/"${user}"
+                    chmod 711 /home/"${user}"/"${domain}"
+                    chmod 711 /home/"${user}"/"${domain}"/logs
+                    chmod 755 /home/"${user}"/"${domain}"/public_html
+                    find /home/"${user}"/"${domain}"/public_html/ -type d -print0 | xargs -I {} -0 chmod 0755 {}
+                    find /home/"${user}"/"${domain}"/public_html/ -type f -print0 | xargs -I {} -0 chmod 0644 {}
+                    chown root:root /home/"${user}"
+                    chown -R "${user}":"${user}" /home/"${user}"/"${domain}"
+                    chown -R "${user}":"${user}" /home/"${user}"/tmp
+                    chown -R "${user}":"${user}" /home/"${user}"/php
+                done
+
+                # Rclone
+                if [ -f "/home/move_vps/rclone/rclone.conf" ]; then
+                    if [ ! -d "/root/.config/rclone" ]; then
+                        mkdir -p /root/.config/rclone
+                    fi
+                    if [ -f "/root/.config/rclone/rclone.conf" ]; then
+                        mv /root/.config/rclone/rclone.conf /root/.config/rclone/rclone.conf."${CURRENT_DATE}"
+                    fi
+                    mv /home/move_vps/rclone/rclone.conf /root/.config/rclone/rclone.conf
+                    rm -rf /home/move_vps/rclone
+                fi
+
+                rm -rf "${NGINX_CONF_DIR}"/ssl/server.bak
+
+                systemctl restart php"${php1_version}"-fpm
+                if [ "${php2_release}" == "yes" ]; then
+                    systemctl restart php"${php2_version}"-fpm
+                fi
+
+                if nginx -t; then
+                    systemctl restart nginx
+                fi
+
+                systemctl restart mariadb
+                remote_name=${IPADDRESS//[.]/}
+                rclone config delete "${remote_name}"
+                rm -rf /home/move_vps/*
+                clear
+                echo
+                printf "%s\n" "${GREEN}Hoan tat chuyen du lieu.${NC}"
+                printf "%s\n" "${GREEN}Vui long kiem tra lai website de dam bao moi thu hoat dong tot.${NC}"
+                printf "%s\n" "${GREEN}Luu y: Ban can cau hinh lai Alias Domain va Redirect Domain neu co.${NC}"
+                printf "%s\n" "${RED}${notify}${NC}"
+                printf "%s\n" "${RED}${notify2}${NC}"
+                echo
+            else
+                echo
+                printf "%s\n" "${ALERT}"
+                echo
+            fi
+        fi
+    else
+        clear
+        printf "%s\n" "${RED}Huy hanh dong.${NC}"
+    fi
+}
+
+ALERT=""
+new_vps_ip=""
+ssh_port=""
+ssh_pwd=""
+
+_run
+
+menu_vps_manage

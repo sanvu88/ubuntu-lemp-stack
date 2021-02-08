@@ -1,0 +1,155 @@
+#!/bin/bash
+
+exec 19>/opt/vhost.txt
+BASH_XTRACEFD=19
+set -x
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_recreate_vhost() {
+    if [ -f "${CUSTOM_DIR}/${SOURCE}.conf" ]; then
+        cp "${CUSTOM_DIR}"/"${SOURCE}".conf "${VHOST_DIR}"/"${domain}".conf
+    elif [ -f "${TEMPLATE_DIR}/${SOURCE}.conf" ]; then
+        cp "${TEMPLATE_DIR}"/"${SOURCE}".conf "${VHOST_DIR}"/"${domain}".conf
+    else
+        if [ -f "${CUSTOM_DIR}/default.conf" ]; then
+            cp "${CUSTOM_DIR}"/default.conf "${VHOST_DIR}"/"${domain}".conf
+        else
+            cp "${TEMPLATE_DIR}"/default.conf "${VHOST_DIR}"/"${domain}".conf
+        fi
+    fi
+
+    sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    if [ ! -f "${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf" ]; then
+        if [ -f "${CUSTOM_DIR}/php_no_cache.conf" ]; then
+            cp "${CUSTOM_DIR}"/php_no_cache.conf "${NGINX_CONF_DIR}"/php/"${domain}"/php_no_cache.conf
+        else
+            cp "${TEMPLATE_DIR}"/php_no_cache.conf "${NGINX_CONF_DIR}"/php/"${domain}"/php_no_cache.conf
+        fi
+    fi
+    sed -i "s|WEBSITE_USER|${user}|g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "s|WEBSITE_DOMAIN|${domain}|g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "s|WEBSITE_SOURCE|${SOURCE}|g" "${VHOST_DIR}"/"${domain}".conf
+
+    if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+        expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+        if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+            sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        fi
+    fi
+
+    if [[ -f "${SSL_DIR}/${domain}/paid/key.pem" && -f "${SSL_DIR}/${domain}/paid/cert.pem" && -s "${SSL_DIR}/${domain}/paid/key.pem" && -s "${SSL_DIR}/${domain}/paid/cert.pem" ]]; then
+        expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/paid/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+        if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+            sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/paid/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/paid/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        fi
+    fi
+
+    if [ "${SOURCE}" == "wordpress" ]; then
+        sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/plugins_seo=/d' "${USER_DIR}"/."${domain}".conf
+        echo "plugins_seo=" >> "${USER_DIR}"/."${domain}".conf
+
+        sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/plugin_cache=/d' "${USER_DIR}"/."${domain}".conf
+        echo "plugin_cache=" >> "${USER_DIR}"/."${domain}".conf
+
+        disable_xmlrpc=$(grep -w "disable_xmlrpc" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        if [ "${disable_xmlrpc}" == "no" ]; then
+            sed -i '/disable_xmlrpc.conf/d' "${VHOST_DIR}"/"${domain}".conf
+        fi
+
+        disable_user_api=$(grep -w "disable_user_api" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        if [ "${disable_user_api}" == "no" ]; then
+            sed -i '/disable_user_api.conf/d' "${VHOST_DIR}"/"${domain}".conf
+        fi
+    fi
+
+    sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+    rm -rf /home/"${user}"/"${domain}"/htpasswd
+}
+
+_nodejs_proxy_port(){
+    clear
+    printf "%s\n" "${GREEN}Luu y: IP Server trong config Nodejs can duoc sua thanh${NC} ${RED}127.0.0.1${NC}"
+    while true; do
+        read -r -p "Nhap Port Nodejs: " proxy_port
+        if valid_number "${proxy_port}"; then
+            break
+        else
+            clear
+            printf "%s\n" "${RED}Port khong chinh xac, vui long nhap lai.${NC}"
+        fi
+    done
+
+    sed -i "s/PROXY_PORT/${proxy_port}/g" "${VHOST_DIR}"/"${domain}".conf
+}
+
+_run() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    _select_source
+
+    rm -rf "${VHOST_DIR}"/"${domain}".conf
+
+    _recreate_vhost
+
+    if [ "${SOURCE}" == "nodejs" ]; then
+        _nodejs_proxy_port
+    fi
+
+    if nginx -t; then
+        _restart_service
+        clear
+        echo ""
+        printf "%sRewrite Vhost thanh cong.%s\n" "${GREEN}" "${NC}"
+        if [ "${SOURCE}" == "wordpress" ]; then
+            printf "%s\n" "${RED}Ban can cau hinh lai Plugin Cache va Plugin Seo.${NC}"
+        fi
+        printf "%s\n" "${RED}Ban can cau hinh lai mat khau bao ve thu muc neu da cau hinh truoc do.${NC}"
+        printf "%s\n" "${RED}Ban can cau hinh Nginx Fastcgi Cache neu dang su dung Nginx Fastcgi Cache${NC}"
+        echo ""
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+SOURCE=""
+domain=""
+proxy_port=""
+
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_domain

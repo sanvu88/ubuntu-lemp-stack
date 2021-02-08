@@ -1,0 +1,75 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s==========================%s\n" "${GREEN}" "${NC}"
+printf "%s    Database - MariaDB    %s\n" "${GREEN}" "${NC}"
+printf "%s==========================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "${GREEN}%s${NC}\n" "1. List Database"
+    printf "${GREEN}%s${NC}\n" "2. Create Database"
+    printf "${GREEN}%s${NC}\n" "3. Change password Mysql User"
+    printf "${GREEN}%s${NC}\n" "4. Delete Database"
+    printf "${GREEN}%s${NC}\n" "5. Restart MariaDB"
+    printf "${GREEN}%s${NC}\n" "6. Import Database"
+    printf "${GREEN}%s${NC}\n" "7. Remote Mysql"
+    printf "${GREEN}%s${NC}\n" "======================"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        clear
+        mysql -e "SHOW DATABASES WHERE \`Database\` NOT IN('information_schema', 'phpmyadmin', 'mysql', 'performance_schema')"
+        echo
+        ;;
+    2)
+        clear
+        lemp_create_db
+        ;;
+    3)
+        clear
+        lemp_change_pass_db
+        ;;
+    4)
+        clear
+        lemp_destroy_db
+        ;;
+    5)
+        systemctl restart mariadb
+        clear
+        printf "${GREEN}%s${NC}\n" "${lang_restart_mariadb_success}."
+        lemp_database
+        ;;
+    6)
+        clear
+        lemp_import_db
+        ;;
+    7)
+        clear
+        lemp_remote_mysql
+        ;;
+    0)
+        clear
+        menu_lemp
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}${WRONG_OPTION}${NC}"
+        ;;
+    esac
+done

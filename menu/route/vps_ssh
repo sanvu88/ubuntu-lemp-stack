@@ -1,0 +1,43 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+CHOICE=1
+
+printf "%s======================%s\n" "${GREEN}" "${NC}"
+printf "      %sSSH Manager%s     \n" "${GREEN}" "${NC}"
+printf "  %sPort SSH/SFTP: %s%s  \n" "${GREEN}" "${ssh_port}" "${NC}"
+printf "%s======================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "%s1. ${lang_change} port SSH%s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${lang_change} Password SSH%s\n" "${GREEN}" "${NC}"
+    printf "%s==================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+
+    if [[  -z "${CHOICE}" ]]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) change_port_ssh ;;
+        2)
+            clear
+            passwd
+            vps_ssh
+            ;;
+        0) clear; menu_vps_manage ;;
+        *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

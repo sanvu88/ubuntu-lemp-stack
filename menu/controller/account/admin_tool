@@ -1,0 +1,26 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_show_info(){
+    printf "Admin user                   : admin\n"
+    printf "Admin PORT                   : %s\n"  "${admin_port}"
+    printf "Admin tool password          : %s\n"  "${admin_pwd}"
+    printf "Opcache Dashboard            : %s\n" "http://${IPADDRESS}:${admin_port}/opcache"
+    printf "php Memcached Admin          : %s\n" "http://${IPADDRESS}:${admin_port}/memcached"
+    printf "php Reids Admin              : %s\n" "http://${IPADDRESS}:${admin_port}/redis"
+    printf "Nginx config path            : %s\n" "/etc/nginx"
+    printf "PHP config path              : %s\n" "/etc/php"
+}
+
+_show_info
+sleep 3
+menu_account

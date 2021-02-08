@@ -1,0 +1,40 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_run(){
+    OS_VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+    clear
+    echo "node.js & npm installation..."
+    sleep 3
+    if [ "$OS_VERSION" == "20.04" ]; then
+        curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+        curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+        NODE=/etc/apt/sources.list.d/nodesource.list
+        sudo unlink NODE
+        cat > "$NODE" <<EOF
+        deb https://deb.nodesource.com/node_14.x focal main
+        deb-src https://deb.nodesource.com/node_14.x focal main
+EOF
+        sudo apt-get update
+        sudo apt -y install nodejs
+        sudo apt -y install npm
+    else
+        curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        sudo apt-get -y install nodejs
+    fi
+
+    clear
+    printf "%s\n" "${GREEN}node.js & npm: OK!${NC}"
+}
+
+_run
+menu_tools

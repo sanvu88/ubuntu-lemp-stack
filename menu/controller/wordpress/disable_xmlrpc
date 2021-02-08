@@ -1,0 +1,233 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_xmlrpc_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("BLock XMLRPC" "Unblock XMLRPC" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Unblock XMLRPC")
+            action="disable"
+            break
+            ;;
+        "BLock XMLRPC")
+            action="enable"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+}
+
+_select_site_enable_xmlrpc() {
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            check_xmlrpc=$(grep -rnw "${VHOST_DIR}/${domain}.conf" -e 'disable_xmlrpc.conf')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && -z "${check_xmlrpc}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Toan bo website da duoc cau hinh block XMLRPC.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_site_disable_xmlrpc() {
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            check_xmlrpc=$(grep -rnw "${VHOST_DIR}/${domain}.conf" -e 'disable_xmlrpc.conf')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && -n "${check_xmlrpc}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website WordPress nao duoc cau hinh block XMLRPC.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_enable_block_xmlrpc() {
+    notify="${GREEN}BLock XMLRPC thanh cong.${NC}"
+    sed -i '/disable_xmlrpc/d' "${USER_DIR}"/."${domain}".conf
+    echo "disable_xmlrpc=yes" >> "${USER_DIR}"/."${domain}".conf
+    check_php_cache=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf")
+    check_php_cache_woo=$(grep -w "php_cache_woo.conf" "${VHOST_DIR}/${domain}.conf")
+
+    rm -rf "${VHOST_DIR}"/"${domain}".conf
+
+    if [ -f "${CUSTOM_DIR}/wordpress.conf" ]; then
+        cp "${CUSTOM_DIR}"/wordpress.conf "${VHOST_DIR}"/"${domain}".conf
+    elif [ -f "${TEMPLATE_DIR}/wordpress.conf" ]; then
+        cp "${TEMPLATE_DIR}"/wordpress.conf "${VHOST_DIR}"/"${domain}".conf
+    else
+        cp "${TEMPLATE_DIR}"/default.conf "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    if [ -n "${check_php_cache}" ]; then
+        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    elif [ -n "${check_php_cache_woo}" ]; then
+        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_cache_woo.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    else
+        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    fi
+    sed -i "s|WEBSITE_USER|${user}|g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "s|WEBSITE_DOMAIN|${domain}|g" "${VHOST_DIR}"/"${domain}".conf
+
+    if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+        sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    plugin_seo=$(grep -w "plugin_seo" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    if [ -n "${plugin_seo}" ]; then
+        sed -i "s|PLUGIN_SEO|include ${NGINX_CONF_DIR}/wordpress/${plugin_seo}.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    else
+        sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    plugin_cache=$(grep -w "plugin_cache" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    if [[ -n "${plugin_cache}" && "${plugin_cache}" != "other" ]]; then
+        if [[ "${plugin_cache}" == "wpfc" || "${plugin_cache}" == "wpsc" || "${plugin_cache}" == "enabler" ]]; then
+            sed -i '/wordpress.conf/d' "${VHOST_DIR}"/"${domain}".conf
+        fi
+        sed -i '/staticfiles.conf/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|PLUGIN_CACHE|include ${NGINX_CONF_DIR}/wordpress/${plugin_cache}.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+    else
+        sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    disable_user_api=$(grep -w "disable_user_api" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    if [ "${disable_user_api}" == "no" ]; then
+        sed -i '/disable_user_api.conf/d' "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    if [[ -f "/home/${user}/${domain}/htpasswd/wp-admin/.htpasswd" && -f "/home/${user}/${domain}/htpasswd/wp-admin/htpasswd.conf" ]]; then
+        sed -i "s|HTPASSWD|include /home/${user}/${domain}/wp-admin/htpasswd/htpasswd.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+
+        sed -i "/limit_req/a auth_basic_user_file /home/${user}/${domain}/htpasswd/wp-admin/.htpasswd;" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "/limit_req/a auth_basic \"Restricted\";" "${VHOST_DIR}"/"${domain}".conf
+    else
+        sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+    fi
+}
+
+_disable_block_xmlrpc() {
+    sed -i '/disable_xmlrpc.conf/d' "${VHOST_DIR}"/"${domain}".conf
+    notify="${GREEN}Unblock XMLRPC thanh cong.${NC}"
+    sed -i '/disable_xmlrpc/d' "${USER_DIR}"/."${domain}".conf
+    echo "disable_xmlrpc=no" >> "${USER_DIR}"/."${domain}".conf
+}
+
+ALERT=""
+domain=""
+action=""
+notify=""
+
+_select_xmlrpc_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+else
+    if [ "${action}" == "enable" ]; then
+        _select_site_enable_xmlrpc
+    fi
+
+    if [ "${action}" == "disable" ]; then
+        _select_site_disable_xmlrpc
+    fi
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            _cd_dir /home/"${user}"/"${domain}"/public_html
+
+            if [ "${action}" == "enable" ]; then
+                _enable_block_xmlrpc
+            fi
+
+            if [ "${action}" == "disable" ]; then
+                _disable_block_xmlrpc
+            fi
+
+            if nginx -t; then
+                _restart_service
+                clear
+                printf "%s\n" "${GREEN}${notify}${NC}"
+                echo ""
+            else
+                clear
+                nginx -t
+                printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            fi
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+wordpress_advanced_menu

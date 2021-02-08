@@ -1,0 +1,244 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+printf "%s========================%s\n" "${GREEN}" "${NC}"
+printf "%s          SSL           %s\n" "${GREEN}" "${NC}"
+printf "%s========================%s\n" "${GREEN}" "${NC}"
+echo
+
+_select_ssl_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 4 ]: "
+    options=("Tao CSR" "Tao CRT/CA" "Tao Private Key" "Redirect http to https" "Remove SSL" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Tao CSR")
+            action="create_csr"
+            break
+            ;;
+        "Tao CRT/CA")
+            action="create_crt"
+            break
+            ;;
+        "Tao Private Key")
+            action="create_key"
+            break
+            ;;
+        "Redirect http to https")
+            action="http_https"
+            break
+            ;;
+        "Remove SSL")
+            action="remove_ssl"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_create_csr(){
+    if [[ -f "${SSL_DIR}/${domain}/paid/${domain}.csr" || -f "${SSL_DIR}/${domain}/paid/private.key" ]]; then
+        while true; do
+            read -r -p "Ban co muon xoa file CSR cu khong (y/n)? " prompt_delete_old_crt
+            echo
+            if [[ "${prompt_delete_old_csr}" =~ ^([yY])$ || "${prompt_delete_old_csr}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    fi
+
+    if [[ "${prompt_delete_old_csr}" =~ ^([nN])$ ]]; then
+        notify="${RED}${lang_cancel_action}${NC}"
+    else
+        rm -rf "${SSL_DIR}"/"${domain}"/paid/"${domain}".csr
+        rm -rf "${SSL_DIR}"/"${domain}"/paid/key.pem
+        country="VN"
+        city="Ha Noi"
+        district="Cau Giay"
+        company_name="HOSTVN"
+
+        read -r -p "Enter Country code (Ma quoc gia) (Ex: VN): " country
+        read -r -p "Enter City (Thanh pho): " city
+        read -r -p "Enter District (Quan/Huyen): " district
+        read -r -p "Enter Company name (Ten cong ty): " company_name
+
+        openssl genrsa -out "${SSL_DIR}/${domain}/paid/key.pem" 4096
+        openssl req -new -key "/${SSL_DIR}/${domain}/paid/key.pem" \
+            -out "${SSL_DIR}/${domain}/paid/${domain}.csr" \
+            -subj "/C=${country}/ST=${district}/L=${city}/O=${company_name}/OU=IT Department/CN=${domain}}"
+        notify="${GREEN}Tao file CSR thanh cong.${NC}"
+        notify2="${GREEN}De xem noi dung CSR vui long thoat menu va chay lenh sau:${NC} ${RED}cat ${SSL_DIR}/${domain}/paid/${domain}.csr${NC}"
+    fi
+}
+
+_create_crt(){
+    if [ -f "${SSL_DIR}/${domain}/paid/cert.pem" ]; then
+        while true; do
+            read -r -p "Ban co muon xoa chung chi cu khong (y/n)? " prompt_delete_old_crt
+            echo
+            if [[ "${prompt_delete_old_crt}" =~ ^([yY])$ || "${prompt_delete_old_crt}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    fi
+
+    if [[ "${prompt_delete_old_crt}" =~ ^([nN])$ ]]; then
+        notify="${RED}${lang_cancel_action}${NC}"
+    else
+        rm -rf "${SSL_DIR}"/"${domain}"/paid/cert.pem
+        echo "Dien ma CRT va ma CA vao file."
+        echo "De luu file hay bam CTRL + X va nhan ENTER sau đo bam tiep CTRL + O"
+        echo "Dang mo trinh soan thao ...."
+        sleep 3
+        nano "${SSL_DIR}"/"${domain}"/paid/cert.pem
+        notify="${GREEN}Tao file CRT thanh cong.${NC}"
+    fi
+}
+
+_create_key(){
+    if [[ -f "${SSL_DIR}/${domain}/paid/key.pem" ]]; then
+        while true; do
+            read -r -p "Ban co muon xoa file Private Key cu khong (y/n)? " prompt_delete_old_key
+            echo
+            if [[ "${prompt_delete_old_key}" =~ ^([yY])$ || "${prompt_delete_old_key}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    fi
+
+    if [[ "${prompt_delete_old_key}" =~ ^([nN])$ ]]; then
+        notify="${RED}${lang_cancel_action}${NC}"
+    else
+        rm -rf "${SSL_DIR}"/"${domain}"/paid/key.pem
+        echo "Dien ma Private Key vao file."
+        echo "De luu file hay bam CTRL + X va nhan ENTER sau đo bam tiep CTRL + O"
+        echo "Dang mo trinh soan thao ...."
+        sleep 3
+        nano "${SSL_DIR}"/"${domain}"/paid/key.pem
+        notify="${GREEN}Tao file Private Key thanh cong.${NC}"
+    fi
+}
+
+_redirect_http_to_https(){
+    if [[ -f "${SSL_DIR}/${domain}/paid/key.pem" && -f "${SSL_DIR}/${domain}/paid/cert.pem" && -s "${SSL_DIR}/${domain}/paid/key.pem" && -s "${SSL_DIR}/${domain}/paid/cert.pem" ]]; then
+        sed -i '/https.conf/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+
+        sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${domain}".conf
+
+        sed -i "/listen 443/a ssl_certificate ${SSL_DIR}/${domain}/paid/cert.pem;" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "/listen 443/a ssl_certificate_key ${SSL_DIR}/${domain}/paid/key.pem;" "${VHOST_DIR}"/"${domain}".conf
+
+        if nginx -t; then
+            _restart_service
+            clear
+            notify="${GREEN}Cau hinh thanh cong.${NC}"
+        else
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        notify="${RED}Ban chua tao chung chi SSL. Vui long tao chung chi SSL truoc.${NC}"
+    fi
+}
+
+_remove_ssl(){
+    sed -i '/https.conf/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate /etc/nginx/ssl/server/server.crt;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate_key /etc/nginx/ssl/server/server.key;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a return 404;" "${VHOST_DIR}"/"${domain}".conf
+
+    if nginx -t; then
+        _restart_service
+        clear
+        notify="${GREEN}Cau hinh thanh cong.${NC}"
+    else
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+_run(){
+    if [ ! -d "/etc/nginx/ssl/${domain}"/paid ]; then
+        mkdir -p "/etc/nginx/ssl/${domain}"/paid
+    fi
+
+    if [ "${action}" == "create_csr" ]; then
+        _create_csr
+    elif [ "${action}" == "create_crt" ]; then
+        _create_crt
+    elif [ "${action}" == "http_https" ]; then
+        _redirect_http_to_https
+    elif [ "${action}" == "remove_ssl" ]; then
+        _remove_ssl
+    else
+        _create_key
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+    if [ -n "${notify2}" ]; then
+        printf "%s\n" "${notify2}"
+    fi
+}
+
+action=""
+domain=""
+notify=""
+prompt_delete_old_crt="y"
+prompt_delete_old_csr="y"
+prompt_delete_old_key="y"
+
+_select_ssl_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+else
+    _select_domain
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            _run
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+menu_ssl

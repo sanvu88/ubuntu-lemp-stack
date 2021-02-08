@@ -1,0 +1,54 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s=========================================%s\n" "${GREEN}" "${NC}"
+printf "%s                   Advanced              %s\n" "${GREEN}" "${NC}"
+printf "%s=========================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "${GREEN}%s${NC}\n" "1. On/Off Yoast Seo config"
+    printf "${GREEN}%s${NC}\n" "2. On/Off Rank Math Seo config"
+    #printf "${GREEN}%s${NC}\n" "3. On/Off plugins Webp Express config"
+    printf "${GREEN}%s${NC}\n" "4. Cau hinh Nginx voi plugin cache"
+    printf "${GREEN}%s${NC}\n" "5. Them cache key tranh trung lap noi dung"
+    printf "${GREEN}%s${NC}\n" "6. On/Off Debug mode"
+    printf "${GREEN}%s${NC}\n" "7. On/Off che do bao tri (Maintenance mode)"
+    printf "${GREEN}%s${NC}\n" "8. On/Off disable xmlrpc"
+    printf "${GREEN}%s${NC}\n" "9. On/Off Block User API"
+    printf "${GREEN}%s${NC}\n" "10. On/Off WP-Cron"
+    #printf "${GREEN}%s${NC}\n" "11. Delete Post Revisions"
+    printf "${GREEN}%s${NC}\n" "========================================"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) clear; wordpress_yoast_seo ;;
+        2) clear; wordpress_rank_math_seo ;;
+        #3) clear; wordpress_webp_express ;;
+        3) clear; wordpress_plugin_cache ;;
+        4) clear; wordpress_cache_key ;;
+        5) clear; wordpress_debug_mode ;;
+        6) clear; wordpress_maintenance ;;
+        7) clear; wordpress_xmlrpc ;;
+        8) clear; wordpress_user_api ;;
+        9) clear; wordpress_cron ;;
+        #11) clear; wordpress_delete_post_revisions;;
+        0) clear; menu_wordpress ;;
+        *) clear; printf "%s\n"  "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

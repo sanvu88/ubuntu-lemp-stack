@@ -1,0 +1,212 @@
+#!/bin/bash
+
+exec 19>/opt/protect_dir.txt
+BASH_XTRACEFD=19
+set -x
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Bao ve thu muc" "Tat bao ve thu muc" "Doi mat khau" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Bao ve thu muc")
+            action="enable"
+            break
+            ;;
+        "Tat bao ve thu muc")
+            action="disable"
+            break
+            ;;
+        "Doi mat khau")
+            action="disable"
+            break
+            ;;
+        "password")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+}
+
+_run() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    if [ "${action}" == "enable" ]; then
+        read -r -p "Nhap vao duong dan muon bao ve (VD: /upload, /upload/image): " path
+
+        if [[ "${path}" == *"wp-admin"* ]]; then
+            notify="De bao ve wp-admin vui long su dung menu 7 - 8."
+        else
+            if [ ! -d "/home/${user}/${domain}/htpasswd/protect_folder" ]; then
+                mkdir -p /home/"${user}"/"${domain}"/htpasswd/protect_folder
+            fi
+
+            if [ ! -f "/home/${user}/${domain}/htpasswd/protect_folder/.htpasswd" ]; then
+                read -r -p "Nhap vao user: " htpasswd_user
+                read -r -p "Nhap vao mat khau: " htpasswd_passwd
+                htpasswd -b -c /home/"${user}"/"${domain}"/htpasswd/protect_folder/.htpasswd "${htpasswd_user}" "${htpasswd_passwd}"
+                sed -i '/htpasswd_user/d' "${USER_DIR}"/."${domain}".conf
+                sed -i '/htpasswd_passwd/d' "${USER_DIR}"/."${domain}".conf
+                echo "htpasswd_user=${htpasswd_user}" >>"${USER_DIR}"/."${domain}".conf
+                echo "htpasswd_passwd=${htpasswd_passwd}" >>"${USER_DIR}"/."${domain}".conf
+            fi
+
+            cat >>"/home/${user}/${domain}/htpasswd/protect_folder/.protect.list" <<END
+$path
+END
+
+            cat >>"/home/${user}/${domain}/htpasswd/protect_folder/protect_dir.conf" <<END
+location $path {
+    auth_basic "Prohibited Area";
+    auth_basic_user_file /home/${user}/${domain}/htpasswd/protect_folder/.htpasswd;
+}
+END
+
+            check_protect_dir_conf_exists=$(grep -w "protect_dir.conf" "${VHOST_DIR}/${domain}.conf")
+            if [ -z "${check_protect_dir_conf_exists}" ]; then
+                sed -i "/server_name/a include /home/${user}/${domain}/htpasswd/protect_folder/protect_dir.conf;" "${VHOST_DIR}"/"${domain}".conf
+            fi
+
+            htpasswd_user=$(grep -w "htpasswd_user" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            htpasswd_passwd=$(grep -w "htpasswd_passwd" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+            notify="Cau hinh bao ve thu muc thanh cong."
+            user_notify="User bao ve thu muc: ${htpasswd_user}"
+            pwd_notify="Mat khau bao ve thu muc: ${htpasswd_passwd}"
+        fi
+    elif
+        [ "${action}" == 'password' ]
+    then
+        if [ ! -f "/home/${user}/${domain}/htpasswd/protect_folder/.htpasswd" ]; then
+            clear
+            notify="Ban chua cau hinh bao ve thu muc."
+        else
+            htpasswd_user=$(grep -w "htpasswd_user" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            read -r -p "Nhap vao mat khau moi: " new_pass
+            rm -rf /home/"${user}"/"${domain}"/htpasswd/protect_folder/.htpasswd
+            htpasswd -b -c /home/"${user}"/"${domain}"/htpasswd/protect_folder/.htpasswd "${htpasswd_user}" "${new_pass}"
+            clear
+            notify="Doi mat khau thanh cong."
+        fi
+    else
+        if [ ! -f "/home/${user}/${domain}/htpasswd/protect_folder/.protect.list" ]; then
+            clear
+            notify="Ban chua cau hinh bao ve thu muc."
+        else
+            #list_dir=$(cat /home/"${user}"/"${domain}"/htpasswd/protect_folder/.protect.list)
+            list_dir=()
+            while IFS= read -r line; do
+                list_dir+=("$line")
+            done < /home/"${user}"/"${domain}"/htpasswd/protect_folder/.protect.list
+
+            if [ ${#list_dir[@]} -eq 0 ]; then
+                clear
+                notify="Ban chua cau hinh bao ve thu muc."
+            else
+                while true; do
+                    printf "%s\n" "Chon duong dan muon xoa bao ve"
+                    PS3="Nhap vao lua chon cua ban [0 = thoat]: "
+                    select opt_dir in "${list_dir[@]}"; do
+                        case $opt_dir in
+                        "$opt_dir")
+                            path="${opt_dir}"
+                            break
+                            ;;
+                        esac
+                    done
+                    if [[ " ${list_dir[*]} " == *" ${path} "* || "${path}" == 0 ]]; then
+                        break
+                    else
+                        clear
+                        printf "${RED}%s${NC}\n" "Lua chon khong chinh xac. Vui long chon lai."
+                    fi
+                done
+
+                if [[ "${path}" == 0 || -z "${path}" ]]; then
+                    clear
+                    notify="Huy bo thao tac."
+                else
+                    path_regex="$(echo $path | sed 's#/#\\/#g')"
+
+                    new_protect_dir=$(cat /home/"${user}"/"${domain}"/htpasswd/protect_folder/protect_dir.conf | sed "/^location ${path_regex} {$/,/}$/d")
+
+                    if [ -n "${new_protect_dir}" ]; then
+                        rm -rf /home/"${user}"/"${domain}"/htpasswd/protect_folder/protect_dir.conf
+                        cat >>"/home/${user}/${domain}/htpasswd/protect_folder/protect_dir.conf" <<END
+$new_protect_dir
+END
+                        path=${path/\//}
+                        path=$(echo "$path" | sed -e 's/\/$//')
+                        sed -i "/${path}/d" /home/"${user}"/"${domain}"/htpasswd/protect_folder/.protect.list
+
+                        clear
+                        notify="Xoa bao ve thu muc thanh cong."
+                    else
+                        clear
+                        notify="Da xay ra loi. Vui long thu lai."
+                    fi
+                fi
+            fi
+        fi
+    fi
+
+    if nginx -t; then
+        systemctl restart nginx
+        clear
+        printf "%s\n" "${GREEN}${notify}${NC}"
+        if [ -n "${user_notify}" ]; then
+            printf "%s\n" "${GREEN}${user_notify}${NC}"
+        fi
+        if [ -n "${pwd_notify}" ]; then
+            printf "%s\n" "${GREEN}${pwd_notify}${NC}"
+        fi
+    else
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+action=""
+notify=""
+
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    #clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _select_action
+        if [[ -z "${action}" && "${action}" == "cancel" ]]; then
+            clear
+            printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+        else
+            _run
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_domain

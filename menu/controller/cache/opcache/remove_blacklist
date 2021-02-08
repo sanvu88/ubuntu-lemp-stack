@@ -1,0 +1,46 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_run(){
+    sed -i "/${domain}/d" /etc/php/"${php1_version}"/fpm/conf.d/opcache-default.blacklist
+    systemctl restart php"${php1_version}"-fpm
+
+    if [ "${php2_release}" == "yes" ]; then
+        sed -i "/${domain}/d" /etc/php/"${php2_version}"/fpm/conf.d/opcache-default.blacklist
+        systemctl restart php"${php2_version}"-fpm
+    fi
+
+    clear
+    printf "%s\n" "${GREEN}Xoa website khoi Opcache blacklist thanh cong.${NC}"
+}
+
+domain=""
+
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+    manage_opcache
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+cache_manage_opcache

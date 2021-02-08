@@ -1,0 +1,519 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+menu_primary(){
+    hostvn
+}
+
+menu_domain(){
+    . /var/hostvn/menu/route/domain
+}
+
+domain_list(){
+    . /var/hostvn/menu/controller/domain/list_domain
+}
+
+domain_create(){
+    . /var/hostvn/menu/controller/domain/add_domain
+}
+
+domain_delete(){
+    . /var/hostvn/menu/controller/domain/delete_domain
+}
+
+domain_change(){
+    . /var/hostvn/menu/controller/domain/change_domain
+}
+
+domain_rewrite_config(){
+    . /var/hostvn/menu/controller/domain/rewrite_config
+}
+
+domain_alias(){
+    . /var/hostvn/menu/controller/domain/alias_domain
+}
+
+domain_redirect(){
+    . /var/hostvn/menu/controller/domain/redirect_domain
+}
+
+domain_change_php_version(){
+    . /var/hostvn/menu/controller/domain/change_php_version
+}
+
+domain_clone_website(){
+    . /var/hostvn/menu/controller/domain/clone_website
+}
+
+domain_change_database_info(){
+    . /var/hostvn/menu/controller/domain/change_database_info
+}
+
+domain_change_pass_sftp(){
+    . /var/hostvn/menu/controller/domain/change_pass_sftp
+}
+
+domain_protect_dir(){
+    . /var/hostvn/menu/controller/domain/protect_dir
+}
+
+menu_ssl(){
+    . /var/hostvn/menu/route/ssl
+}
+
+ssl_le(){
+    . /var/hostvn/menu/route/ssl_letencrypt
+}
+
+ssl_paid(){
+    . /var/hostvn/menu/controller/ssl/paid_ssl
+}
+
+ssl_le_create(){
+    . /var/hostvn/menu/controller/ssl/create_le_ssl
+}
+
+ssl_le_alias_domain(){
+    . /var/hostvn/menu/controller/ssl/le_alias_domain
+}
+
+ssl_le_remove(){
+    . /var/hostvn/menu/controller/ssl/remove_le
+}
+
+ssl_le_cf_api(){
+    . /var/hostvn/menu/controller/ssl/cf_api
+}
+
+menu_cache(){
+    . /var/hostvn/menu/route/cache
+}
+
+cache_manage_memcached(){
+    . /var/hostvn/menu/controller/cache/manage_memcached
+}
+
+cache_manage_redis(){
+    . /var/hostvn/menu/controller/cache/manage_redis
+}
+
+cache_manage_opcache(){
+    . /var/hostvn/menu/route/opcache
+}
+
+cache_install_memcached(){
+    . /var/hostvn/menu/controller/cache/install_memcached
+}
+
+cache_install_redis(){
+    . /var/hostvn/menu/controller/cache/install_redis
+}
+
+cache_clear_cache(){
+    . /var/hostvn/menu/controller/cache/clear_cache
+}
+
+cache_fastcgi(){
+    . /var/hostvn/menu/controller/cache/nginx_cache
+}
+
+opcache_enable_disable(){
+    . /var/hostvn/menu/controller/cache/opcache/enable_disable
+}
+
+opcache_add_blacklist(){
+    . /var/hostvn/menu/controller/cache/opcache/add_blacklist
+}
+
+opcache_remove_blacklist(){
+    . /var/hostvn/menu/controller/cache/opcache/remove_blacklist
+}
+
+menu_lemp(){
+    . /var/hostvn/menu/route/lemp
+}
+
+lemp_nginx(){
+    . /var/hostvn/menu/route/lemp_nginx
+}
+
+lemp_php(){
+    . /var/hostvn/menu/route/lemp_php
+}
+
+lemp_php_setting(){
+    . /var/hostvn/menu/controller/php/php_setting
+}
+
+lemp_php1_change(){
+    . /var/hostvn/menu/controller/php/change_php1
+}
+
+lemp_php2_change(){
+    . /var/hostvn/menu/controller/php/change_php2
+}
+
+lemp_install_php2(){
+    . /var/hostvn/menu/controller/php/install_php2
+}
+
+lemp_install_ioncube(){
+    . /var/hostvn/menu/controller/php/install_ioncube
+}
+
+lemp_php_open_basedir(){
+    . /var/hostvn/menu/controller/php/open_basedir
+}
+
+lemp_php_process_manager(){
+    . /var/hostvn/menu/controller/php/process_manager
+}
+
+lemp_database(){
+    . /var/hostvn/menu/route/lemp_database
+}
+
+lemp_create_db(){
+    . /var/hostvn/menu/controller/database/create_db
+}
+
+lemp_change_pass_db(){
+    . /var/hostvn/menu/controller/database/change_password
+}
+
+lemp_destroy_db(){
+    . /var/hostvn/menu/controller/database/destroy_db
+}
+
+lemp_import_db(){
+    . /var/hostvn/menu/controller/database/import_db
+}
+
+lemp_remote_mysql(){
+    . /var/hostvn/menu/controller/database/remote_mysql
+}
+
+lemp_log(){
+    . /var/hostvn/menu/route/lemp_log
+}
+
+lemp_ngx_pagespeed(){
+    . /var/hostvn/menu/route/lemp_ngx_pagespeed
+}
+
+ngx_pagespeed_on_off(){
+    . /var/hostvn/menu/controller/pagespeed/on_off
+}
+
+ngx_pagespeed_combine_js(){
+    . /var/hostvn/menu/controller/pagespeed/combine_js
+}
+
+ngx_pagespeed_combine_css(){
+    . /var/hostvn/menu/controller/pagespeed/combine_css
+}
+
+ngx_pagespeed_minify_js(){
+    . /var/hostvn/menu/controller/pagespeed/minify_js
+}
+
+ngx_pagespeed_minify_css(){
+    . /var/hostvn/menu/controller/pagespeed/minify_css
+}
+
+ngx_pagespeed_minify_html(){
+    . /var/hostvn/menu/controller/pagespeed/minify_html
+}
+
+ngx_pagespeed_compress_image(){
+    . /var/hostvn/menu/controller/pagespeed/compress_image
+}
+
+ngx_pagespeed_convert_img_to_webp(){
+    . /var/hostvn/menu/controller/pagespeed/convert_img_to_webp
+}
+
+lemp_domain_log(){
+    . /var/hostvn/menu/controller/log/domain_log
+}
+
+menu_firewall(){
+    . /var/hostvn/menu/route/firewall
+}
+
+menu_permission(){
+    . /var/hostvn/menu/route/permission
+}
+
+permission_one(){
+    . /var/hostvn/menu/controller/permission/one
+}
+
+permission_all(){
+    . /var/hostvn/menu/controller/permission/all
+}
+
+menu_wordpress(){
+    . /var/hostvn/menu/route/wordpress
+}
+
+wordpress_auto_install(){
+    . /var/hostvn/menu/controller/wordpress/auto_install
+}
+
+wordpress_update(){
+    . /var/hostvn/menu/controller/wordpress/update_wordpress
+}
+
+wordpress_plugins_manage(){
+    . /var/hostvn/menu/route/wordpress_plugins_manage
+}
+
+wordpress_update_plugins(){
+    . /var/hostvn/menu/controller/wordpress/update_plugins
+}
+
+wordpress_deactivate_all_plugins(){
+    . /var/hostvn/menu/controller/wordpress/deactivate_all_plugins
+}
+
+wordpress_optimize_database(){
+    . /var/hostvn/menu/controller/wordpress/optimize_database
+}
+
+wordpress_change_pass_admin(){
+    . /var/hostvn/menu/controller/wordpress/change_pass_wp_admin
+}
+
+wordpress_move_wp_config(){
+    . /var/hostvn/menu/controller/wordpress/move_wp_config
+}
+
+wordpress_htpasswd_wp_admin(){
+    . /var/hostvn/menu/controller/wordpress/htpasswd_wp_admin
+}
+
+wordpress_disable_edit_theme_plugins(){
+    . /var/hostvn/menu/controller/wordpress/disable_edit_theme_plugins
+}
+
+wordpress_lock(){
+    . /var/hostvn/menu/route/wordpress_lock
+}
+
+wordpress_advanced_menu(){
+    . /var/hostvn/menu/route/wordpress_advanced
+}
+
+wordpress_yoast_seo(){
+    . /var/hostvn/menu/controller/wordpress/yoast_seo
+}
+
+wordpress_rank_math_seo(){
+    . /var/hostvn/menu/controller/wordpress/rank_math_seo
+}
+
+wordpress_plugin_cache(){
+    . /var/hostvn/menu/controller/wordpress/cache_plugins
+}
+
+wordpress_webp_express(){
+    . /var/hostvn/menu/controller/wordpress/webp_express
+}
+
+wordpress_cache_key(){
+    . /var/hostvn/menu/controller/wordpress/cache_key
+}
+
+wordpress_debug_mode(){
+    . /var/hostvn/menu/controller/wordpress/debug_mode
+}
+
+wordpress_maintenance(){
+    . /var/hostvn/menu/controller/wordpress/maintenance_mode
+}
+
+wordpress_xmlrpc(){
+    . /var/hostvn/menu/controller/wordpress/disable_xmlrpc
+}
+
+wordpress_user_api(){
+    . /var/hostvn/menu/controller/wordpress/disable_user_api
+}
+
+wordpress_cron(){
+    . /var/hostvn/menu/controller/wordpress/cron_job
+}
+
+wordpress_delete_post_revisions(){
+    . /var/hostvn/menu/controller/wordpress/post_revision
+}
+
+menu_backup(){
+    . /var/hostvn/menu/route/backup
+}
+
+backup_data(){
+    . /var/hostvn/menu/controller/backup/backup
+}
+
+restore_data(){
+    . /var/hostvn/menu/controller/backup/restore
+}
+
+delete_backup(){
+    . /var/hostvn/menu/controller/backup/delete
+}
+
+connect_google_drive(){
+    . /var/hostvn/menu/controller/backup/connect_google_drive
+}
+
+delete_connect_google_drive(){
+    . /var/hostvn/menu/controller/backup/delete_connect_google_drive
+}
+
+menu_admin_tool(){
+    . /var/hostvn/menu/route/admin_tool
+}
+
+update_phpmyadmin(){
+    . /var/hostvn/menu/controller/admin/update_phpmyadmin
+}
+
+update_opcache_panel(){
+    . /var/hostvn/menu/controller/admin/opcache_panel
+}
+
+update_memcached_panel(){
+    . /var/hostvn/menu/controller/admin/memcached_panel
+}
+
+update_redis_panel(){
+    . /var/hostvn/menu/controller/admin/redis_panel
+}
+
+admin_tool_change_port(){
+    . /var/hostvn/menu/controller/admin/change_port
+}
+
+menu_vps_manage(){
+    . /var/hostvn/menu/route/vps_manage
+}
+
+info_vps(){
+    . /var/hostvn/menu/controller/vps/vps_info
+}
+
+info_webserver(){
+    . /var/hostvn/menu/controller/vps/webserver_info
+}
+
+vps_ssh(){
+    . /var/hostvn/menu/route/vps_ssh
+}
+
+change_port_ssh(){
+    . /var/hostvn/menu/controller/vps/change_port_ssh
+}
+
+change_vps_parameter(){
+    . /var/hostvn/menu/controller/vps/change_vps_parameter
+}
+
+change_ip_vps(){
+    . /var/hostvn/menu/controller/vps/change_ip_vps
+}
+
+move_vps(){
+    . /var/hostvn/menu/controller/vps/move_vps
+}
+
+convert_vpssim(){
+    . /var/hostvn/menu/controller/vps/vpssim
+}
+
+vps_create_swap(){
+    . /var/hostvn/menu/controller/vps/create_swap
+}
+
+menu_account(){
+    . /var/hostvn/menu/route/account_manage
+}
+
+account_admin_tool(){
+    . /var/hostvn/menu/controller/account/admin_tool
+}
+
+account_phpmyadmin(){
+    . /var/hostvn/menu/controller/account/phpmyadmin
+}
+
+account_website_info(){
+    . /var/hostvn/menu/controller/account/website_info
+}
+
+menu_cronjob(){
+    . /var/hostvn/menu/route/cronjob
+}
+
+cron_backup_local(){
+    . /var/hostvn/menu/controller/cronjob/backup_local
+}
+
+cron_backup_google(){
+    . /var/hostvn/menu/controller/cronjob/backup_google
+}
+
+cron_destroy(){
+    . /var/hostvn/menu/controller/cronjob/destroy_cron
+}
+
+menu_tools(){
+    . /var/hostvn/menu/route/menu_tools
+}
+
+tools_compress_image(){
+    . /var/hostvn/menu/controller/tools/compress_image
+}
+
+tools_deploy_website(){
+    . /var/hostvn/menu/controller/tools/deploy_website
+}
+
+tools_decompress_file(){
+    . /var/hostvn/menu/controller/tools/decompress_file
+}
+
+website_disk_usage(){
+    . /var/hostvn/menu/controller/tools/website_disk_usage
+}
+
+find_large_file_folder(){
+    . /var/hostvn/menu/controller/tools/find_large_file_folder
+}
+
+tools_install_av(){
+    . /var/hostvn/menu/controller/tools/install_av
+}
+
+tools_install_nodejs(){
+    . /var/hostvn/menu/controller/tools/install_nodejs
+}
+
+update_script(){
+    . /var/hostvn/menu/controller/vps/update_scripts
+}
+
+change_language(){
+    . /var/hostvn/menu/controller/vps/change_language
+}

@@ -1,0 +1,184 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_redirect_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Them Redirect Domain" "Xoa Redirect Domain" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Xoa Redirect Domain")
+            action="disable"
+            break
+            ;;
+        "Them Redirect Domain")
+            action="enable"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_redirect_domain() {
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${REDIRECT_DIR}")" ]]; then
+        domains_redirect=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${REDIRECT_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for entry_redirect in *.conf; do
+            redirect_domain=${entry_redirect//.conf/}
+            domains_redirect+=("${redirect_domain}")
+        done
+
+        if [ ${#domains_redirect[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh bat ky Alias Domain nao.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt_redirect in "${domains_redirect[@]}"; do
+                redirect_domain=$opt_redirect
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh bat ky Alias Domain nao.${NC}")
+    fi
+}
+
+_destroy_redirect_domain() {
+    if [[ -z "${redirect_domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    else
+        rm -rf "${REDIRECT_DIR}"/"${redirect_domain}".conf
+        rm -rf "/root/.acme.sh/${redirect_domain}"
+
+        if nginx -t; then
+            systemctl restart nginx
+            clear
+            printf "%s\n" "${GREEN}Xoa Redirect domain thanh cong.${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    fi
+}
+
+_input_redirect_domain() {
+    false
+    while [ $? -eq 1 ]; do
+        read -r -p "Nhap Redirect domain (Khong co www) [0 = Thoat]: " redirect_domain
+        if [ "${redirect_domain}" == "0" ]; then
+            break
+        else
+            redirect_domain=$(echo "${redirect_domain}" | tr '[:upper:]' '[:lower:]')
+            echo "${redirect_domain}" | grep -q "\."
+            if [ $? -eq 0 ]; then
+                "${BASH_DIR}"/menu/validate/check_value domain "${redirect_domain}"
+                if [[ $? -eq 1 ]]; then
+                    clear
+                    printf "%s\n" "${RED}Ten mien ban nhap khong chinh xac vui long nhap lai.${NC}"
+                    false
+                fi
+            else
+                clear
+                printf "%s\n" "${RED}Ten mien ban nhap khong chinh xac vui long nhap lai.${NC}"
+                false
+            fi
+        fi
+    done
+
+    redirect_domain=${redirect_domain//www.}
+}
+
+_create_redirect_vhost() {
+    if [ "${redirect_domain}" == 0 ]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    elif [[ -f "${REDIRECT_DIR}/${redirect_domain}.conf" ]]; then
+        clear
+        printf "%s\n" "${RED}Ten mien ${NC}${GREEN}${redirect_domain}${NC} da duoc dung lam Redirect Domain roi."
+    else
+        if [ ! -d "${REDIRECT_DIR}" ]; then
+            mkdir -p "${REDIRECT_DIR}"
+        fi
+
+        check_ssl_primary_domain=$(grep -w "ssl_certificate" "${VHOST_DIR}/${domain}.conf")
+
+        if [ -z "${check_ssl_primary_domain}" ]; then
+            protocol="http://"
+        else
+            protocol="https://"
+        fi
+
+        cat >>"${REDIRECT_DIR}/${redirect_domain}" <<END
+server {
+    server_name ${redirect_domain} www.${redirect_domain};
+    return       301 ${protocol}${domain}\$request_uri;
+}
+END
+        if nginx -t; then
+            systemctl restart nginx
+            clear
+            printf "%s\n" "${GREEN}Tao Alias Domain thanh cong.${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}Loi cau hinh vHost Nginx. Vui long kiem tra lai.${NC}"
+            printf "%s\n" "${RED}Ban co the su dung menu Rewrite Config (1 - 5) neu khong the tu sua loi.${NC}"
+        fi
+    fi
+}
+
+ALERT=""
+action=""
+domain=""
+redirect_domain=""
+
+_select_redirect_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+elif [[ "${action}" == "disable" ]]; then
+    _select_redirect_domain
+    _destroy_redirect_domain
+else
+    printf "%s\n" "${RED}Lua chon website chinh.${NC}"
+    _select_domain
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    else
+        _input_redirect_domain
+        _create_redirect_vhost
+    fi
+fi
+
+menu_domain

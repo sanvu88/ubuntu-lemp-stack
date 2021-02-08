@@ -1,0 +1,187 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+printf "%s=========================%s\n" "${GREEN}" "${NC}"
+printf "%sGo bo SSL - Let's Encrypt%s\n" "${GREEN}" "${NC}"
+printf "%s=========================%s\n" "${GREEN}" "${NC}"
+echo
+
+_select_ssl_le_website(){
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        le_domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for le_entry in .*.conf; do
+            domain=${le_entry/./}
+            domain=${domain//.conf/}
+            check_ssl_config=$(grep -w "ssl_certificate" "${VHOST_DIR}/${domain}.conf")
+            if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" && -n "${check_ssl_config}" ]]; then
+                le_domains+=("${domain}")
+            fi
+        done
+        if [ ${#le_domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc cau hinh Nginx Fastcgi cache.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select le_opt in "${le_domains[@]}"; do
+                domain=$le_opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_remove_ssl_cert(){
+    rm -rf "${SSL_DIR}"/"${domain}"/key.pem
+    rm -rf "${SSL_DIR}"/"${domain}"/cert.pem
+    rm -rf /root/.acme.sh/"${domain}"
+    sed -i '/https.conf/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate /etc/nginx/ssl/server/server.crt;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate_key /etc/nginx/ssl/server/server.key;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a return 404;" "${VHOST_DIR}"/"${domain}".conf
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "%s\n" "${GREEN}Cau hinh thanh cong.${NC}"
+    else
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+#_recreate_vhost() {
+#    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+#    check_php_cache=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf" | cut -f2 -d'=')
+#    check_php_cache_woo=$(grep -w "php_cache_woo.conf" "${VHOST_DIR}/${domain}.conf")
+#
+#    rm -rf "${VHOST_DIR}"/"${domain}".conf
+#    if [ -f "${CUSTOM_DIR}/${SOURCE}.conf" ]; then
+#        cp "${CUSTOM_DIR}"/"${SOURCE}".conf "${VHOST_DIR}"/"${domain}".conf
+#    elif [ -f "${TEMPLATE_DIR}/${SOURCE}.conf" ]; then
+#        cp "${TEMPLATE_DIR}"/"${SOURCE}".conf "${VHOST_DIR}"/"${domain}".conf
+#    else
+#        if [ -f "${CUSTOM_DIR}/default.conf" ]; then
+#            cp "${CUSTOM_DIR}"/default.conf "${VHOST_DIR}"/"${domain}".conf
+#        else
+#            cp "${TEMPLATE_DIR}"/default.conf "${VHOST_DIR}"/"${domain}".conf
+#        fi
+#    fi
+#
+#    if [ -n "${check_php_cache}" ]; then
+#        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+#    elif [ -n "${check_php_cache_woo}" ]; then
+#        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_cache_woo.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+#    else
+#        sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+#    fi
+#
+#    sed -i "s|WEBSITE_USER|${user}|g" "${VHOST_DIR}"/"${domain}".conf
+#    sed -i "s|WEBSITE_DOMAIN|${domain}|g" "${VHOST_DIR}"/"${domain}".conf
+#    sed -i "s|WEBSITE_SOURCE|${SOURCE}|g" "${VHOST_DIR}"/"${domain}".conf
+#
+#    if [ "${SOURCE}" == "wordpress" ]; then
+#        plugin_seo=$(grep -w "plugin_seo" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+#        if [ -n "${plugin_seo}" ]; then
+#            sed -i "s|PLUGIN_SEO|include ${NGINX_CONF_DIR}/wordpress/${plugin_seo}.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+#        else
+#            sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"${domain}".conf
+#        fi
+#
+#        plugin_cache=$(grep -w "plugin_cache" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+#        if [[ -n "${plugin_cache}" && "${plugin_cache}" != "other" ]]; then
+#            if [[ "${plugin_cache}" == "wpfc" || "${plugin_cache}" == "wpsc" || "${plugin_cache}" == "enabler" ]]; then
+#                sed -i '/wordpress.conf/d' "${VHOST_DIR}"/"${domain}".conf
+#            fi
+#            sed -i '/staticfiles.conf/d' "${VHOST_DIR}"/"${domain}".conf
+#            sed -i "s|PLUGIN_CACHE|include ${NGINX_CONF_DIR}/wordpress/${plugin_cache}.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+#        else
+#            sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
+#        fi
+#
+#        disable_xmlrpc=$(grep -w "disable_xmlrpc" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+#        if [ "${disable_xmlrpc}" == "no" ]; then
+#            sed -i '/disable_xmlrpc.conf/d' "${VHOST_DIR}"/"${domain}".conf
+#        fi
+#
+#        disable_user_api=$(grep -w "disable_user_api" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+#        if [ "${disable_user_api}" == "no" ]; then
+#            sed -i '/disable_user_api.conf/d' "${VHOST_DIR}"/"${domain}".conf
+#        fi
+#
+#        if [[ -f "/home/${user}/${domain}/htpasswd/.htpasswd" && -f "/home/${user}/${domain}/htpasswd/htpasswd.conf" ]]; then
+#            sed -i "s|HTPASSWD|include /home/${user}/${domain}/htpasswd/htpasswd.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+#
+#            check_brute_force_config=$(grep -w "req_limit_per_ip" "${VHOST_DIR}/${domain}.conf")
+#            if [ -z "${check_brute_force_config}" ]; then
+#                cat >>"/home/${user}/${domain}/htpasswd/htpasswd.conf" <<END
+#location = /wp-login.php {
+#    auth_basic "Restricted";
+#    auth_basic_user_file /home/${user}/${domain}/htpasswd/.htpasswd;
+#    limit_req zone=req_limit_per_ip burst=1 nodelay;
+#    include ${NGINX_CONF_DIR}/fastcgi_params;
+#    include ${NGINX_CONF_DIR}/extra/nginx_limits.conf;
+#    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+#    if (-f \$request_filename)
+#    {
+#        fastcgi_pass php-${user};
+#    }
+#}
+#END
+#            else
+#                sed -i "/limit_req/a auth_basic_user_file /home/${user}/${domain}/htpasswd/.htpasswd;" "${VHOST_DIR}"/"${domain}".conf
+#                sed -i "/limit_req/a auth_basic \"Restricted\";" "${VHOST_DIR}"/"${domain}".conf
+#            fi
+#        else
+#            sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+#        fi
+#    fi
+#}
+
+ALERT=""
+domain=""
+_select_ssl_le_website
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _select_source
+        _remove_ssl_cert
+        #_recreate_vhost
+        if nginx -t; then
+            _restart_service
+            clear
+            printf "%s\n" "${GREEN}Go bo SSL LE cho ten mien ${domain} thanh cong."
+        else
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+ssl_le

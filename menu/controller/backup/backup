@@ -1,0 +1,240 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_backup_location() {
+    clear
+    PS3="${INPUT_SELECT} [ 1 - 3 ]: "
+    location_options=("VPS (Local)" "Google Drive" "Cancel")
+    select opt_location in "${location_options[@]}"; do
+        case $opt_location in
+        "VPS (Local)")
+            location="local"
+            break
+            ;;
+        "Google Drive")
+            location="drive"
+            break
+            ;;
+        "Cancel")
+            location="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "${WRONG_OPTION}" ;;
+        esac
+    done
+}
+
+_selection_backup_type() {
+    clear
+    PS3="${INPUT_SELECT} [ 1 - 4 ]: "
+    type_options=("Backup full (Source code + DB)" "Backup Source code" "Backup Database" "Cancel")
+    select opt_type in "${type_options[@]}"; do
+        case $opt_type in
+        "Backup full (Source code + DB)")
+            type="full"
+            break
+            ;;
+        "Backup Source code")
+            type="source"
+            break
+            ;;
+        "Backup Database")
+            type="database"
+            break
+            ;;
+        "Cancel")
+            type="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "${WRONG_OPTION}" ;;
+        esac
+    done
+}
+
+_prompt_create_drive_connect(){
+    clear
+    printf "%s\n" "${RED}${lang_not_connect_gg_drive}${NC}"
+    prompt_connect_drive="n"
+    echo "${lang_ask_connect_gg_drive}"
+    PS3="${INPUT_SELECT} (1-2): "
+    options=("Yes" "No")
+    select opt_prompt in "${options[@]}"; do
+        case $opt_prompt in
+        "Yes")
+            prompt_connect_drive="y"
+            break
+            ;;
+        "No")
+            prompt_connect_drive="n"
+            break
+            ;;
+        *) printf "%s\n" "${RED}${WRONG_OPTION}${NC}" ;;
+        esac
+    done
+}
+
+_create_drive_connect() {
+    while true; do
+        echo "${RED}${lang_remote_name_notify}${NC}"
+        read -r -p "Input Remote Name [0 = Exit]: " remote_name
+        echo
+        if validate_user "${remote_name}" || [ "${remote_name}" == "0" ]; then
+            break
+        else
+            printf "%s\n" "${RED}Remote name ${lang_wrong_format}${NC}"
+        fi
+    done
+
+    if [ "${remote_name}" == "0" ]; then
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    else
+        rclone config create "${remote_name}" drive config_is_local false scope drive use_trash false
+        clear
+
+        _select_remote
+        if [[ -z "${remote}" ]]; then
+            clear
+            printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+        else
+            _run
+        fi
+    fi
+}
+
+_backup_source() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    _cd_dir /home/"${user}"/"${domain}"
+    if [ -f "/home/backup/${CURRENT_DATE}/${domain}/${domain}.tar.gz" ]; then
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz
+    fi
+    if [[ -f "/home/${user}/${domain}/wp-config.php" && ! -f "/home/${user}/${domain}/public_html/wp-config.php" ]]; then
+        cp /home/"${user}"/"${domain}"/wp-config.php /home/"${user}"/"${domain}"/public_html/wp-config.php
+    fi
+
+    tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz public_html \
+                    --exclude "public_html/wp-content/cache" --exclude "public_html/storage/framework/cache" \
+                    --exclude "public_html/storage/framework/view"
+
+    if [[ -f "/home/${user}/${domain}/wp-config.php" && -f "/home/${user}/${domain}/public_html/wp-config.php" ]]; then
+        rm -rf /home/"${user}"/"${domain}"/public_html/wp-config.php
+    fi
+}
+
+_backup_database() {
+    db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    _cd_dir /home/backup/"${CURRENT_DATE}"/"${domain}"
+    if [ -f "/home/backup/${CURRENT_DATE}/${domain}/${db_name}.sql.gz" ]; then
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${db_name}".sql.gz
+    fi
+    mysqldump -uadmin -p"${mysql_pwd}" "${db_name}" | gzip > "${db_name}".sql.gz
+}
+
+_backup_full() {
+    _backup_source
+    _backup_database
+}
+
+_run_backup(){
+    if [ "${type}" = "full" ]; then
+        _backup_full
+    elif [ "${type}" = "source" ]; then
+        _backup_source
+    else
+        _backup_database
+    fi
+}
+
+_run() {
+    if [[ ! -d "/home/backup/${CURRENT_DATE}/${domain}" ]]; then
+        mkdir -p /home/backup/"${CURRENT_DATE}"/"${domain}"
+    fi
+
+    if [ "${location}" == "drive" ]; then
+        remote=""
+        _select_remote
+        if [[ -z "${remote}" || "${remote}" == 0 ]]; then
+            notify="${RED}${lang_not_select_remote}${NC}"
+        else
+            _run_backup
+            clear
+            printf "%s\n" "${GREEN}${PROCESSING}${NC}"
+
+            rclone copy /home/backup/"${CURRENT_DATE}"/"${domain}" "${remote}":"${IPADDRESS}"/"${CURRENT_DATE}"/"${domain}" --bwlimit 30M >> /var/log/rclone.log 2>&1
+            rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"
+            notify="${GREEN}Backup success.${NC}"
+        fi
+    else
+        _run_backup
+        notify="${GREEN}Backup success.${NC}"
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+    if [ "${location}" == "local" ]; then
+        printf "%s\n" "${GREEN}Backup dir:\n /home/backup/${CURRENT_DATE}/${domain}${NC}"
+    fi
+}
+
+location=""
+type=""
+remote_name=""
+remote=""
+domain=""
+notify=""
+
+_select_domain
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _select_backup_location
+
+        if [[ -z "${location}" || "${location}" == "cancel" ]]; then
+            clear
+            printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+        else
+            _selection_backup_type
+            if [[ -z "${type}" || "${type}" == "cancel" ]]; then
+                clear
+                printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+            else
+                if [[ "${location}" == "drive" ]]; then
+                    check_drive_remote=$(grep -w "drive" "/root/.config/rclone/rclone.conf" | cut -f2 -d'=')
+                    if [ -z "${check_drive_remote}" ]; then
+                        _prompt_create_drive_connect
+
+                        if [[ "${prompt_connect_drive}" =~ ^([yY])$ ]]; then
+                            _create_drive_connect
+                        else
+                            clear
+                            printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+                        fi
+                    else
+                        _run
+                    fi
+                else
+                    _run
+                fi
+            fi
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_backup

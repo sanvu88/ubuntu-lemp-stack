@@ -1,0 +1,278 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/.hostvn.conf
+source /var/hostvn/menu/validate/rule
+
+_cd_dir(){
+    cd "$1" || exit
+}
+
+_bytes_for_humans(){
+    #https://stackoverflow.com/a/30872711
+    local -i bytes=$1;
+    if [[ $bytes -lt 1024 ]]; then
+        echo "${bytes}B"
+    elif [[ $bytes -lt 1048576 ]]; then
+        echo "$(( (bytes + 1023)/1024 ))MB"
+    else
+        echo "$(( (bytes + 1048575)/1048576 ))GB"
+    fi
+}
+
+_gen_pass(){
+#    < /dev/urandom tr -dc A-Za-z0-9 | head -c16
+    PASS_LEN=$(perl -le 'print int(rand(6))+9')
+    START_LEN=$(perl -le 'print int(rand(8))+1')
+    END_LEN=$((PASS_LEN - START_LEN))
+#    SPECIAL_CHAR=$(perl -le 'print map { (qw{@ ^ _ - /})[rand 6] } 1');
+    NUMERIC_CHAR=$(perl -le 'print int(rand(10))');
+    PASS_START=$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..$START_LEN");
+    PASS_END=$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..$END_LEN");
+#    PASS=${PASS_START}${SPECIAL_CHAR}${NUMERIC_CHAR}${PASS_END}
+    PASS=${PASS_START}${NUMERIC_CHAR}${PASS_END}
+    echo "$PASS"
+}
+
+_select_domain(){
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        echo "${LIST_DOMAIN}"
+        domains=()
+        _cd_dir "${USER_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for entry_domain in .*.conf; do
+            domain=${entry_domain/.}
+            domain=${domain//.conf}
+            domains+=("${domain}")
+        done
+        PS3="${INPUT_SELECT} [0 = Thoat]: "
+        select opt_domain in "${domains[@]}"
+        do
+            domain=$opt_domain
+            break
+        done
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_wordpress_website(){
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        echo "${LIST_DOMAIN}"
+        domains=()
+        _cd_dir "${USER_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for entry_domain in .*.conf; do
+            domain=${entry_domain/.}
+            domain=${domain//.conf}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+        PS3="${INPUT_SELECT} [0 = Thoat]: "
+        select opt_domain in "${domains[@]}"
+        do
+            domain=$opt_domain
+            break
+        done
+    else
+        ALERT=$(printf "${RED}%s${NC}\n" "Khong ton tai website nao su dung WordPress tren VPS.")
+    fi
+}
+
+# Select Source
+_select_source(){
+    SOURCE="Other"
+    echo "${SELECT_SOURCE}"
+    PS3="${INPUT_SELECT}"
+    source_options=(
+        "WordPress"
+        "Laravel"
+        "CodeIgniter"
+        "Xenforo"
+        "Joomla"
+        "Drupal"
+        "OpenCart"
+        "Nodejs"
+        "WHMCS"
+        "PrestaShop"
+        "Yii"
+        "CakePHP"
+        "Discuz"
+        "Ecshop"
+        "CS-Cart"
+        "Magento 2"
+        "Other"
+    )
+    select opt_source in "${source_options[@]}"
+    do
+        case $opt_source in
+            "WordPress") SOURCE="wordpress"; break;;
+            "Laravel") SOURCE="laravel"; break;;
+            "CodeIgniter") SOURCE="codeigniter"; break;;
+            "Xenforo") SOURCE="xenforo"; break;;
+            "Joomla") SOURCE="joomla"; break;;
+            "Drupal") SOURCE="drupal"; break;;
+            "OpenCart") SOURCE="opencart"; break;;
+            "Nodejs") SOURCE="nodejs"; break;;
+            "WHMCS") SOURCE="whmcs"; break;;
+            "PrestaShop") SOURCE="prestashop"; break;;
+            "Yii") SOURCE="yii"; break;;
+            "CakePHP") SOURCE="cakephp"; break;;
+            "Discuz") SOURCE="discuz"; break;;
+            "Ecshop") SOURCE="ecshop"; break;;
+            "Magento 2") SOURCE="magento2"; break;;
+            "CS-Cart") SOURCE="cscart"; break;;
+            "Other") SOURCE="default"; break;;
+            *) printf "%s\n" "${RED}${WRONG_SELECT}${NC}";;
+        esac
+    done
+}
+
+_make_backup_dir(){
+    if [[ ! -d "/home/backup/${CURRENT_DATE}/${1}" ]]; then
+        mkdir -p /home/backup/"${CURRENT_DATE}"/"${1}"
+    fi
+}
+
+_list_backup(){
+    date=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A /home/backup)" ]]; then
+        echo "${LIST_BACKUP}"
+        dates=()
+        _cd_dir /home/backup
+        for backup_date in * ; do
+            if valid_date "${backup_date}"; then
+                dates+=("${backup_date}")
+            fi
+        done
+
+        PS3="${SELECT_OPTION}"
+        select opt1 in "${dates[@]}"
+        do
+            case $opt1 in
+            "$opt1") date=${opt1}; break;;
+            esac
+        done
+
+        if [ -n "${date}" ]; then
+            echo "Chon ten mien muon khoi phuc [0 = Thoat]: "
+            domains=()
+            _cd_dir /home/backup/"${date}"
+            for entry_bk_domain in * ; do
+                if [ -d "${entry_bk_domain}" ]; then
+                    domains+=("${entry_bk_domain}")
+                fi
+            done
+
+            PS3="${SELECT_OPTION}"
+            select opt2 in "${domains[@]}"
+            do
+                domain=${opt2}
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${BACKUP_EMPTY}${NC}")
+    fi
+}
+
+_empty_db(){
+    tables=$(mysql -uadmin -p"${mysql_pwd}" "${db_name}" -e 'show tables' | awk '{ print $1}' | grep -v '^Tables')
+    for t in ${tables}
+    do
+        mysql -uadmin -p"${mysql_pwd}" "${db_name}" -e "drop table ${t}"
+    done
+}
+
+_wp_auto_install_info(){
+    while true
+    do
+        echo "Username khong chua ky tu dac biet va dai 5 ky tu tro len."
+        read -r -p "${INPUT_WP_ADMIN}" admin_user
+        LEN=${#admin_user}
+        echo
+        if validate_user "${admin_user}" && [[ $LEN -ge 5 ]] && [ "${admin_user}" != "admin" ] ; then
+            break
+        elif [ "${admin_user}" == "admin" ]; then
+            clear
+            printf "${RED}%s${NC}\n" "User ban chon khong du an toan. Vui long su dung user khac."
+        else
+            clear
+            printf "%s\n" "${RED}${WRONG_USERNAME}${NC}"
+        fi
+    done
+
+    admin_pwd=$(_gen_pass "$@")
+
+    while true
+    do
+        read -r -p "${INPUT_EMAIL}" admin_email
+        echo
+        if [[ "${admin_email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
+            break
+        else
+            clear
+            printf "%s\n"  "${RED}${WRONG_EMAIL}${NC}"
+        fi
+    done
+
+    read -r -p "${INPUT_SITE_NAME}" site_name
+
+    if [ -z "${admin_user}" ]; then
+        admin_user=${domain//[-._]/}
+        admin_user=$(echo "${admin_user}" | cut -c 1-10)
+    fi
+
+    if [ -z "${site_name}" ]; then
+        site_name="Just another WordPress site"
+    fi
+}
+
+_select_remote(){
+    echo "${SELECT_REMOTE}"
+    remotes=()
+    list_remote=( "$(rclone listremotes)" )
+    for entry in "${list_remote[@]}"; do
+        rt=${entry//:}
+        if ! valid_ip "${rt}"; then
+            remotes+=("${rt}")
+        fi
+    done
+
+    PS3="${SELECT_OPTION}"
+
+    select opt in "${remotes[@]}"
+    do
+        case $opt in
+            "$opt") remote=${opt}; break ;;
+        esac
+    done
+}
+
+_restart_service(){
+    systemctl restart nginx
+    systemctl restart php"${php1_version}"-fpm
+    if [ "${php2_release}" == "yes" ]; then
+        systemctl restart php"${php2_version}"-fpm
+    fi
+}

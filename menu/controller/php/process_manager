@@ -1,0 +1,222 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+
+_select_php_pm_type() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Thay doi PHP PM sang Ondemand" "Thay doi PHP PM sang Dynamic" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Thay doi PHP PM sang Ondemand")
+            type="ondemand"
+            break
+            ;;
+        "Thay doi PHP PM sang Dynamic")
+            type="dynamic"
+            break
+            ;;
+        "Cancel")
+            type="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Thay doi cho mot website" "Thay doi toan bo website" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Thay doi cho mot website")
+            action="one"
+            break
+            ;;
+        "Thay doi toan bo website")
+            action="all"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_domain_ondemand(){
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        ondeman_domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for ondeman_entry in .*.conf; do
+            domain=${ondeman_entry/./}
+            domain=${domain//.conf/}
+            php_pm=$(grep -w "php_pm" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ "${php_pm}" == "ondemand" ]]; then
+                ondeman_domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#ondeman_domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website WordPress nao duoc cau hinh PHP PM Ondemand.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select ondeman_opt in "${ondeman_domains[@]}"; do
+                domain=$ondeman_opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_domain_dynamic(){
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        dynamic_domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry_dynamic in .*.conf; do
+            domain=${entry_dynamic/./}
+            domain=${domain//.conf/}
+            php_pm=$(grep -w "php_pm" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ "${php_pm}" == "dynamic" ]]; then
+                dynamic_domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#dynamic_domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc cau hinh PHP PM Dynamic.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt_dynamic in "${dynamic_domains[@]}"; do
+                domain=$opt_dynamic
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_change_one_domain() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    php_version=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    php_conf_file="/etc/php/${php_version}/fpm/pool.d/${domain}.conf"
+    SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
+    ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
+    TMP_DIR="/home/${user}/tmp"
+    SESSION_PATH="/home/${user}/php/session"
+    CACHE_DIR="/home/${user}/php/wsdlcache"
+
+    rm -rf "${php_conf_file}"
+
+    if [ -f "${CUSTOM_DIR}/php_${type}.conf" ]; then
+        cp "${CUSTOM_DIR}"/php_"${type}".conf "${php_conf_file}"
+    else
+        cp "${TEMPLATE_DIR}"/php_"${type}".conf "${php_conf_file}"
+    fi
+
+    sed -i "s|WEBSITE_USER|${user}|g" "${php_conf_file}"
+    sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${php_conf_file}"
+    sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${php_conf_file}"
+    sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${php_conf_file}"
+    sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${php_conf_file}"
+    sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${php_conf_file}"
+    sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${php_conf_file}"
+    sed -i "s|TMP_DIR|${TMP_DIR}|g" "${php_conf_file}"
+    sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${php_conf_file}"
+    sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${php_conf_file}"
+    sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${php_conf_file}"
+
+    sed -i '/php_pm/d' "${USER_DIR}"/."${domain}".conf
+    echo "php_pm=${type}" >> "${USER_DIR}"/."${domain}".conf
+
+    clear
+    printf "%s\n" "${GREEN}Thay doi PHP-FPM PM sang ${type} thanh cong."
+}
+
+_change_all_domain() {
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            _change_one_domain
+        done
+    fi
+
+    clear
+    printf "%s\n" "${GREEN}Thay doi PHP-FPM PM sang ${type} thanh cong."
+}
+
+domain=""
+ALERT=""
+action=""
+type=""
+
+_select_php_pm_type
+
+if [[ -z "${type}" || "${type}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+else
+    _select_action
+
+    if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+        clear
+        printf "${RED}%s${NC}\n" "Huy thao tac."
+    else
+        if [ "${action}" == "one" ]; then
+            if [ "${type}" == "dynamic" ]; then
+                _select_domain_ondemand
+            else
+                _select_domain_dynamic
+            fi
+
+            if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+                clear
+                printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+            else
+                if [ -z "${ALERT}" ]; then
+                    _change_one_domain
+                else
+                    clear
+                    printf "%s\n" "${ALERT}"
+                fi
+            fi
+        else
+            _change_all_domain
+        fi
+    fi
+fi
+
+lemp_php

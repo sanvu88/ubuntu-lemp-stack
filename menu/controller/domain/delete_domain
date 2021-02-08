@@ -1,0 +1,164 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+printf "${GREEN}%s${NC}\n" "=========="
+printf "${GREEN}${NC}%s\n" "Xoa Domain"
+printf "${GREEN}%s${NC}\n" "=========="
+
+_set_var() {
+    #https://www.howtoforge.com/tutorial/linux-grep-command/
+    #https://stackoverflow.com/a/6284370
+    db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    db_user=$(grep -w "db_user" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    username=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    php_version=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    vhost_config="${VHOST_DIR}/${domain}.conf"
+    php_config_file="/etc/php/${php_version}/fpm/pool.d/${domain}.conf"
+}
+
+_confirm() {
+    printf "%s\n" "${RED}Ban thuc su muon xoa ${domain}? ${NC}"
+    PS3="Nhap vao lua chon cua ban [1-2] "
+    options=("Yes" "No")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Yes")
+            confirm_destroy_domain="y"
+            break
+            ;;
+        "No")
+            confirm_destroy_domain="n"
+            break
+            ;;
+        *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai${NC}" ;;
+        esac
+    done
+}
+
+_destroy_user() {
+    if if_user_exists "${username}"; then
+        userdel -f -r "$1" >/dev/null 2>&1
+    fi
+}
+
+_destroy_db() {
+    if [[ "${confirm_destroy_domain}" =~ ^([yY])$ && ( -n "${db_user}" || -n "${db_name}" ) ]]; then
+        echo "Ban co muon xoa database ${db_name}? (y/n): "
+        PS3="Nhap vao lua chon cua ban [1-2] "
+        options=("Yes" "No")
+        select opt in "${options[@]}"; do
+            case $opt in
+            "Yes")
+                confirm_destroy_db="y"
+                break
+                ;;
+            "No")
+                confirm_destroy_db="N"
+                break
+                ;;
+            *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai${NC}" ;;
+            esac
+        done
+
+        if [[ "${confirm_destroy_db}" =~ ^([yY])$ ]]; then
+            mysql -uadmin -p"${mysql_pwd}" -e "REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${db_user}'@'localhost'"
+            mysql -uadmin -p"${mysql_pwd}" -e "DROP USER IF EXISTS '${db_user}'@'localhost'"
+            mysql -uadmin -p"${mysql_pwd}" -e "DROP DATABASE IF EXISTS ${db_name}"
+        fi
+    fi
+}
+
+_destroy_other() {
+    if [ -d "${NGINX_CONF_DIR}/php/${domain}" ]; then
+        rm -rf "${NGINX_CONF_DIR}"/php/"${domain}"
+    fi
+    if [ -f "/var/hostvn/wpcron/${domain}" ]; then
+        rm -rf /var/hostvn/wpcron/"${domain}"
+    fi
+    if [ -f "/var/hostvn/ggdrive/${domain}" ]; then
+        rm -rf /var/hostvn/ggdrive/"${domain}"
+    fi
+    if [ -f "${SSL_DIR}/${domain}" ]; then
+        rm -rf "${SSL_DIR}"/"${domain}"
+    fi
+    rm -rf "${PAGESPEED_DIR}"/"${domain}"
+    check_nginx_cache=$(grep -w "${username}" "${NGINX_CONF_DIR}/extra/nginx_cache.conf")
+    if [ -n "${check_nginx_cache}" ]; then
+        sed -i "/${username}/d" "${NGINX_CONF_DIR}"/extra/nginx_cache.conf
+    fi
+}
+
+_remove_path() {
+    if [ -d "/home/${username}" ]; then
+        # shellcheck disable=SC2115
+        rm -rf /home/"${username}"
+    fi
+    if [ -f "${vhost_config}" ]; then
+        rm -rf "${vhost_config}"
+    fi
+    if [ -f "${USER_DIR}/.${domain}.conf" ]; then
+        rm -rf "${USER_DIR}"/."${domain}".conf
+    fi
+    if [ -f "${php_config_file}" ]; then
+        rm -rf "${php_config_file}"
+    fi
+}
+
+_run() {
+    _confirm
+    if [[ "${confirm_destroy_domain}" =~ ^([yY])$ ]]; then
+        _set_var
+        _destroy_db
+
+        _destroy_user "$username"
+
+        _remove_path
+        _destroy_other
+        if nginx -t; then
+            _restart_service
+            clear
+            printf "%s\n" "${GREEN}Xoa Domain thanh cong.${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        clear
+        printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+confirm_destroy_domain="n"
+confirm_destroy_db="n"
+
+_select_domain
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_domain

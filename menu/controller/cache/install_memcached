@@ -1,0 +1,141 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+source /var/hostvn/menu/helpers/variable_php
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_confirm(){
+    while true
+    do
+        read -r -p "Ban muon cai dat Memcached ? (y/n) " prompt_memcached
+        echo
+        if [[ "${prompt_memcached}" =~ ^([yY])$ || "${prompt_memcached}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_set_var(){
+    NGINX_PROCESSES=$(grep -c ^processor /proc/cpuinfo)
+    MAX_CLIENT=$((NGINX_PROCESSES * 1024))
+}
+
+_install_memcached(){
+    sudo apt-get update -y
+    sudo apt-get install memcached libmemcached-dev libmemcached-tools -y
+
+    rm -rf /etc/memcached.conf
+    cat >> "/etc/memcached.conf" << END
+# Run memcached as a daemon. This command is implied, and is not needed for the
+-d
+
+# Log memcached's output to /var/log/memcached
+logfile /var/log/memcached.log
+
+# memory
+-m ${MAX_MEMORY}
+
+# Default connection port is 11211
+-p 11211
+
+# Run the daemon as root. The start-memcached will default to running as root if no
+# -u command is present in this config file
+-u memcache
+
+# Specify which IP address to listen on. The default is to listen on all IP addresses
+-l 127.0.0.1
+
+# Limit the number of simultaneous incoming connections. The daemon default is 1024
+-c ${MAX_CLIENT}
+
+# Use a pidfile
+-P /var/run/memcached/memcached.pid
+
+# Disable UDP
+-U 0
+END
+    systemctl restart memcached
+    sudo systemctl enable memcached
+
+    _restart_service
+
+    if service_running "memcached"; then
+        cron_exists=$(crontab -l | grep -w 'memcached')
+        if [ -z "${cron_exists}" ]; then
+            crontab -l > clear_memcached
+            echo "23 */37 * * * systemctl restart memcached >/dev/null 2>&1" >> clear_memcached
+            crontab clear_memcached
+            rm -rf clear_memcached
+        fi
+    fi
+}
+
+_install_php_memcached_admin(){
+    cd_dir "${DEFAULT_DIR_TOOL}"
+    rm -rf ./memcached
+    git clone https://github.com/elijaa/phpmemcachedadmin.git
+    rm -rf "${DEFAULT_DIR_TOOL}"/phpmemcachedadmin/docker
+    mv phpmemcachedadmin memcached
+    chown -R nginx:nginx "${DEFAULT_DIR_TOOL}"/memcached
+}
+
+if service_running "redis"; then
+    printf "${RED}%s${NC}\n" "Redis Cache dang hoat dong. Ban chi nen su dung mot trong 2 loai cache."
+    printf "${RED}%s${NC}\n" "Vui long tat Redis truoc khi cai Memcached."
+elif service_running "memcached"; then
+    printf "${GREEN}%s${NC}\n" "Memcached da ton tai tren VPS."
+else
+    _set_var
+    _confirm
+
+    if [[ "${prompt_memcached}" =~ ^([yY])$ ]]; then
+        _install_memcached
+        bash /var/hostvn/menu/controller/cache/script/install_php_memcached.sh
+        clear
+        _install_php_memcached_admin
+        clear
+        if service_running "memcached"; then
+            notify_install_memcached="Cai dat memcached thanh cong."
+        else
+             notify_install_memcached="Cai dat memcached that bai hoac memcached khong hoat dong."
+        fi
+
+        check_php1_memcached=$(php"${php1_version}" -m | grep memcached)
+        if [ -z "$check_php1_memcached" ]; then
+            notify_install_php1_memcached="Cai dat Memcached Extension cho PHP 1 khong thanh cong."
+        fi
+
+        if [ "${php2_release}" == "yes" ]; then
+            check_php2_memcached=$(php"${php2_version}" -m | grep memcached)
+            if [[ -z "$check_php2_memcached" ]]; then
+                notify_install_php2_memcached="Cai dat Memcached Extension cho PHP 2 khong thanh cong."
+            fi
+        fi
+
+        printf "%s\n" "$notify_install_memcached"
+
+        if [ -n "${notify_install_php1_memcached}" ]; then
+            printf "%s\n" "$notify_install_php1_memcached"
+        fi
+        if [ -n "${notify_install_php2_memcached}" ]; then
+            printf "%s\n" "$notify_install_php2_memcached"
+        fi
+    else
+        printf "${RED}%s${NC}\n" "Ban da huy bo cai dat memcached."
+    fi
+fi
+
+cache_manage_memcached

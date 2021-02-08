@@ -1,0 +1,26 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_show_info(){
+    printf "Admin tool user              : admin\n"
+    printf "Admin tool password          : %s\n"  "${admin_pwd}"
+    printf "==========================================\n"
+    printf "User phpMyAdmin              : admin\n"
+    printf "Password phpMyAdmin          : %s\n"  "${mysql_pwd}"
+    printf "Link phpMyAdmin              : %s\n" "http://${IPADDRESS}:${admin_port}/phpmyadmin"
+    printf "%s\n" "${RED}Luu y: phpMyAdmin duoc bao ve bang 2 lop mat khau.${NC}"
+    printf "%s\n" "${RED}De truy cap phpMyAdmin cac ban can dang nhap bang thong tin Admin Tool truoc.${NC}"
+}
+
+_show_info
+sleep 3
+menu_account

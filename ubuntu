@@ -1,0 +1,216 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+OS_VER=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+LIST_OS_VER_SUPPORT=('18.04' '20.04')
+rm -rf ubuntu
+
+DIR=$(pwd)
+
+# Set link
+SCRIPT_LINK="https://scripts.hostvn.net/ubuntu"
+
+welcome(){
+    clear
+    printf "========================================================\n"
+    echo   "                   HOSTVN.VN Scripts                      "
+    echo   "     Auto Install & Optimize LEMP Stack on Ubuntu         "
+    printf " Neu can ho tro vui long lien he %s\n" "kythuat@hostvn.net"
+    printf "========================================================\n"
+    echo ""
+    echo "Chuan bi cai dat..."
+    sleep 3
+}
+
+###################
+# Prepare Install #
+###################
+
+fixed_lock_frontend(){
+    killall apt apt-get
+    rm -rf /var/lib/apt/lists/lock
+    rm -rf /var/cache/apt/archives/*
+    rm -rf /var/lib/dpkg/lock-frontend
+}
+
+# Remove unnecessary services
+remove_old_service(){
+    apt-get -y remove mysql* mariadb* php* apache2* sendmail* postfix* rsyslog* nginx* pure-ftpd fail2ban
+    rm -rf /etc/nginx/nginx.conf /etc/nginx/alias /etc/nginx/rewrite /etc/nginx/ssl /etc/nginx/wordpress
+    rm -rf /etc/nginx/apps /etc/nginx/extra /etc/nginx/pagespeed /etc/nginx/redirect /etc/nginx/rocket-nginx
+    rm -rf /etc/nginx/web_apps.conf
+    rm -rf /etc/apache2
+    rm -rf /etc/php
+    rm -rf /var/hostvn
+    rm -rf /etc/my.cnf
+    rm -rf /etc/mysql
+    rm -rf /var/lib/mysql
+    rm -rf /run/mysqld
+    rm -rf /etc/fail2ban
+    rm -rf /usr/share/nginx
+    rm -rf /usr/share/nginx_module/
+    rm -rf /usr/lib/nginx/modules
+    rm -rf /usr/bin/hostvn
+    apt-get clean all
+    sed -i '/HOSTVN.VN/d' "$HOME/.bashrc"
+    sed -i '/hostvn/d' "$HOME/.bashrc"
+    sed -i '/filetransfer/d' /etc/ssh/sshd_config
+    sed -i '/Prevent user access/d' /etc/ssh/sshd_config
+    sed -i '/Disable X11/d' /etc/ssh/sshd_config
+    sed -i '/Disable tunneling/d' /etc/ssh/sshd_config
+    sed -i '/Disable port forwarding/d' /etc/ssh/sshd_config
+    sed -i '/Disable network tunneling/d' /etc/ssh/sshd_config
+    sed -i '/Force the connection/d' /etc/ssh/sshd_config
+
+    if [ -f "$DIR/hostvn" ]; then
+        rm -rf "$DIR"/hostvn
+    fi
+}
+
+set_dns_server(){
+    check_dns=$(grep -rnw "/etc/resolv.conf" -e "1.1.1.1")
+    if [[ -z $check_dns ]]; then
+        echo "nameserver 1.1.1.1" | sudo tee /etc/resolv.conf > /dev/null
+    fi
+}
+
+create_source_list(){
+    if [ "${OS_VER}" == "18.04" ]; then
+        mv /etc/apt/sources.list /etc/apt/sources.list."$(date +%Y-%m-%d)"
+        cat >> "/etc/apt/sources.list" << EOsource_list
+deb http://archive.ubuntu.com/ubuntu/ bionic main restricted
+deb http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted
+deb http://archive.ubuntu.com/ubuntu/ bionic universe
+deb http://archive.ubuntu.com/ubuntu/ bionic-updates universe
+deb http://archive.ubuntu.com/ubuntu/ bionic multiverse
+deb http://archive.ubuntu.com/ubuntu/ bionic-updates multiverse
+deb http://archive.ubuntu.com/ubuntu/ bionic-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu bionic-security main restricted
+deb http://security.ubuntu.com/ubuntu bionic-security universe
+deb http://security.ubuntu.com/ubuntu bionic-security multiverse
+EOsource_list
+
+        apt update -y
+    fi
+    if [ "${OS_VER}" == "20.04" ]; then
+        mv /etc/apt/sources.list /etc/apt/sources.list."$(date +%Y-%m-%d)"
+        cat >> "/etc/apt/sources.list" << EOsource_list
+deb http://archive.ubuntu.com/ubuntu/ focal main restricted
+deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted
+deb http://archive.ubuntu.com/ubuntu/ focal universe
+deb http://archive.ubuntu.com/ubuntu/ focal-updates universe
+deb http://archive.ubuntu.com/ubuntu/ focal-updates multiverse
+deb http://archive.ubuntu.com/ubuntu/ focal multiverse
+deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu focal-security main restricted
+deb http://security.ubuntu.com/ubuntu focal-security universe
+deb http://security.ubuntu.com/ubuntu focal-security multiverse
+EOsource_list
+
+        apt update -y
+    fi
+}
+
+install_requirement(){
+    apt-get update -y
+    apt-get upgrade -y
+    apt-get autoremove -y
+    apt-get install build-essential gcc g++ make flex bison openssl libssl-dev perl perl-base perl-modules libperl-dev \
+        libperl4-corelibs-perl libwww-perl libaio1 libaio-dev gifsicle webp libde265-dev \
+        zlib1g zlib1g-dev libcap-dev cron bzip2 zip automake autoconf libtool cmake python libdb-dev libsasl2-dev \
+        libncurses5 libncurses5-dev libsystemd-dev bind9 dnsutils quota patch logrotate rsyslog libc6-dev libexpat1-dev \
+        libcrypt-openssl-rsa-perl libnuma-dev libnuma1 git dos2unix ipcalc unzip net-tools wget apache2-utils grc \
+        libjpeg-dev libpng-dev libtiff-dev libgif-dev libwebp-dev imagemagick libpcre3 libpcre3-dev uuid-dev \
+        gnupg2 ca-certificates lsb-release apache2-dev libxml2-dev libcurl4-openssl-dev liblmdb-dev libgeoip-dev pkgconf \
+        libpcre++-dev libyajl-dev apt-utils htop nano supervisor bc -y
+
+    service supervisor stop
+    systemctl disable supervisor
+}
+
+create_swap(){
+    swap="$(swapon -s)"
+    if [[ -z "${swap}" ]]; then
+        clear
+        while true
+        do
+            read -r -p "Ban co muon tao swap hay khong ? (y/n)" confirm_swap
+            echo
+            if [[ "${confirm_swap}" =~ ^([yY])$ || "${confirm_swap}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    fi
+
+    if [[ "${confirm_swap}" =~ ^([yY])$ ]]; then
+        REGEX_NUMBER='^[0-9]+$'
+        while true
+        do
+            echo "Nhap vao dung luong swap muon tao. (VD: 1G nhap so 1, 2G nhap so 2)"
+            read -r -p "Nhap vao dung luong swap muon tao (Nhap 0 de huy tao swap): " swap_size
+            if [[ ${swap_size} =~ ${REGEX_NUMBER} ]]; then
+                break
+            else
+                clear
+                printf "%s\n" "${RED}Gia tri ban nhap khong dung. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [ "${swap_size}" != 0 ]; then
+            fallocate -l "${swap_size}"G /swapfile
+            chmod 600 /swapfile
+            mkswap /swapfile
+            swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+        fi
+    fi
+}
+
+set_timezone(){
+    if [[ -f "/etc/localtime" && -f "/usr/share/zoneinfo/Asia/Ho_Chi_Minh" ]]; then
+        rm -f /etc/localtime
+        ln -sf /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
+    else
+        timedatectl set-timezone Asia/Ho_Chi_Minh
+    fi
+}
+
+#########################
+#Dowload primary Script #
+#########################
+download_script(){
+    curl -sO "${SCRIPT_LINK}"/hostvn
+    dos2unix hostvn
+    chmod +x hostvn
+    bash hostvn
+}
+
+welcome
+if [[ " ${LIST_OS_VER_SUPPORT[*]} " == *" ${OS_VER} "* ]]; then
+    #fixed_lock_frontend
+    remove_old_service
+    set_dns_server
+    create_source_list
+    install_requirement
+    create_swap
+    set_timezone
+    download_script
+else
+    clear
+    printf "${RED}%s${NC}" "Ban dang su dung phien ban ${OS} ${OS_VER}."
+    printf "${RED}%s${NC}" "Hien tai Scripts chi ho tro Ubuntu 18.04, 20.4 va Debian 10."
+    printf "${RED}%s${NC}" "Huy cai dat."
+    exit
+fi
+

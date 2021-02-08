@@ -1,0 +1,28 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_update(){
+    _cd_dir "${DEFAULT_DIR_TOOL}"
+    rm -rf ./memcached
+    git clone https://github.com/elijaa/phpmemcachedadmin.git
+    rm -rf "${DEFAULT_DIR_TOOL}"/phpmemcachedadmin/docker
+    mv phpmemcachedadmin memcached
+    chown -R nginx:nginx "${DEFAULT_DIR_TOOL}"/memcached
+    clear
+    printf "%s\n" "${GREEN}Update Memcached Dashboard success.${NC}"
+}
+
+_update
+menu_admin_tool

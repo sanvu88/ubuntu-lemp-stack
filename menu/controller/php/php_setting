@@ -1,0 +1,142 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+printf "${GREEN}%s${NC}\n" "======================"
+printf "${GREEN}%s${NC}\n" "Chinh sua thong so php"
+printf "${GREEN}%s${NC}\n" "======================"
+
+printf "${RED}%s${NC}\n" "Luu y: Tat ca cac thong so deu da duoc toi uu theo thong so cua VPS."
+printf "${RED}%s${NC}\n" "Can suy nghi ky truoc khi thay doi bat ky thong so nao."
+
+_set_variable(){
+    PHP1_VERSION=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
+    PHP1_INI="/etc/php/${PHP1_VERSION}/fpm/conf.d/00-hostvn-custom.ini"
+    PHP1_CLI="/etc/php/${PHP1_VERSION}/cli/conf.d/00-hostvn-custom.ini"
+
+    PHP2_RELEASE=$(grep -w "php2_release" "${FILE_INFO}" | cut -f2 -d'=')
+    if [ "${PHP2_RELEASE}" == "yes" ]; then
+        PHP2_VERSION=$(grep -w "php2_version" "${FILE_INFO}" | cut -f2 -d'=')
+        PHP2_INI="/etc/php/${PHP2_VERSION}/fpm/conf.d/00-hostvn-custom.ini"
+        PHP2_CLI="/etc/php/${PHP2_VERSION}/cli/conf.d/00-hostvn-custom.ini"
+    fi
+
+    max_execution_time_old=$(grep -w "max_execution_time" "${PHP1_INI}" | cut -f2 -d'=')
+    max_input_time_old=$(grep -w "max_input_time" "${PHP1_INI}" | cut -f2 -d'=')
+    post_max_size_old=$(grep -w "post_max_size" "${PHP1_INI}" | cut -f2 -d'=')
+    upload_max_filesize_old=$(grep -w "upload_max_filesize" "${PHP1_INI}" | cut -f2 -d'=')
+    memory_limit_old=$(grep -w "memory_limit" "${PHP1_INI}" | cut -f2 -d'=')
+}
+
+_select_parameter(){
+    echo "Lua chon thong so muon thay đoi"
+    PS3='Nhap lua chon cua ban (1-5): '
+    options=("post_max_size" "upload_max_filesize" "memory_limit" "max_input_time" "max_execution_time" "Cancel")
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "post_max_size") parameter="post_max_size"; current_parameter="${post_max_size_old}"; break;;
+            "upload_max_filesize") parameter="upload_max_filesize"; current_parameter="${upload_max_filesize_old}"; break;;
+            "memory_limit") parameter="memory_limit"; current_parameter="${memory_limit_old}"; break;;
+            "max_input_time") parameter="max_input_time"; current_parameter="${max_input_time_old}"; break;;
+            "max_execution_time") parameter="max_execution_time"; current_parameter="${max_execution_time_old}"; break;;
+            "Cancel") parameter="0"; break;;
+            *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}" ;;
+        esac
+    done
+}
+
+_input_parameter(){
+    clear
+    while true
+    do
+        printf "%s\n" "Thong so ${parameter} hien tai la: ${RED}${current_parameter}${NC}"
+        read -r -p "Nhap vao thong so moi (Ex: 120) [0 = Thoat]: " num
+        echo
+        if [[ "${num}" =~ ^[0-9]+$ ]]; then
+            break
+        else
+            printf "%s\n"  "${RED}Gia tri ban nhap khong dung. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_remove_ini_bak(){
+    if [[ -f "${PHP1_INI}.bak" ]]; then
+        rm -rf "${PHP1_INI}".bak
+    fi
+
+    if [[ -f "${PHP1_CLI}.bak" ]]; then
+        rm -rf "${PHP1_CLI}".bak
+    fi
+
+    if [[ -f "${PHP2_INI}.bak" ]]; then
+        rm -rf "${PHP2_INI}".bak
+    fi
+
+    if [[ -f "${PHP2_CLI}.bak" ]]; then
+        rm -rf "${PHP2_CLI}".bak
+    fi
+}
+
+_change_parameter(){
+    if [[ "${parameter}" == "max_input_time" || "${parameter}" == "max_execution_time" ]]; then
+        parameter_new=${num}
+    else
+        parameter_new=${num}M
+    fi
+
+    sed -i.bak "/${parameter}/d" "${PHP1_INI}"
+    sed -i.bak "/${parameter}/d" "${PHP1_CLI}"
+    echo "${parameter} = ${parameter_new}" >> "${PHP1_INI}"
+    echo "${parameter} = ${parameter_new}" >> "${PHP1_CLI}"
+
+    if [[ "${PHP2_RELEASE}" == "yes" ]]; then
+        sed -i.bak "/${parameter}/d" "${PHP2_INI}"
+        sed -i.bak "/${parameter}/d" "${PHP2_CLI}"
+        echo "${parameter} = ${parameter_new}" >> "${PHP2_INI}"
+        echo "${parameter} = ${parameter_new}" >> "${PHP2_CLI}"
+    fi
+}
+
+_restart_php(){
+    systemctl restart php"${PHP1_VERSION}"-fpm
+    if [[ "${php2_release}" == "yes" ]]; then
+        systemctl restart php"${PHP2_VERSION}"-fpm
+    fi
+}
+
+_run(){
+    _set_variable
+    _select_parameter
+    if [ "${parameter}" == "0" ]; then
+        printf "${RED}%s${NC}\n" "Huy thay đoi thong so PHP."
+    else
+        _input_parameter
+
+        if [ "${num}" == "0" ]; then
+            printf "${RED}%s${NC}\n" "Huy thay đoi thong so PHP."
+        else
+            _remove_ini_bak
+            _change_parameter
+            _restart_php
+            printf "${GREEN}%s${NC}\n" "Thay đoi thong so PHP thanh cong."
+        fi
+    fi
+}
+
+parameter=""
+num=""
+_run
+lemp_php

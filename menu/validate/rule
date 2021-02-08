@@ -1,0 +1,233 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+# shellcheck disable=SC2034
+
+valid_number(){
+    REGEX_NUMBER='^[0-9]+$'
+    if [[ ${1} =~ ${REGEX_NUMBER} ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+valid_date(){
+    if [[ ${1} =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+valid_ip(){
+    # shellcheck disable=SC2166
+    if [ -n "${1}" -a -z "${*##*\.*}" ]; then
+        ipcalc "${1}" |
+            awk 'BEGIN{FS=":";is_invalid=0} /^INVALID/ {is_invalid=1; print $1} END{exit is_invalid}'
+    else
+        return 1
+    fi
+}
+
+check_domain_exists(){
+    if [[ -f "${USER_DIR}/.${1}.conf" || -f "${VHOST_DIR}/${1}.conf" ]]; then
+        ALERT=$(
+                    printf "%s\n" "${RED}${DOMAIN_EXISTS1}${NC}"
+                    printf "%s\n" "${RED}${DOMAIN_EXISTS2}${NC}"
+                )
+    fi
+}
+
+if_domain_exists(){
+    if [[ -f "${USER_DIR}/.${1}.conf" || -f "${VHOST_DIR}/${1}.conf" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Check name: only accept [a-z] [A-Z] [0-9] - _
+validate_user(){
+    LEN=${#1}
+    TRAP=$(echo "${1}" | tr -d "_-" | tr -d "[:alnum:]")
+    if [[ -z "${TRAP}" && ${LEN} -ge 5 ]] && ! valid_number "$1"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+validate_db_name(){
+    LEN=${#1}
+    TRAP=$(echo "${1}" | tr -d "_-" | tr -d "[:alnum:]")
+    if [[ -z "${TRAP}" ]] && ! valid_number "$1"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+if_user_exists(){
+    RESULT_USER=$(grep -c "^${1}:" /etc/passwd)
+    if [ "${RESULT_USER}" != 0 ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_database(){
+    RESULT_DB=$(mysqlshow "${1}" | grep -v Wildcard | grep -o "${1}")
+    if [ "$RESULT_DB" == "${1}" ]; then
+        ALERT=$(
+                    printf "%s\n" "${RED}${DATABASE_EXISTS}${NC}"
+                    printf "%s\n" "${RED}${DOMAIN_EXISTS2}${NC}"
+                )
+    fi
+}
+
+if_db_exists(){
+    RESULT_DB=$(mysqlshow "${1}" | grep -v Wildcard | grep -o "${1}")
+    if [ "$RESULT_DB" == "${1}" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+if_db_empty(){
+    COUNT_TABLE=$(mysql -e "SELECT CASE COUNT(*) WHEN '0' THEN 'empty' ELSE 'not empty' END AS contents FROM information_schema.tables
+                                WHERE table_type = 'BASE TABLE' AND table_schema = '${1}';" | grep "empty")
+    if [ "${COUNT_TABLE}" == "empty" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_mysql_user(){
+    RESULT_MYSQL_USER="$(mysql -sse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${1}')")"
+    if [ "${RESULT_MYSQL_USER}" == 1 ]; then
+        ALERT=$(
+                    printf "%s\n" "${RED}${MYSQL_USER_EXISTS}${NC}"
+                    printf "%s\n" "${RED}${DOMAIN_EXISTS2}${NC}"
+                )
+    fi
+}
+
+if_mysql_user_exists(){
+    RESULT_MYSQL_USER="$(mysql -sse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '${1}')")"
+    if [ "${RESULT_MYSQL_USER}" == 1 ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_a_record(){
+    a_record=$(dig -4 +nocomments @8.8.8.8 +short A "${1}")
+
+    if [[ "${a_record}" != "${IPADDRESS}" ]]; then
+        ALERT=$(
+            printf "%s\n" "${RED}${DNS_FAIL1}${NC}"
+            printf "%s\n" "${RED}${DNS_FAIL2}${NC}"
+            printf "%s\n" "${RED}${DNS_FAIL3}${NC}"
+        )
+    fi
+}
+
+check_www_record(){
+    www_record=$(dig -4 +nocomments @8.8.8.8 +short A www."${1}")
+
+    if [[ "${www_record}" != "${IPADDRESS}" ]]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+check_le_exists(){
+    if [ ! -d "/root/.acme.sh/${1}" ]; then
+        ALERT=$(printf "%s\n" "${RED}${LE_NO_EXISTS}${NC}")
+    fi
+}
+
+check_is_wordpress(){
+    if [ ! -d "/home/${1}/${2}/public_html/wp-content" ]; then
+        ALERT=$(printf "%s\n" "${RED}${NO_WP}${NC}")
+    fi
+}
+
+if_is_wordpress(){
+    if [ -d "/home/${1}/${2}/public_html/wp-content" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_backup_exists(){
+    if [ -d "/home/backup/${1}/${2}" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_backup_empty(){
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [ "$(ls -A /home/backup/"${1}"/"${2}")" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+docroot_empty_or_not(){
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [ "$(ls -A /home/"${1}"/"${2}"/public_html)" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_wpconfig(){
+    if [[ ! -f "/home/${1}/${2}/public_html/wp-config.php" && ! -f "/home/${1}/${2}/wp-config.php" ]]; then
+        ALERT=$(printf "%s\n" "${RED}${WPCONFIG_NOT_EXISTS}${NC}")
+    fi
+}
+
+service_running() {
+    if pgrep "$1" >/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_port_exists(){
+    check_port=$(netstat -tulpn | grep "${1}")
+    if [ -n "${check_port}" ]; then
+        return 0
+    else
+        return  1
+    fi
+}
+
+check_nginx_status(){
+    if ! service_running nginx; then
+        ALERT=$(printf "%s\n" "${RED}${NGINX_NO_WORK}${NC}")
+    fi
+}

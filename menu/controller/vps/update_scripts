@@ -1,0 +1,82 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_var(){
+    new_v=$(curl -s "${UPDATE_LINK}"/version | grep "script_version=" | cut -f2 -d'=')
+    current_v=$(grep -w "script_version" "${FILE_INFO}" | cut -f2 -d'=');
+}
+
+_check_update(){
+    if [[ "${new_v}" == "${current_v}" ]]; then
+        ALERT=$(printf "%s\n" "${RED}Ban dang su dung phien ban moi nhat.${NC}")
+    fi
+}
+
+_confirm_update(){
+    printf "${RED}%s${NC}\n" "Da phat hien phien ban moi."
+
+    while true
+    do
+        read -r -p "Ban co muon cap nhat ${AUTHOR} Script khong ? (y/n) " prompt_update
+        echo
+        if [[ "${prompt_update}" =~ ^([yY])$ || "${prompt_update}" =~ ^([nN])$ ]]; then
+            break
+        else
+            clear
+            printf "%s\n"  "${RED}Lua chon khong chinh xac. Vui long chon lai.${NC}"
+        fi
+    done
+}
+
+_update(){
+    if [[ ! -f "/usr/bin/dos2unix" ]]; then
+        apt -y install dos2unix
+    fi
+    _cd_dir "${BASH_DIR}"
+    curl -sO "${UPDATE_LINK}"/update
+    dos2unix update
+    chmod +x update
+    bash update
+    rm -rf update
+    clear
+    printf "%s\n" "${GREEN}Update ${AUTHOR} Script thanh cong.${NC}"
+    printf "%s\n" "${RED}Script se tu dong thoat menu de ap dung update...${NC}"
+    sleep 3
+    exit
+}
+
+_run(){
+    _set_var
+    _check_update
+
+    if [ -z "${ALERT}" ]; then
+        _confirm_update
+        if [[ "${prompt_update}" =~ ^([yY])$ ]]; then
+            _update
+        else
+            clear
+            printf "%s\n" "${GREEN}Ban da huy update ${AUTHOR} Script${NC}"
+        fi
+
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+}
+
+ALERT=""
+prompt_update=""
+
+_run

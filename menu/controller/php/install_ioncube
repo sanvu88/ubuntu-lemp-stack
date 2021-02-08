@@ -1,0 +1,120 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_confirm(){
+    while true
+    do
+        read -r -p "Ban co muon cai dat ionCube ? (y/n) " prompt_install_ioncube
+        echo
+        if [[ "${prompt_install_ioncube}" =~ ^([yY])$ || "${prompt_install_ioncube}" =~ ^([nN])$ ]];
+        then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_download_ioncube(){
+    if [ ! -d "/usr/local/ioncube" ]; then
+        _cd_dir /usr/local
+        wget http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
+        tar xzf ioncube_loaders_lin_x86-64.tar.gz
+        rm -rf ioncube_loaders_lin_x86-64.tar.gz
+    fi
+}
+
+_install_ioncube_php1(){
+    PHP1_VERSION=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
+    PHP1_CONFIG_PATH="/etc/php/${PHP1_VERSION}/fpm"
+    PHP1_CLI_PATH="/etc/php/${PHP1_VERSION}/cli/conf.d"
+    PHP1_INI_PATH="${PHP1_CONFIG_PATH}/conf.d"
+    notify_php1_ioncube="Cai dat ionCube cho PHP 1 that bai."
+    COLOR1="${RED}"
+
+    check_php1_module=$(php"${PHP1_VERSION}" -m | grep ionCube)
+
+    if [ -n "${check_php1_module}" ]; then
+        notify_php1_ioncube="Cai dat ionCube cho PHP 1 thanh cong."
+        COLOR1="${GREEN}"
+    fi
+
+    if [[ -f "/usr/local/ioncube/ioncube_loader_lin_${PHP1_VERSION}.so" && -z "${check_php1_module}" ]]; then
+        cat >> "${PHP1_INI_PATH}/00-hostvn-custom.ini" << END
+zend_extension = /usr/local/ioncube/ioncube_loader_lin_${PHP1_VERSION}.so
+END
+
+        rm -rf "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+        cp "${PHP1_INI_PATH}"/00-hostvn-custom.ini "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+        notify_php1_ioncube="Cai dat ionCube cho PHP 1 thanh cong."
+        COLOR1="${GREEN}"
+        systemctl restart php"${PHP1_VERSION}"-fpm
+    fi
+}
+
+_install_ioncube_php2(){
+    PHP2_VERSION=$(grep -w "php2_version" "${FILE_INFO}" | cut -f2 -d'=')
+    PHP2_CONFIG_PATH="/etc/php/${PHP2_VERSION}/fpm"
+    PHP2_CLI_PATH="/etc/php/${PHP2_VERSION}/cli/conf.d"
+    PHP2_INI_PATH="${PHP2_CONFIG_PATH}/conf.d"
+
+    check_php2_module=$(php"${PHP2_VERSION}" -m | grep ionCube)
+
+    if [ -n "${check_php2_module}" ]; then
+        notify_php2_ioncube="Cai dat ionCube cho PHP 2 thanh cong."
+        COLOR2="${GREEN}"
+    fi
+
+    if [[ -f "/usr/local/ioncube/ioncube_loader_lin_${PHP2_VERSION}.so" && -z "${check_php2_module}" ]]; then
+        cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" << END
+zend_extension = /usr/local/ioncube/ioncube_loader_lin_${PHP2_VERSION}.so
+END
+
+        rm -rf "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+        cp "${PHP2_INI_PATH}"/00-hostvn-custom.ini "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+        notify_php2_ioncube="Cai dat ionCube cho PHP 2 thanh cong."
+        COLOR2="${GREEN}"
+        systemctl restart php"${PHP2_VERSION}"-fpm
+    fi
+}
+
+_run(){
+    PHP2_RELEASE=$(grep -w "php2_release" "${FILE_INFO}" | cut -f2 -d'=')
+
+    _download_ioncube
+    _install_ioncube_php1
+
+    if [ "${PHP2_RELEASE}" == "yes" ]; then
+        notify_php2_ioncube="Cai dat ionCube cho PHP 2 that bai."
+        COLOR2="${RED}"
+        _install_ioncube_php2
+    fi
+
+    clear
+    printf "${COLOR1}%s${NC}\n" "${notify_php1_ioncube}"
+    printf "${COLOR2}%s${NC}\n" "${notify_php2_ioncube}"
+}
+
+prompt_install_ioncube=""
+
+_confirm
+if [[ "${prompt_install_ioncube}" =~ ^([yY])$ ]]; then
+    _run
+else
+    clear
+    printf "%s\n" "${RED}Ban da huy cai dat ionCube.${NC}"
+fi
+
+lemp_php

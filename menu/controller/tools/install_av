@@ -1,0 +1,210 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_action() {
+    clear
+    PS3="Nhap vao lua chon cua ban [ 1 - 4 ]: "
+    options=("Install ClamAV" "Install ImunifyAV" "Scan Malware" "Uninstall AV" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Install ClamAV")
+            action="install_clamav"
+            break
+            ;;
+        "Install ImunifyAV")
+            action="install_imav"
+            break
+            ;;
+        "Uninstall AV")
+            action="uninstall"
+            break
+            ;;
+        "Scan Malware")
+            action="scan"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai." ;;
+        esac
+    done
+}
+
+_select_av() {
+    clear
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Uninstall ClamAV" "Uninstall ImunifyAV" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Uninstall ClamAV")
+            av="clamav"
+            break
+            ;;
+        "Uninstall ImunifyAV")
+            av="imav"
+            break
+            ;;
+        "Cancel")
+            av="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai." ;;
+        esac
+    done
+}
+
+_install_clamav() {
+    if [[ "$(clamscan --version)" =~ .*"ClamAV".* ]]; then
+        clear
+        printf "%s\n" "${RED}Ban da cai dat ClamAV roi.${NC}"
+    elif [ -f "/usr/share/nginx/private/imav/index.php" ]; then
+        clear
+        printf "%s\n" "${RED}Ban da cai dat ImunifyAV roi.${NC}"
+    else
+        apt-get update -y
+        apt autoremove -y
+        apt-get install clamav clamav-daemon -y
+        systemctl stop clamav-freshclam
+        check_expert_db=$(grep -w "expert" "/etc/clamav/freshclam.conf")
+        if [ -z "${check_expert_db}" ]; then
+            {
+                echo "DatabaseCustomURL http://cdn.malware.expert/malware.expert.ndb"
+                echo "DatabaseCustomURL http://cdn.malware.expert/malware.expert.hdb"
+                echo "DatabaseCustomURL http://cdn.malware.expert/malware.expert.ldb"
+                echo "DatabaseCustomURL http://cdn.malware.expert/malware.expert.fp"
+            } >>/etc/clamav/freshclam.conf
+        fi
+        freshclam
+        systemctl start clamav-freshclam
+        systemctl enable clamav-freshclam
+    fi
+}
+
+_install_imav() {
+    if [ -f "/usr/share/nginx/private/imav/index.php" ]; then
+        clear
+        printf "%s\n" "${RED}Ban da cai dat ImunifyAV roi.${NC}"
+    elif [[ "$(clamscan --version)" =~ .*"ClamAV".* ]]; then
+        clear
+        printf "%s\n" "${RED}Ban da cai dat ClamAV roi.${NC}"
+    else
+        OS=$(grep -w "ID" "/etc/os-release" | cut -f2 -d'=' | cut -f2 -d'"')
+        OS_VER=$(grep -w "VERSION_ID=" "/etc/os-release" | cut -f2 -d'=' | cut -f2 -d'"')
+
+        if [[ "${OS}" == "ubuntu" && "${OS_VER}" == "18.04" ]]; then
+            mkdir -p /etc/sysconfig/imunify360
+            mkdir -p /usr/share/nginx/private/imav
+            mkdir -p /var/hostvn/imav
+            cat >"/etc/sysconfig/imunify360/integration.conf" <<END
+[paths]
+ui_path = /usr/share/nginx/private/imav
+ui_path_owner = nginx:nginx
+
+[integration_scripts]
+users = /var/hostvn/imav/get-users-script.sh
+admins = /var/hostvn/imav/to/get-admins-script.sh
+domains = /var/hostvn/imav/get-domains-script.sh
+
+[pam]
+service_name = system-auth
+END
+
+            wget https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh
+            bash imav-deploy.sh
+            rm -rf imav-deploy.sh
+        else
+            clear
+            printf "%s\n" "${RED}imunify360 chi hoat dong tren Ubuntu 18.04."
+        fi
+    fi
+}
+
+_scan_malware(){
+    if [[ "$(clamscan --version)" =~ .*"ClamAV".* ]]; then
+        printf "%s\n" "${GREEN}Update Malware Database...${NC}"
+        sleep 2
+        freshclam
+        clear
+
+        printf "%s\n" "${GREEN}${PROCESSING}${NC}"
+        sleep 2
+        clamscan --infected --recursive /home
+        printf "Hoan tat Scan Malware. Theo doi log tren de kiem tra cac file bị nghi ngo la ma doc."
+        echo ""
+        sleep 2
+    elif [ -f "/usr/share/nginx/private/imav/index.php" ]; then
+        clear
+        printf "%s\n" "${RED}Vui long truy cap: http://${IPADDRESS}:${admin_port}/imav de su dung ImunifyAV"
+    else
+       clear
+       printf "%s\n" "${RED}Ban chua cai dat Antivirus Software.${NC}"
+    fi
+}
+
+_uninstall_av() {
+    if [ "${av}" == "clamav" ]; then
+        if [[ "$(clamscan --version)" =~ .*"ClamAV".* ]]; then
+            systemctl stop clamav-freshclam
+            apt-get remove clamav clamav-daemon -y
+            apt autoremove -y
+        else
+            clear
+            printf "%s\n" "${RED}Ban chua cai dat ClamAV.${NC}"
+        fi
+    elif [ "${av}" == "imav" ]; then
+        if [ -f "/usr/share/nginx/private/imav/index.php" ]; then
+            wget https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh
+            bash imav-deploy.sh --uninstall
+            rm -rf imav-deploy.sh
+            rm -rf /usr/share/nginx/private/imav
+            rm -rf /var/hostvn/imav
+            apt autoremove -y
+        else
+            clear
+            printf "%s\n" "${RED}Ban chua cai dat ImunifyAV.${NC}"
+        fi
+    else
+        clear
+        printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+    fi
+}
+
+action=""
+av=""
+
+_select_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+elif [ "${action}" == "uninstall" ]; then
+    _select_av
+    if [[ -z "${av}" || "${av}" == "cancel" ]]; then
+        clear
+        printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+    else
+        _uninstall_av
+    fi
+elif [ "${action}" == "install_clamav" ]; then
+    _install_clamav
+elif [ "${action}" == "install_imav" ]; then
+    _install_imav
+else
+    _scan_malware
+fi
+
+menu_tools

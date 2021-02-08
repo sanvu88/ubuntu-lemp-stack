@@ -1,0 +1,186 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_cron_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Toi uu WordPress Cron" "Huy toi uu WordPress Cron" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Huy toi uu WordPress Cron")
+            action="disable"
+            break
+            ;;
+        "Toi uu WordPress Cron")
+            action="enable"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_site_enable_cron() {
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && ! -f "${WORDPRESS_CRON_DIR}/${domain}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Toan bo website da duoc toi uu Cron.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_site_disable_cron() {
+    domain=""
+    #https://www.cyberciti.biz/faq/linux-unix-shell-check-if-directory-empty/
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        #https://stackoverflow.com/a/2437466
+        #https://stackoverflow.com/a/1951523
+        #https://stackoverflow.com/a/46882842
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && -f "${WORDPRESS_CRON_DIR}/${domain}" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website WordPress nao duoc toi uu Cron.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_enable_cron() {
+    wp config set DISABLE_WP_CRON true --raw --allow-root
+    touch "${WORDPRESS_CRON_DIR}"/"${domain}"
+    cron_exists=$(crontab -l | grep -w 'wpcron')
+    if [ -z "${cron_exists}" ]; then
+        crontab -l >wpcron
+        echo "* * * * * bash /var/hostvn/menu/cronjob/wpcron >/dev/null 2>&1" >>wpcron
+        crontab wpcron
+        rm -rf wpcron
+    fi
+    notify="Toi uu WordPress Cron thanh cong."
+}
+
+_disable_cron() {
+    wp config set DISABLE_WP_CRON false --raw --allow-root
+    # shellcheck disable=SC2115
+    rm -rf "${WORDPRESS_CRON_DIR}"/"${domain}"
+    notify="Huy toi uu WordPress Cron thanh cong."
+}
+
+ALERT=""
+domain=""
+action=""
+notify=""
+
+_select_cron_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+else
+    if [ ! -d "${WORDPRESS_CRON_DIR}" ]; then
+        mkdir -p "${WORDPRESS_CRON_DIR}"
+    fi
+
+    if [ "${action}" == "enable" ]; then
+        _select_site_enable_cron
+    fi
+
+    if [ "${action}" == "disable" ]; then
+        _select_site_disable_cron
+    fi
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            _cd_dir /home/"${user}"/"${domain}"/public_html
+
+            if [ "${action}" == "enable" ]; then
+                _enable_cron
+            fi
+
+            if [ "${action}" == "disable" ]; then
+                _disable_cron
+            fi
+
+            if nginx -t; then
+                _restart_service
+                clear
+                printf "%s\n" "${GREEN}${notify}${NC}"
+                echo ""
+            else
+                clear
+                nginx -t
+                printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            fi
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+wordpress_advanced_menu

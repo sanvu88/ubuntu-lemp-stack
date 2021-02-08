@@ -1,0 +1,122 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+source /var/hostvn/menu/helpers/variable_php
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_confirm(){
+    while true
+    do
+        read -r -p "Ban muon cai dat Redis ? (y/n) " prompt_redis
+        echo
+        if [[ "${prompt_redis}" =~ ^([yY])$ || "${prompt_redis}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_install_redis(){
+    apt-get update -y
+    apt-get install redis-server -y
+
+    if [[ -f "/lib/systemd/system/redis-server.service" && ! -f "/lib/systemd/system/redis.service" ]]; then
+        ln /lib/systemd/system/redis-server.service /lib/systemd/system/redis.service
+    fi
+
+    if [ ! -d "/etc/redis" ]; then
+        mkdir -p /etc/redis
+    fi
+
+    if [ ! -f "/etc/redis/redis.conf" ]; then
+        VERSION_ID=$(grep -w "VERSION_ID" "/etc/os-release" | cut -f2 -d'=' | cut -f2 -d'"'  | cut -f1 -d'.')
+        wget https://scripts.hostvn.net/ubuntu/redis"${VERSION_ID}".conf
+        mv redis"${VERSION_ID}".conf /etc/redis/redis.conf
+    fi
+
+    sed -i "s|# maxmemory <bytes>|maxmemory ${MAX_MEMORY}mb|g" /etc/redis/redis.conf
+    sed -i "s|# maxmemory-policy noeviction|maxmemory-policy allkeys-lru|g" /etc/redis/redis.conf
+    systemctl restart redis
+    systemctl enable redis
+
+    _restart_service
+
+    if service_running "redis"; then
+        cron_exists=$(crontab -l | grep -w 'redis')
+        if [ -z "${cron_exists}" ]; then
+            crontab -l > clear_redis
+            echo "23 */37 * * * systemctl restart redis >/dev/null 2>&1" >> clear_redis
+            crontab clear_redis
+            rm -rf clear_redis
+        fi
+    fi
+}
+
+_install_php_redis_admin(){
+    cd_dir "${DEFAULT_DIR_TOOL}"
+    rm -rf ./redis
+    git clone https://github.com/ErikDubbelboer/phpRedisAdmin.git
+    mv phpRedisAdmin redis
+    cd_dir "${DEFAULT_DIR_TOOL}"/redis
+    git clone https://github.com/nrk/predis.git vendor
+    cd "${DEFAULT_DIR_TOOL}" && chown -R nginx:nginx redis
+}
+
+if service_running "memcached"; then
+    printf "${RED}%s${NC}\n" "Memcached dang hoat dong. Ban chi nen su dung mot trong 2 loai cache."
+    printf "${RED}%s${NC}\n" "Vui long tat Memcached truoc khi cai Redis."
+elif service_running "redis"; then
+    printf "${GREEN}%s${NC}\n" "Redis da ton tai tren VPS."
+else
+    _confirm
+
+    if [[ "${prompt_redis}" =~ ^([yY])$ ]]; then
+        _install_redis
+        bash /var/hostvn/menu/controller/cache/script/install_php_redis.sh
+        clear
+        _install_php_redis_admin
+        clear
+        if service_running "redis"; then
+            notify_install_redis="Cai dat Redis thanh cong."
+        else
+            notify_install_redis="Cai dat Redis that bai hoac Redis khong hoat dong."
+        fi
+
+        check_php1_redis=$(php"${php1_version}" -m | grep redis)
+        if [ -z "$check_php1_redis" ]; then
+            notify_install_php1_redis="Cai dat Redis Extension cho PHP 1 khong thanh cong."
+        fi
+
+        if [ "${php2_release}" == "yes" ]; then
+            check_php2_redis=$(php"${php2_version}" -m | grep redis)
+            if [[ -z "$check_php2_redis" ]]; then
+                notify_install_php2_redis="Cai dat Redis Extension cho PHP 2 khong thanh cong."
+            fi
+        fi
+
+        printf "%s\n" "$notify_install_redis"
+
+        if [ -n "${notify_install_php1_redis}" ]; then
+            printf "%s\n" "$notify_install_php1_redis"
+        fi
+        if [ -n "${notify_install_php2_redis}" ]; then
+            printf "%s\n" "$notify_install_php2_redis"
+        fi
+    else
+        printf "${RED}%s${NC}\n" "Ban da huy bo cai dat Redis."
+    fi
+fi
+
+cache_manage_redis

@@ -1,0 +1,101 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_maintenance_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Tat che do bao tri" "Bat che do bao tri" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Tat che do bao tri")
+            action="disable"
+            break
+            ;;
+        "Bat che do bao tri")
+            action="enable"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_enable_maintenance_mode() {
+    wp maintenance-mode activate --allow-root
+    notify="Bat che do bao tri thanh cong."
+}
+
+_disable_maintenance_mode() {
+    wp maintenance-mode deactivate --allow-root
+    notify="Tat che do bao tri thanh cong."
+}
+
+_run() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    _cd_dir /home/"${user}"/"${domain}"/public_html
+
+    if [ "${action}" == "enable" ]; then
+        _enable_maintenance_mode
+    fi
+
+    if [ "${action}" == "disable" ]; then
+        _disable_maintenance_mode
+    fi
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "%s\n" "${GREEN}${notify}${NC}"
+        echo ""
+    else
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+action=""
+notify=""
+
+_select_maintenance_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    _select_wordpress_website
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            _run
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+wordpress_advanced_menu

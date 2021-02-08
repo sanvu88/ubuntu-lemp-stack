@@ -1,0 +1,62 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_run(){
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+     while true; do
+        read -r -p "Nhap vao mat khau moi dai tu 8 ky tu tro len [0 = thoat]: " new_password
+        PASS_LEN=${#new_password}
+        if [[ ${PASS_LEN} -ge 8 || "${new_password}" == "0" ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Ban chua nhap mat khau moi.${NC}"
+        fi
+    done
+
+    if [[ -z "${new_password}" || "${new_password}" == "0" ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    else
+        passwd "${user}" << EOF
+$new_password
+$new_password
+EOF
+        sed -i '/user_pass/d' "${USER_DIR}"/."${domain}".conf
+        sed -i "/user_pass=${new_password}/d" "${USER_DIR}"/."${domain}".conf
+        clear
+        printf "%s\n" "${GREEN}Doi mat khau SFTP cho user${NC} ${RED}${user}${NC} ${GREEN}thanh cong.${NC}"
+        printf "%s\n" "${GREEN}Mat khau moi la:${NC} ${RED}${new_password}${NC}"
+        printf "%s\n" "${GREEN}Port dang nhap SFTP la:${NC} ${RED}${ssh_port}${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+
+_select_domain
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_domain

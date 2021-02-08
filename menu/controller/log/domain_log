@@ -1,0 +1,98 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_log() {
+    echo "Lua chon log muon xem"
+    PS3='Nhap lua chon cua ban (1-3): '
+    options=("Nginx error log" "PHP error log" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Nginx error log")
+            log_type="nginx"
+            break
+            ;;
+        "PHP error log")
+            log_type="php"
+            break
+            ;;
+        "Cancel")
+            log_type="cancel"
+            break
+            ;;
+        *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}" ;;
+        esac
+    done
+}
+
+_view_log() {
+    clear
+    printf "${RED}%s${NC}\n" "Hien thi 10 dong log moi nhat..."
+    echo ""
+
+    if [[ "${log_type}" != 'nginx' && -f "/home/${user}/${domain}/logs/error.log" ]]; then
+        if [ -f "/usr/bin/grc" ]; then
+           grc tail /home/"${user}"/"${domain}"/logs/error.log
+        else
+            tail /home/"${user}"/"${domain}"/logs/error.log
+        fi
+
+        printf "%s\n" "${RED}Vi tri Nginx log: /home/${user}/${domain}/logs/error.log${NC}"
+    else
+        clear
+        printf "${RED}%s${NC}\n" "Khong co log de hien thi."
+    fi
+
+    if [[ "${log_type}" != "php" && -f "/home/${user}/${domain}/logs/php-error.log" ]]; then
+        if [ -f "/usr/bin/grc" ]; then
+           grc tail /home/"${user}"/"${domain}"/logs/php-error.log
+        else
+            tail /home/"${user}"/"${domain}"/logs/php-error.log
+        fi
+
+        printf "%s\n" "${RED}Vi tri Nginx log: /home/${user}/${domain}/logs/php-error.log${NC}"
+    else
+        clear
+        printf "${RED}%s${NC}\n" "Khong co log de hien thi."
+    fi
+}
+
+_run() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    clear
+    _select_log
+    if [ "${log_type}" != 'cancel' ]; then
+        _view_log
+    else
+        clear
+        printf "${RED}%s${NC}\n" "Ban da chon huy thao tac."
+    fi
+}
+
+domain=""
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Ban da chon huy thao tac."
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+lemp_log

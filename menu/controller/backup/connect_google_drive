@@ -1,0 +1,58 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_input() {
+    while true; do
+        echo "${lang_remote_name_notify}"
+        read -r -p "Input Remote Name [0 = Exit]: " remote_name
+        echo
+        if validate_user "${remote_name}" || [ "${remote_name}" == "0" ]; then
+            break
+        else
+            printf "%s\n" "${RED}${lang_wrong_format}${NC}"
+        fi
+    done
+}
+
+_config_rclone() {
+    if [[ "${remote_name}" == "0" || -z "${remote_name}" ]]; then
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    else
+        rclone_config_file="/root/.config/rclone/rclone.conf"
+        if [ -f "${rclone_config_file}" ]; then
+            check_remote_name_exists=$(grep -w "${remote_name}" "${rclone_config_file}")
+            if [ -n "${check_remote_name_exists}" ]; then
+                ALERT="Remote Name ${lang_already_exists}. ${lang_input_other_value}."
+            fi
+        fi
+
+        if [ -z "${ALERT}" ]; then
+            rclone config create "${remote_name}" drive config_is_local false scope drive use_trash false
+            clear
+            printf "%s\n" "${GREEN}Connect Google Drive success.${NC}"
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+}
+
+remote_name=""
+ALERT=""
+check_remote_name_exists=""
+
+_input
+_config_rclone

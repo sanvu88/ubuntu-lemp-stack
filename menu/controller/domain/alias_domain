@@ -1,0 +1,244 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_alias_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Them Alias/Parked Domain" "Xoa Alias/Parked Domain" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Xoa Alias/Parked Domain")
+            action="disable"
+            break
+            ;;
+        "Them Alias/Parked Domain")
+            action="enable"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+    sleep 1
+}
+
+_select_alias_site() {
+    domain=""
+    if [[ "$(ls -A "${ALIAS_DIR}")" ]]; then
+        domains_alias=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${ALIAS_DIR}"
+        for entry_alias in *.conf; do
+            alias_domain=${entry_alias//.conf/}
+            domains_alias+=("${alias_domain}")
+        done
+
+        if [ ${#domains_alias[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh bat ky Alias Domain nao.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt_alias in "${domains_alias[@]}"; do
+                alias_domain=$opt_alias
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh bat ky Alias Domain nao.${NC}")
+    fi
+}
+
+_destroy_alias_domain() {
+    if [[ -z "${alias_domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    else
+        rm -rf "${ALIAS_DIR}"/"${alias_domain}".conf
+        rm -rf "/root/.acme.sh/${alias_domain}"
+        rm -rf "${SSL_DIR}/${alias_domain}"
+
+        include_lists=$(grep -i "${alias_domain}" "${VHOST_DIR}"/*.conf | cut -f1 -d':')
+
+        for i in "${include_lists[@]}" ; do
+            rm -rf "$i"
+        done
+
+        if nginx -t; then
+            systemctl restart nginx
+            clear
+            printf "%s\n" "${GREEN}Xoa Parked/Alias thanh cong.${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    fi
+}
+
+_input_alias_domain() {
+    false
+    while [ $? -eq 1 ]; do
+        read -r -p "Nhap domain Parked/Alias (Khong co www) [0 = Thoat]: " alias_domain
+        if [ "${alias_domain}" == "0" ]; then
+            break
+        else
+            alias_domain=$(echo "${alias_domain}" | tr '[:upper:]' '[:lower:]')
+            echo "${alias_domain}" | grep -q "\."
+            if [ $? -eq 0 ]; then
+                "${BASH_DIR}"/menu/validate/check_value domain "${alias_domain}"
+                if [[ $? -eq 1 ]]; then
+                    clear
+                    printf "%s\n" "${RED}Ten mien ban nhap khong chinh xac vui long nhap lai.${NC}"
+                    false
+                fi
+            else
+                clear
+                printf "%s\n" "${RED}Ten mien ban nhap khong chinh xac vui long nhap lai.${NC}"
+                false
+            fi
+        fi
+    done
+
+    alias_domain=${alias_domain//www.}
+}
+
+_create_vhost() {
+
+    if [ ! -d "${ALIAS_DIR}" ]; then
+        mkdir -p "${ALIAS_DIR}"
+    fi
+
+    if [ "${SOURCE}" == "magento2" ]; then
+        if [ -f "${CUSTOM_DIR}/magento2_alias.conf" ]; then
+            cp "${CUSTOM_DIR}"/magento2_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        else
+            cp "${TEMPLATE_DIR}"/magento2_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+    elif [ "${SOURCE}" == "cscart" ]; then
+        if [ -f "${CUSTOM_DIR}/cscart_alias.conf" ]; then
+            cp "${CUSTOM_DIR}"/cscart_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        else
+            cp "${TEMPLATE_DIR}"/cscart_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+    elif [ "${SOURCE}" == "nodejs" ]; then
+        if [ -f "${CUSTOM_DIR}/nodejs_alias.conf" ]; then
+            cp "${CUSTOM_DIR}"/nodejs_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        else
+            cp "${TEMPLATE_DIR}"/nodejs_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+    else
+        if [ -f "${CUSTOM_DIR}/nginx_alias.conf" ]; then
+            cp "${CUSTOM_DIR}"/nginx_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        else
+            cp "${TEMPLATE_DIR}"/nginx_alias.conf "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+
+        if [ "${SOURCE}" == "laravel" ]; then
+            sed -i "s|DOC_ROOT|root /home/${user}/${domain}/public_html/public;|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+        elif [ "${SOURCE}" == "cakephp" ]; then
+            sed -i "s|DOC_ROOT|root /home/${user}/${domain}/public_html/webroot;|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+        else
+           sed -i "s|DOC_ROOT|root /home/${user}/${domain}/public_html;|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+
+        if [ "${SOURCE}" == "wordpress" ]; then
+            sed -i '/PLUGIN_CACHE/d' "${ALIAS_DIR}"/"${alias_domain}".conf
+            sed -i '/PLUGIN_SEO/d' "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+
+        check_php_cache=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf")
+        check_php_cache_woo=$(grep -w "php_cache_woo.conf" "${VHOST_DIR}/${domain}.conf")
+        if [ -n "${check_php_cache}" ]; then
+            sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_cache.conf;|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+        elif [ -n "${check_php_cache_woo}" ]; then
+            sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_cache_woo.conf;|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+        else
+            sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+    fi
+
+    sed -i "s|WEBSITE_USER|${user}|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+    sed -i "s|WEBSITE_DOMAIN|${domain}|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+    sed -i "s|ALIAS_DOMAIN|${alias_domain}|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+    sed -i "s|WEBSITE_SOURCE|${SOURCE}|g" "${ALIAS_DIR}"/"${alias_domain}".conf
+
+    sed -i '/HTPASSWD/d' "${ALIAS_DIR}"/"${alias_domain}".conf
+}
+
+_add_alias_domain() {
+    if [[ "${alias_domain}" == 0 ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    elif [[ -f "${ALIAS_DIR}/${alias_domain}.conf" ]]; then
+        clear
+        printf "%s\n" "${RED}Ten mien${NC} ${GREEN}${alias_domain}${NC} da duoc dung lam Alias Domain roi."
+    else
+        _create_vhost
+        cat >> "${VHOST_DIR}/${domain}.conf" << END
+include ${ALIAS_DIR}/${alias_domain}.conf;
+END
+        if nginx -t; then
+            systemctl restart nginx
+            clear
+            printf "%s\n" "${GREEN}Tao Alias Domain thanh cong.${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    fi
+}
+
+ALERT=""
+action=""
+domain=""
+alias_domain=""
+
+_select_alias_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+elif [[ "${action}" == "disable" ]]; then
+    _select_alias_site
+    _destroy_alias_domain
+else
+    printf "%s\n" "${RED}Lua chon website chinh.${NC}"
+    _select_domain
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            printf "%s\n" "${RED}Lua chon ma nguon cua website chinh.${NC}"
+            _select_source
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            _input_alias_domain
+            _add_alias_domain
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+menu_domain

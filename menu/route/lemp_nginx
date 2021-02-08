@@ -1,0 +1,67 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+nginx_v=$(nginx -v 2>&1 | grep -o '[0-9.]*$'; echo)
+nginx_status=$(pgrep -x nginx >/dev/null && printf "%s\n" "${GREEN}Active${NC}" || printf "%s\n" "${GREEN}Inactive (Dead)${NC}")
+
+printf "%s=============================%s\n" "${GREEN}" "${NC}"
+printf "%s        Nginx Manager        %s\n" "${GREEN}" "${NC}"
+printf "%s=============================%s\n" "${GREEN}" "${NC}"
+printf "%sNginx version : %s%s\n" "${GREEN}" "${nginx_v}" "${NC}"
+printf "%s=============================%s\n" "${GREEN}" "${NC}"
+printf "%sStatus: %s%s\n" "${GREEN}" "${nginx_status}" "${NC}"
+printf "%s=============================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "%s1. Restart Nginx%s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${lang_test_nginx_config}%s\n" "${GREEN}" "${NC}"
+    printf "%s=========================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1)
+            clear
+            printf "%s\n" "${RED}${PROCESSING}${NC}"
+            sleep 1
+            if nginx -t; then
+                systemctl restart nginx
+                clear
+                printf "%s\n" "${GREEN}${lang_restart_nginx_success}${NC}"
+                sleep 1
+                echo
+            else
+                nginx -t
+                printf "%s\n" "${RED}${lang_nginx_config_error}${NC}"
+            fi
+
+            lemp_nginx
+            ;;
+        2)
+            clear
+            sleep 1
+            nginx -t
+            sleep 1
+            echo
+            lemp_nginx
+            ;;
+        0) clear; menu_lemp ;;
+        *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

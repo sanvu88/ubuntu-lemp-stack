@@ -1,0 +1,184 @@
+#!/bin/bash
+
+exec 19>/opt/autowp.txt
+BASH_XTRACEFD=19
+set -x
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_var() {
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    db_pass=$(grep -w "db_password" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    db_user=$(grep -w "db_user" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+}
+
+_auto_install() {
+    clear
+    printf "%s\n" "${RED}Bat dau cai dat WordPress..${NC}"
+    _cd_dir "/home/${user}/${domain}/public_html"
+    # Download WordPress
+    wp core download --locale=en_US --allow-root
+    rm -rf license.txt readme.html
+    # Create wp-config.php
+    wp config create --allow-root --dbname="${db_name}" --dbuser="${db_user}" --dbpass="${db_pass}" \
+        --dbprefix="${db_prefix}" --extra-php <<PHP
+define( 'WP_DEBUG', false );
+define( 'FS_METHOD', 'direct');
+define( 'WP_CACHE', true);
+define( 'WP_MEMORY_LIMIT', '128M' );
+define( 'WP_MAX_MEMORY_LIMIT', '128M' );
+define( 'DISABLE_WP_CRON', true );
+PHP
+    touch "${WORDPRESS_CRON_DIR}"/"${domain}"
+
+    # Install WordPress
+    wp core install --url="${domain}" --title="${site_name}" --admin_user="${admin_user}" --admin_password="${admin_pwd}" \
+        --admin_email="${admin_email}" --allow-root
+    # Create robots.txt
+    cat >>"/home/$user/$domain/public_html/robots.txt" <<END
+User-agent: *
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /search?q=*
+Disallow: *?replytocom
+Disallow: */attachment/*
+Disallow: /images/
+Allow: /wp-admin/admin-ajax.php
+Allow: /*.js$
+Allow: /*.css$
+END
+    chown -R "${user}":"${user}" ./*
+    mv wp-config.php ../
+}
+
+_auto_install_plugins(){
+    clear
+    printf "%s\n" "${RED}Bat dau cai dat Plugins..${NC}"
+    cd_dir "/home/${user}/${domain}/public_html"
+#    plugins=$(curl -s https://scripts.hostvn.net/ubuntu/update/version | grep "list_plugins=" | cut -f2 -d'=')
+#    read -ar plugins_list <<< "$plugins"
+    for i in "${PLUGINS_LIST[@]}" ; do
+        wp plugin install "${i}" --activate --allow-root
+    done
+}
+
+_create_vhost() {
+    rm -rf "${VHOST_DIR}"/"${domain}".conf
+
+    if [ -f "${CUSTOM_DIR}/wordpress.conf" ]; then
+        cp "${CUSTOM_DIR}"/wordpress.conf "${VHOST_DIR}"/"${domain}".conf
+    else
+        cp "${TEMPLATE_DIR}"/wordpress.conf "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    sed -i "s/WEBSITE_USER/${user}/g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "s/WEBSITE_DOMAIN/${domain}/g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+
+    if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+        sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+}
+
+_show_info() {
+    echo ""
+    printf "1. User dang nhap wp-admin    : %s\n" "${RED}${admin_user}${NC}"
+    printf "2. Mat khau dang nhap wp-admin: %s\n" "${RED}${admin_pwd}${NC}"
+    echo "------------------------------------"
+}
+
+_run() {
+    if ! if_mysql_user_exists "${db_user}"; then
+        ALERT=$(printf "%s\n" "${RED}Mysql User khong ton tai.${NC}")
+    fi
+
+    if ! if_db_exists "${db_name}"; then
+        ALERT=$(printf "%s\n" "${RED}Database khong ton tai.${NC}")
+    fi
+
+    if [ -z "${ALERT}" ]; then
+        db_prefix="$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..4")_"
+        admin_user=${domain//[-._]/}
+        admin_user=$(echo "${admin_user}" | cut -c 1-10)
+        admin_pwd=$(_gen_pass)
+        site_name="Just another WordPress site"
+
+        while true
+        do
+            read -r -p "${INPUT_EMAIL}" admin_email
+            echo
+            if [[ "${admin_email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
+                break
+            else
+                clear
+                printf "%s\n"  "${RED}${WRONG_EMAIL}${NC}"
+            fi
+        done
+
+        rm -rf /home/"$user"/"$domain"/public_html/*
+        _empty_db
+        _auto_install
+        _auto_install_plugins
+       clear
+
+        _create_vhost
+        if nginx -t; then
+            _restart_service
+            clear
+            printf "%s\n" "${GREEN}Cai dat WordPress thanh cong.${NC}"
+            _show_info
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+}
+
+ALERT=""
+domain=""
+
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _set_var
+        if [ -z "${ALERT}" ]; then
+            _run "$@"
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_wordpress

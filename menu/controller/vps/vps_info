@@ -1,0 +1,40 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_variable(){
+    #https://stackoverflow.com/a/6546314
+    MemTotal=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
+    MemAvailable=$(awk '/MemAvailable/ { print $2 }' /proc/meminfo)
+    SwapTotal=$(awk '/SwapTotal/ {print $2}' /proc/meminfo)
+    SwapFree=$(awk '/SwapFree/ {print $2}' /proc/meminfo)
+    CpuSpeed=$(awk -F: '/cpu MHz/{print $2}' /proc/cpuinfo | sort | uniq -c | sed -e s'|      ||g' | xargs);
+    CpuModel=$(awk -F: '/model name/{print $2}' /proc/cpuinfo | sort | uniq -c | xargs);
+}
+
+_show_info(){
+    printf "CPU Speed       : %s\n" "${CpuSpeed}"
+    printf "CPU Model       : %s\n" "${CpuModel}"
+    printf "Uptime          : %s\n" "$(uptime | xargs)"
+    printf "CPU loading     : %s\n" "$(top -b -n1 | grep "Cpu(s)" | awk '{print $2 + $4}')%"
+    printf "Ram             : %s\n" "$(_bytes_for_humans "${MemTotal}") (Con trong: $(_bytes_for_humans "${MemAvailable}"))"
+    printf "Swap            : %s\n" "$(_bytes_for_humans "${SwapTotal}") (Con trong: $(_bytes_for_humans "${SwapFree}") )"
+    printf "Disk da su dung : %s\n" "$(df -lh | awk '{if ($6 == "/") { print $5 }}' | head -1 | cut -d'%' -f1)%"
+    echo ""
+}
+
+_set_variable
+_show_info
+sleep 2
+menu_vps_manage

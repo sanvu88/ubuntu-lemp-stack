@@ -1,0 +1,113 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+clear
+printf "%s===================%s\n" "${GREEN}" "${NC}"
+printf "%sChange port Admin%s\n" "${GREEN}" "${NC}"
+printf "%sPort Admin: ${admin_port}%s\n" "${GREEN}" "${NC}"
+printf "%s===================%s\n" "${GREEN}" "${NC}"
+
+_set_var() {
+    current_port=$(grep -w "admin_port" "${FILE_INFO}" | cut -f2 -d'=')
+    ssh_port=$(grep -w "Port" /etc/ssh/sshd_config | cut -f2 -d" ")
+    admin_port=$(grep -w "admin_port" "${FILE_INFO}" | cut -f2 -d'=')
+}
+
+_input() {
+    while true; do
+        read -r -p "Input port [0 = Exit]: " new_port
+        if [[ ${new_port} =~ ^-?[0-9]+$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Port ${lang_wrong_format}.${NC}"
+        fi
+    done
+}
+
+_check_port() {
+    if [ -z "${new_port}" ]; then
+        ALERT=$(printf "%s\n" "${RED}Port ${lang_is_required}.${NC}")
+    fi
+
+    port_array=("${current_port}" "${admin_port}" "${ssh_port}" "22" "21" "11211" "6379")
+
+    if [[ " ${port_array[*]} " == *" ${new_port} "* ]] || check_port_exists "${new_port}"; then
+        ALERT=$(printf "%s\n" "${RED}Port ${lang_has_been_used}. ${lang_input_other_value}.${NC}")
+    fi
+}
+
+_change_port() {
+    echo "${PROCESSING}"
+    echo ""
+    sleep 1
+
+    sed -i "s|${current_port}|${new_port}|g" "${NGINX_CONF_DIR}"/web_apps.conf
+    sed -i '/admin_port=/d' "${FILE_INFO}"
+    echo "admin_port=${new_port}" >> "${FILE_INFO}"
+    ufw allow "${new_port}"/tcp
+    ufw delete allow "${current_port}"
+    systemctl restart ufw
+
+    rm -rf /etc/fail2ban/jail.local
+    if [ -f "${CUSTOM_DIR}/fail2ban/jail.local" ]; then
+        cp "${CUSTOM_DIR}"/fail2ban/jail.local /etc/fail2ban/jail.local
+    else
+        cp "${TEMPLATE_DIR}"/fail2ban/jail.local /etc/fail2ban/jail.local
+    fi
+
+    admin_email=$(grep -w "admin_email" "${FILE_INFO}" | cut -f2 -d'=')
+    sed -i "s/SSH_PORT/${ssh_port}/g" /etc/fail2ban/jail.local
+    sed -i "s/ADMIN_PORT/${new_port}/g" /etc/fail2ban/jail.local
+    sed -i "s/ADMIN_EMAIL/${admin_email}/g" /etc/fail2ban/jail.local
+    sed -i "s/${current_port}/${new_port}/g" /etc/fail2ban/jail.d/nginx-http-auth.conf
+
+    systemctl restart fail2ban
+
+    if nginx -t; then
+        systemctl restart nginx
+        clear
+        printf "%s\n" "${GREEN}${lang_change_port_success} New port:${NC} ${RED}${new_port}${NC}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+_run() {
+    _set_var
+    _check_port
+    if [ -z "${ALERT}" ]; then
+        _change_port
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+}
+
+new_port=""
+ALERT=""
+
+_input
+
+if [[ "${new_port}" == "0" ]]; then
+    clear
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+else
+    _run
+fi
+
+menu_admin_tool

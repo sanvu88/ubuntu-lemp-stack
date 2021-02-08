@@ -1,0 +1,170 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_file_edit_action(){
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Cho phep Edit theme, plugins trong admin" "Khong cho phep Edit theme, plugins trong admin" "Cancel")
+    select opt in "${options[@]}"; do
+        case $opt in
+        "Cho phep Edit theme, plugins trong admin")
+            action="disallow"
+            break
+            ;;
+        "Khong cho phep Edit theme, plugins trong admin")
+            action="allow"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+}
+
+_select_site_disallow_file_edit(){
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            disable_file_edit=$(grep -w "disable_file_edit" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && "${disable_file_edit}" == "no" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Toan bo website da duoc tat cai dat, chinh sua file plugins, theme.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_select_site_allow_file_edit(){
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            disable_file_edit=$(grep -w "disable_file_edit" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            if [[ -d "/home/${user}/${domain}/public_html/wp-content" && "${disable_file_edit}" == "yes" ]]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc tat cai dat, chinh sua file plugins, theme.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}")
+    fi
+}
+
+_allow_file_edit(){
+    wp config set DISALLOW_FILE_EDIT false --raw --allow-root
+    sed -i '/disable_file_edit/d' "${USER_DIR}"/."${domain}".conf
+    echo "disable_file_edit=no" >> "${USER_DIR}"/."${domain}".conf
+    #wp config set DISALLOW_FILE_MODS false --raw --allow-root
+    notify="Cho phep Cai dat/Edit theme, plugins trong admin thanh cong."
+}
+_disallow_file_edit(){
+    wp config set DISALLOW_FILE_EDIT true --raw --allow-root
+    sed -i '/disable_file_edit/d' "${USER_DIR}"/."${domain}".conf
+    echo "disable_file_edit=yes" >>"${USER_DIR}"/."${domain}".conf
+    #wp config set DISALLOW_FILE_MODS true --raw --allow-root
+    notify="Khong cho phep Cai dat/Edit theme, plugins trong admin thanh cong."
+}
+
+ALERT=""
+domain=""
+action=""
+notify=""
+
+_select_file_edit_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+else
+    if [ "${action}" == "disallow" ]; then
+        _select_site_disallow_file_edit
+    fi
+
+    if [ "${action}" == "allow" ]; then
+        _select_site_allow_file_edit
+    fi
+
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+            _cd_dir /home/"${user}"/"${domain}"/public_html
+
+            if [ "${action}" == "allow" ]; then
+                _allow_file_edit
+            fi
+
+            if [ "${action}" == "disallow" ]; then
+                _disallow_file_edit
+            fi
+
+            if nginx -t; then
+                _restart_service
+                clear
+                printf "%s\n" "${GREEN}${notify}${NC}"
+                echo ""
+            else
+                clear
+                nginx -t
+                printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            fi
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+fi
+
+menu_wordpress

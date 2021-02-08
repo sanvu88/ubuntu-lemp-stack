@@ -1,0 +1,74 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+source /var/hostvn/.hostvn.conf
+source /var/hostvn/menu/route/parent
+source /var/hostvn/menu/helpers/variable_common
+source /var/hostvn/ipaddress
+# shellcheck source=/var/hostvn/menu/lang/*
+source /var/hostvn/menu/lang/"${lang}"
+
+CHOICE=1
+
+printf "%s==================================================%s\n" "${GREEN}" "${NC}"
+printf "%s          %s Scripts - VPS Manager Scripts        %s\n" "${GREEN}" "${AUTHOR}" "${NC}"
+printf "%s             %s - Version %s             %s\n" "${GREEN}" "${AUTHOR_WEB}" "${script_version}" "${NC}"
+printf "%s==================================================%s\n" "${GREEN}" "${NC}"
+printf "%sIP VPS: %s%s\n" "${GREEN}" "${IPADDRESS}" "${NC}"
+printf "%sphpMyAdmin: %s%s\n" "${RED}" "http://${IPADDRESS}:${admin_port}/phpmyadmin" "${NC}"
+printf "%s==================================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "${GREEN}%s${NC}\n" "1. ${lang_manager_domain}"
+    printf "${GREEN}%s${NC}\n" "2. ${lang_manager_ssl}"
+    printf "${GREEN}%s${NC}\n" "3. ${lang_manager_cache}"
+    printf "${GREEN}%s${NC}\n" "4. ${lang_manager_lemp} (Nginx - MariaDB - PHP - SFTP - Log)"
+    printf "${GREEN}%s${NC}\n" "5. ${lang_manager_firewall}"
+    printf "${GREEN}%s${NC}\n" "6. ${lang_permission_manager} Chown/Chmod"
+    printf "${GREEN}%s${NC}\n" "7. ${lang_manager_wordpress}"
+    printf "${GREEN}%s${NC}\n" "8. ${lang_manager_backup_restore}"
+    printf "${GREEN}%s${NC}\n" "9. Admin Tool"
+    printf "${GREEN}%s${NC}\n" "10. ${lang_manager_vps}"
+    printf "${GREEN}%s${NC}\n" "11. ${lang_account_manager}"
+    printf "${GREEN}%s${NC}\n" "12. Cronjob/Auto Backup"
+    printf "${GREEN}%s${NC}\n" "13. ${lang_manager_tool}"
+    printf "${GREEN}%s${NC}\n" "14. ${lang_manager_update_scripts}"
+    printf "${GREEN}%s${NC}\n" "15. Change language"
+    printf "${GREEN}%s${NC}\n" "=================================================="
+    read -r -p " Nhap vao lua chon cua ban [0 = Thoat] " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) clear; menu_domain;;
+        2) clear; menu_ssl;;
+        3) clear; menu_cache;;
+        4) clear; menu_lemp;;
+        5) clear; menu_firewall;;
+        6) clear; menu_permission;;
+        7) clear; menu_wordpress;;
+        8) clear; menu_backup ;;
+        9) clear; menu_admin_tool ;;
+        10) clear; menu_vps_manage;;
+        11) clear; menu_account ;;
+        12) clear; menu_cronjob ;;
+        13) clear; menu_tools ;;
+        14) clear ; update_script;;
+        15) clear ; change_language;;
+        0) clear; printf "%s\n" "${GREEN}Bye Bye... Cam on ban da su dung ${AUTHOR} Script${NC}";;
+        *) clear; printf "%s\n" "${GREEN}Lua chon cua ban khong chinh xac. Vui long chon lai.${NC}";;
+    esac
+done

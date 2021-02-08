@@ -1,0 +1,110 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+
+_select_php_version(){
+    php1="${php1_version}"
+    php2="${php2_version}"
+    php1_label="${php1}"
+    php2_label="${php2}"
+
+    if [ "${php_version_current}" == "${php1_version}" ]; then
+        php1_label="${php1_version} ${RED}(Phien ban hien tai)${NC}"
+    fi
+    if [ "${php_version_current}" == "${php2_version}" ]; then
+        php2_label="${php2_version} ${RED}(Phien ban hien tai)${NC}"
+    fi
+    echo "Lua chon phien ban PHP ban muon su dung"
+    PS3='Nhap lua chon cua ban (1-3): '
+    options=("${php1_label}" "${php2_label}" "Cancel")
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "${php1_label}") php_version_new="${php1}"; break;;
+            "${php2_label}") php_version_new="${php2}"; break;;
+            "Cancel") php_version_new="0"; break;;
+            *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}";;
+        esac
+    done
+}
+
+_create_php_new_config(){
+    php_old_config_file=/etc/php/"${php_version_current}"/fpm/pool.d/"${domain}".conf
+    php_new_conf_file=/etc/php/"${php_version_new}"/fpm/pool.d/"${domain}".conf
+
+    mv "${php_old_config_file}" "${php_new_conf_file}"
+}
+
+_edit_user_info(){
+    sed -i "s|php_version=${php_version_current}|php_version=${php_version_new}|g" "${USER_DIR}"/."${domain}".conf
+}
+
+_run(){
+    php_version_current=$(grep -w "php_version" "${USER_DIR}"/."${domain}".conf | cut -f2 -d'=')
+
+    if [[ "${php2_release}" == "yes" ]]; then
+        _select_php_version
+        if [ "${php_version_new}" == "0" ]; then
+            clear
+            printf "%s\n" "${RED}Huy thao tac.${NC}"
+        elif [ "${php_version_new}" == "${php_version_current}" ]; then
+            clear
+            printf "%s\n" "${RED}Phien ban PHP ban chon trung voi phien ban dang su dung.${NC}"
+        else
+            _create_php_new_config
+            _edit_user_info
+
+            if nginx -t; then
+                systemctl restart nginx
+                systemctl restart php"${php_version_current}"-fpm
+                systemctl restart php"${php_version_new}"-fpm
+
+                clear
+                printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
+            else
+                clear
+                nginx -t
+                printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            fi
+        fi
+    else
+        clear
+        printf "%s\n" "${RED}Ban chua cai phien ban PHP thu 2.${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+php_version_new=""
+php_version_current=""
+php1=""
+php2=""
+
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_domain

@@ -1,0 +1,83 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu/centOS      #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+rm -rf install
+
+# Set Color
+RED='\033[0;31m'
+NC='\033[0m'
+
+OS=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+
+SCRIPT_LINK="https://scripts.hostvn.net/${OS}"
+OS_LIST="centos ubuntu debian almalinux"
+RAM_TOTAL=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
+LOW_RAM='400000'
+
+# Set Lang
+ROOT_ERR="Ban can dang nhap SSH voi user root."
+CANCEL_INSTALL="Huy cai dat..."
+RAM_NOT_ENOUGH="Canh bao: Dung luong RAM qua thap de cai Script. (It nhat 512MB)"
+WRONG_OS="Rat tiec he dieu hanh ban dang su dung khong duoc ho tro."
+
+export LC_ALL="en_US.UTF-8"
+export LC_CTYPE="en_US.UTF-8"
+
+if [[ "$(id -u)" != "0" ]]; then
+    printf "${RED}%s${NC}\n" "${ROOT_ERR}"
+    printf "${RED}%s${NC}\n" "${CANCEL_INSTALL}"
+    exit
+fi
+
+if [[ ${RAM_TOTAL} -lt ${LOW_RAM} ]]; then
+    printf "${RED}%s${NC}\n" "${RAM_NOT_ENOUGH}"
+    printf "${RED}%s${NC}\n" "${CANCEL_INSTALL}"
+    exit
+fi
+
+## check service
+if systemctl is-active --quiet apache2; then
+    printf "%s\n" "${RED}Apache process detected, exit...${NC}"
+    exit
+fi
+if systemctl is-active --quiet mysqld; then
+    printf "%s\n" "${RED}Mysql process detected, exit...${NC}"
+    exit
+fi
+if systemctl is-active --quiet mariadb; then
+    printf "%s\n" "${RED}Mysql process detected, exit...${NC}"
+    exit
+fi
+if systemctl is-active --quiet mysql; then
+    printf "%s\n" "${RED}Mysql process detected, exit...${NC}"
+    exit
+fi
+if systemctl is-active --quiet nginx; then
+    printf "%s\n" "${RED}Nginx process detected, exit...${NC}"
+    exit
+fi
+
+if [[ " ${OS_LIST[*]} " == *" ${OS} "* ]]; then
+    if [[ "${OS}" == "centos" || "${OS}" == "almalinux" ]]; then
+        yum -y install dos2unix
+    else
+        apt -y install dos2unix
+    fi
+    curl -sO "${SCRIPT_LINK}"/"${OS}"
+    dos2unix "${OS}"
+    chmod +x "${OS}"
+    bash "${OS}"
+else
+    printf "${RED}%s${NC}\n" "${WRONG_OS}"
+    printf "${RED}%s${NC}\n" "${CANCEL_INSTALL}"
+    exit
+fi

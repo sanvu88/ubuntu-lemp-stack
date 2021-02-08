@@ -1,0 +1,277 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_set_var() {
+    prompt_install="n"
+    prompt_mysql_info="y"
+    db_name=""
+    db_pass=""
+    db_user=""
+
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    while true; do
+        read -r -p "Ban co muon su dung thong tin Mysql mac dinh khi them ten mien khong ? (y/n) " prompt_mysql_info
+        echo
+        if [[ "${prompt_mysql_info}" =~ ^([yY])$ || "${prompt_mysql_info}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+
+    if [[ "${prompt_mysql_info}" =~ ^([yY])$ ]]; then
+        db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        db_pass=$(grep -w "db_password" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        db_user=$(grep -w "db_user" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    else
+        while true; do
+            printf "%s\n" "${RED}User Mysql chi duoc phep chua chu cai viet thuong, chu so va dau gach duoi.${NC}"
+            read -r -p "Nhap vao User Mysql ban muon su dung: " db_user
+            echo
+            if validate_db_name "${db_user}" && if_mysql_user_exists "${db_user}"; then
+                break
+            else
+                printf "%s\n" "${RED}User Mysql khong dung dinh dang hoac khong ton tai. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        while true; do
+            printf "%s\n" "${RED}Ten database chi duoc phep chua chu cai viet thuong, chu so va dau gach duoi.${NC}"
+            read -r -p "Nhap vao Ten database muon su dung: " db_name
+            echo
+            if validate_db_name "${db_name}" && if_db_exists "${db_name}"; then
+                break
+            else
+                printf "%s\n" "${RED}Ten database khong dung dinh dang hoac database khong ton tai. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        read -r -p "Nhap vao mat khau Mysql: " db_pass
+    fi
+
+    if ! mysql -u "${db_user}" -p"${db_pass}" -e ";" ; then
+        ALERT=$(printf "${RED}%s${NC}\n" "Thong tin ket noi Mysql khong chinh xac. Vui long kiem tra lai.")
+    fi
+}
+
+_doc_root_empty() {
+    if docroot_empty_or_not "$user" "$domain"; then
+        while true; do
+            read -r -p "Thu muc public_html dang co du lieu. Ban co muon xoa du lieu khong ? (y/n) " prompt_install
+            echo
+            if [[ "${prompt_install}" =~ ^([yY])$ || "${prompt_install}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    else
+        while true; do
+            read -r -p "Ban muon cai dat WordPress tu dong ? (y/n) " prompt_install
+            echo
+            if [[ "${prompt_install}" =~ ^([yY])$ || "${prompt_install}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    fi
+}
+
+_database_empty() {
+    if if_db_empty "${db_name}"; then
+        prompt_install="y"
+    else
+        while true; do
+            read -r -p "Database dang co du lieu. Ban co muon xoa du lieu hien co khong ? (y/n) " prompt_install
+            echo
+            if [[ "${prompt_install}" =~ ^([yY])$ || "${prompt_install}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+    fi
+}
+
+_change_prefix() {
+    while true; do
+        read -r -p "Ban co muon thay doi database prefix khong (Mac dinh la wp_)? (y/n) " prompt_prefix
+        echo
+        if [[ "${prompt_prefix}" =~ ^([yY])$ || "${prompt_prefix}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+
+    db_prefix="wp_"
+    if [[ "${prompt_prefix}" =~ ^([yY])$ ]]; then
+        db_prefix="$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..4")_"
+    fi
+}
+
+_auto_install() {
+    _cd_dir "/home/${user}/${domain}/public_html"
+    # Download WordPress
+    wp core download --locale=en_US --allow-root
+    rm -rf license.txt readme.html
+    # Create wp-config.php
+    wp config create --allow-root --dbname="${db_name}" --dbuser="${db_user}" --dbpass="${db_pass}" \
+        --dbprefix="${db_prefix}" --extra-php <<PHP
+define( 'WP_DEBUG', false );
+define( 'FS_METHOD', 'direct');
+define( 'WP_CACHE', true);
+define( 'WP_MEMORY_LIMIT', '128M' );
+define( 'WP_MAX_MEMORY_LIMIT', '128M' );
+PHP
+    # Install WordPress
+    wp core install --url="${domain}" --title="${site_name}" --admin_user="${admin_user}" --admin_password="${admin_pwd}" \
+        --admin_email="${admin_email}" --allow-root
+    # Create robots.txt
+    cat >>"/home/$user/$domain/public_html/robots.txt" <<END
+User-agent: *
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /search?q=*
+Disallow: *?replytocom
+Disallow: */attachment/*
+Disallow: /images/
+Allow: /wp-admin/admin-ajax.php
+Allow: /*.js$
+Allow: /*.css$
+END
+    chown -R "${user}":"${user}" ./*
+}
+
+_create_vhost() {
+    rm -rf "${VHOST_DIR}"/"${domain}".conf
+
+    if [ -f "${CUSTOM_DIR}/wordpress.conf" ]; then
+        cp "${CUSTOM_DIR}"/wordpress.conf "${VHOST_DIR}"/"${domain}".conf
+    else
+        cp "${TEMPLATE_DIR}"/wordpress.conf "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    sed -i "s/WEBSITE_USER/${user}/g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "s/WEBSITE_DOMAIN/${domain}/g" "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+
+    if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+        sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+}
+
+_permission(){
+    chmod 711 /home
+    chmod 755 /home/"${user}"
+    chmod 711 /home/"${user}"/"${domain}"
+    chmod 711 /home/"${user}"/"${domain}"/logs
+    chmod 755 /home/"${user}"/"${domain}"/public_html
+    find /home/"${user}"/"${domain}"/public_html/ -type d -print0 | xargs -I {} -0 chmod 0755 {}
+    find /home/"${user}"/"${domain}"/public_html/ -type f -print0 | xargs -I {} -0 chmod 0644 {}
+    chown root:root /home/"${user}"
+    chown -R "${user}":"${user}" /home/"${user}"/"${domain}"
+    chown -R "${user}":"${user}" /home/"${user}"/tmp
+    chown -R "${user}":"${user}" /home/"${user}"/php
+}
+
+_show_info() {
+    echo ""
+    printf "1. User dang nhap wp-admin    : %s\n" "${RED}${admin_user}${NC}"
+    printf "2. Mat khau dang nhap wp-admin: %s\n" "${RED}${admin_pwd}${NC}"
+    echo "------------------------------------"
+}
+
+_run() {
+    _doc_root_empty
+
+    if [[ "${prompt_install}" =~ ^([yY])$ ]]; then
+        _database_empty
+    fi
+
+    if [[ "${prompt_install}" =~ ^([yY])$ ]]; then
+        if ! if_mysql_user_exists "${db_user}"; then
+            ALERT=$(printf "%s\n" "${RED}Mysql User khong ton tai.${NC}")
+        fi
+
+        if ! if_db_exists "${db_name}"; then
+            ALERT=$(printf "%s\n" "${RED}Database khong ton tai.${NC}")
+        fi
+
+        if [ -z "${ALERT}" ]; then
+            _change_prefix "$@"
+            _wp_auto_install_info
+            rm -rf /home/"$user"/"$domain"/public_html/*
+            _empty_db
+            _auto_install
+            clear
+
+            _create_vhost
+            _permission
+            if nginx -t; then
+                _restart_service
+                clear
+                printf "%s\n" "${GREEN}Cai dat WordPress thanh cong.${NC}"
+                _show_info
+            else
+                clear
+                nginx -t
+                printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            fi
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    else
+        clear
+        printf "%s\n" "${RED}Ban da huy cai dat tu dong WordPress.${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+prompt_install=""
+prompt_prefix=""
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _set_var
+        if [ -z "${ALERT}" ]; then
+            _run "$@"
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_wordpress

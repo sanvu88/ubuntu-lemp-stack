@@ -1,0 +1,109 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_swap_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    swap_options=("Tao Swap" "Xoa Swap" "Cancel")
+    select swap_opt in "${swap_options[@]}"; do
+        case $swap_opt in
+        "Tao Swap")
+            action="create"
+            break
+            ;;
+        "Xoa Swap")
+            action="delete"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+}
+
+_create_swap() {
+    if [ -n "${check_swap}" ]; then
+        notify="${RED}VPS da co Swap.${NC}"
+    else
+        REGEX_NUMBER='^[0-9]+$'
+        while true; do
+            echo "Nhap vao dung luong swap muon tao. (VD: 1G nhap so 1, 2G nhap so 2)"
+            read -r -p "Nhap vao dung luong swap muon tao (Nhap 0 de huy tao swap): " swap_size
+            if [[ ${swap_size} =~ ${REGEX_NUMBER} ]]; then
+                break
+            else
+                clear
+                printf "%s\n" "${RED}Gia tri ban nhap khong dung. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [[ "${swap_size}" == 0 || -z "${swap_size}" ]]; then
+            notify="${RED}Huy thao tac.${NC}"
+        else
+            fallocate -l "${swap_size}"G /swapfile
+            chmod 600 /swapfile
+            mkswap /swapfile
+            swapon /swapfile
+
+            if [ -z "${check_swap_config}" ]; then
+                echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+            fi
+
+            clear
+            notify="${GREEN}Tao Swap thanh cong.${NC}"
+        fi
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+}
+
+_delete_swap() {
+    if [ -z "${check_swap}" ]; then
+        notify="${RED}Ban chua tao swap.${NC}"
+    else
+        swapoff -v /swapfile
+        if [ -n "${check_swap_config}" ]; then
+            sed -i '/swapfile/d' /etc/fstab
+        fi
+        rm -rf /swapfile
+        notify="${GREEN}Xoa swap thanh cong.${NC}"
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+}
+
+action=""
+notify=""
+
+_select_swap_action
+check_swap="$(swapon -s)"
+check_swap_config=$(grep -w "swapfile" "/etc/fstab")
+
+if [ "${action}" == "create" ]; then
+    _create_swap
+elif [ "${action}" == "delete" ]; then
+    _delete_swap
+else
+    clear
+    printf "${RED}%s${NC}\n" "Huy thao tac."
+fi
+
+menu_vps_manage

@@ -1,0 +1,166 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+source /var/hostvn/menu/helpers/variable_php
+
+_convert_vpssim() {
+    for domains in /home/*; do
+        if [ -d "${domains}" ]; then
+            domain=${domains##*/}
+            if "${BASH_DIR}"/menu/validate/check_value domain "${domain}"; then
+                user=${domain//[-._]/}
+                user=$(echo "$user" | cut -c 1-7)
+                user="${user}$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..3")"
+                prefix=$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..3")
+                user_pass=$(_gen_pass)
+
+                # Create Linux User
+                if ! if_user_exists "${user}"; then
+                    useradd --shell /sbin/nologin "${user}"
+                    usermod -G filetransfer "${user}"
+                    passwd "${user}" <<EOF
+${user_pass}
+${user_pass}
+EOF
+                fi
+
+                # Create doc root
+                mkdir -p /home/"${user}"/"${domain}"
+                mkdir -p /home/"${user}"/"${domain}"/logs
+
+                mv /home/"${domain}"/public_html/* /home/"${user}"/"${domain}"/public_html/
+                rm -rf /home/"${domain}"
+
+                if [ -d "/home/${user}/${domain}/public_html/wp-content/cache" ]; then
+                    rm -rf /home/"${user}"/"${domain}"/public_html/wp-content/cache/*
+                    touch /home/"${user}"/"${domain}"/public_html/wp-content/cache/index.html
+                fi
+
+                # Create php config
+                php_conf_file="/etc/php/${php1_version}/fpm/pool.d/${domain}.conf"
+                SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
+                ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
+                TMP_DIR="/home/${user}/tmp"
+                SESSION_PATH="/home/${user}/php/session"
+                CACHE_DIR="/home/${user}/php/wsdlcache"
+
+                mkdir -p "${TMP_DIR}"
+                mkdir -p "${SESSION_PATH}"
+                mkdir -p "${CACHE_DIR}"
+                chmod 700 "${SESSION_PATH}"
+                chmod 700 "${CACHE_DIR}"
+
+                if [ -f "${php_conf_file}" ]; then
+                    rm -rf "${php_conf_file}"
+                fi
+
+                cp "${TEMPLATE_DIR}/php_ondemand.conf" "${php_conf_file}"
+
+                sed -i "s|WEBSITE_USER|${user}|g" "${php_conf_file}"
+                sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${php_conf_file}"
+                sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${php_conf_file}"
+                sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${php_conf_file}"
+                sed -i "s|TMP_DIR|${TMP_DIR}|g" "${php_conf_file}"
+                sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${php_conf_file}"
+                sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${php_conf_file}"
+                sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${php_conf_file}"
+
+                # Import DB, Create DB user
+                for sql in /opt/move_vps/sql/*.sql ; do
+                    if [ -f "${sql}" ]; then
+                        db_name=${sql//[.sql]/}
+                        db_name=$(echo "$db_name" | cut -f5 -d'/')
+                        db_user=$(echo "${user}"_"${prefix}" | tr '[:upper:]' '[:lower:]')
+                        db_pass=$(_gen_pass)
+                        #Q1="CREATE DATABASE IF NOT EXISTS ${db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+                        Q1="CREATE USER IF NOT EXISTS '${db_user}'@'localhost' IDENTIFIED BY '${db_pass}';"
+                        Q2="GRANT ALL PRIVILEGES ON ${db_name}.* TO '${db_user}'@'localhost';"
+                        Q3="FLUSH PRIVILEGES;"
+                        SQL="${Q1}${Q2}${Q3}"
+
+                        mysql -uadmin -p"${mysql_pwd}" -e "${SQL}"
+                        mysql -uadmin -p"${mysql_pwd}" "${db_name}" < "$sql"
+
+                        # Create file user info
+                        cat >>"${USER_DIR}/.${user}.conf" <<END
+[${domain}]
+username=${user}
+user_pass=${user_pass}
+domain=${domain}
+db_name=${db_name}
+db_user=${db_user}
+db_password=${db_pass}
+public_html=/home/${user}/${domain}/public_html
+php_pm=ondemand
+php_version=${php1_version}
+plugin_seo=
+plugin_cache=
+disable_xmlrpc=yes
+disable_user_api=yes
+disable_file_edit=no
+lock_folder=no
+END
+                    fi
+                done
+
+                # Create vHost
+                if [ -d "/home/${user}/${domain}/public_html/public" ]; then
+                    cp "${TEMPLATE_DIR}"/laravel.conf "${VHOST_DIR}"/"$domain".conf
+                elif [ -d "/home/${user}/${domain}/public_html/webroot" ]; then
+                    cp "${TEMPLATE_DIR}"/cakephp.conf "${VHOST_DIR}"/"$domain".conf
+                elif [ -d "/home/${user}/${domain}/public_html/wp-admin" ]; then
+                    cp "${TEMPLATE_DIR}"/wordpress.conf "${VHOST_DIR}"/"$domain".conf
+                    sed -i '/PLUGIN_SEO/d' "${VHOST_DIR}"/"$domain".conf
+                    sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"$domain".conf
+                    cd /home/"${user}"/"${domain}"/public_html || exit
+                    db_prefix=$(wp config get table_prefix --allow-root)
+                    wp config create --allow-root --dbname="${db_name}" --dbuser="${db_user}" --dbpass="${db_pass}" --dbprefix="${db_prefix}" --extra-php <<PHP
+define( 'WP_DEBUG', false );
+define( 'FS_METHOD', 'direct');
+define( 'WP_CACHE', true);
+define( 'WP_MEMORY_LIMIT', '128M' );
+define( 'WP_MAX_MEMORY_LIMIT', '128M' );
+PHP
+                else
+                    cp "${TEMPLATE_DIR}"/default.conf "${VHOST_DIR}"/"$domain".conf
+                    sed -i "s|WEBSITE_SOURCE|default|g" "${VHOST_DIR}"/"$domain".conf
+                fi
+
+                mkdir -p "${NGINX_CONF_DIR}"/php/"${domain}"
+                cp "${TEMPLATE_DIR}"/php_cache.conf "${NGINX_CONF_DIR}"/php/"${domain}"
+                cp "${TEMPLATE_DIR}"/php_cache_woo.conf "${NGINX_CONF_DIR}"/php/"${domain}"
+                cp "${TEMPLATE_DIR}"/php_no_cache.conf "${NGINX_CONF_DIR}"/php/"${domain}"
+
+                sed -i "s|WEBSITE_USER|${user}|g" "${NGINX_CONF_DIR}"/php/"${domain}"/php_cache.conf
+                sed -i "s|WEBSITE_USER|${user}|g" "${NGINX_CONF_DIR}"/php/"${domain}"/php_cache_woo.conf
+                sed -i "s|WEBSITE_USER|${user}|g" "${NGINX_CONF_DIR}"/php/"${domain}"/php_no_cache.conf
+                sed -i '/HTPASSWD/d' "${VHOST_DIR}"/"${domain}".conf
+                sed -i "s|PHP_CONFIG|include ${NGINX_CONF_DIR}/php/${domain}/php_no_cache.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+            fi
+        fi
+    done
+}
+
+_convert_vpssim
+
+if nginx -t; then
+    _restart_service
+    clear
+    printf "%s\n" "${GREEN}Hoan tat chuyen du lieu.${NC}"
+else
+    clear
+    nginx -t
+    printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+    printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+fi

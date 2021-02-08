@@ -1,0 +1,168 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_validate() {
+    check_nginx_status
+    check_a_record "${domain}"
+}
+
+_select_alias_domain() {
+    domain=""
+    if [[ "$(ls -A "${ALIAS_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${ALIAS_DIR}"
+        for alias_entry in *.conf; do
+            domain=${alias_entry//.conf/}
+            if [[ ! -d "${SSL_DIR}/${domain}" && (! -s "${SSL_DIR}/${domain}/cert.pem" && ! -s "${SSL_DIR}/${domain}/key.pem" ) ]]; then
+                domains+=("${domain}")
+            fi
+        done
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Toan bo Alias domain da duoc cau hinh SSL.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select alias_opt in "${domains[@]}"; do
+                domain=$alias_opt
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}Khong ton tai Alias domain nao tren VPS.${NC}")
+    fi
+}
+
+_confirm_sign_ssl() {
+    printf "${RED}%s${NC}\n" "Luu y: Let's Encrypt gioi han so request SSL vi vay viec tao qua nhieu request SSL se bi chan ko tao duoc SSL."
+    while true; do
+        read -r -p "Ban muon cai dat SSL cho Domain ${domain} ? (y/n) " promt_sign_ssl
+        sleep 3
+        echo
+        if [[ "${promt_sign_ssl}" =~ ^([yY])$ || "${promt_sign_ssl}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_sign_ssl() {
+    if [ -d "/root/.acme.sh/${domain}" ]; then
+        rm -rf /root/.acme.sh/"${domain}"
+    fi
+    /root/.acme.sh/acme.sh --upgrade
+    clear
+    #grep "${domain}" "${NGINX_CONF_DIR}"/conf.d/*.conf | cut -f1 -d":" | cut -f5 -d"/"
+
+    /root/.acme.sh/acme.sh --issue --nginx "${ALIAS_DIR}"/"${domain}".conf -d "${domain}" --force
+
+    if [ ! -d "${SSL_DIR}/${domain}" ]; then
+        mkdir -p "${SSL_DIR}"/"${domain}"
+    fi
+
+    if [ -f "${SSL_DIR}/${domain}/key.pem" ]; then
+        rm -rf "${SSL_DIR}"/"${domain}"/key.pem
+    fi
+
+    if [ -f "${SSL_DIR}/${domain}/cert.pem" ]; then
+        rm -rf "${SSL_DIR}"/"${domain}"/cert.pem
+    fi
+
+    /root/.acme.sh/acme.sh --install-cert -d "${domain}" \
+        --key-file "${SSL_DIR}"/"${domain}"/key.pem \
+        --fullchain-file "${SSL_DIR}"/"${domain}"/cert.pem
+}
+
+_edit_vhost() {
+    sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${ALIAS_DIR}"/"${domain}".conf
+
+    sed -i '/return 404;/d' "${ALIAS_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate/d' "${ALIAS_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate_key/d' "${ALIAS_DIR}"/"${domain}".conf
+
+    sed -i "/listen 443/a ssl_certificate ${SSL_DIR}/${domain}/cert.pem;" "${ALIAS_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;" "${ALIAS_DIR}"/"${domain}".conf
+}
+
+_run() {
+    _confirm_sign_ssl
+    if [[ "${promt_sign_ssl}" =~ ^([yY])$ ]]; then
+        _validate
+        if [ -z "${ALERT}" ]; then
+            _sign_ssl
+            if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+                _edit_vhost
+                sleep 1
+                if nginx -t; then
+                    _restart_service
+                    clear
+                    echo
+                    printf "%s\n" "${GREEN}Cau hinh SSL thanh cong.${NC}"
+                    echo
+                else
+                    clear
+                    nginx -t
+                    printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                    printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+                fi
+            else
+                echo
+                printf "%s\n" "${RED}Cau hinh SSL that bai. Vui long kiem tra va dam bao da tro ten mien (Bao gom ban ghi www ve VPS)${NC}"
+                echo
+            fi
+        else
+            clear
+            echo
+            printf "%s\n" "${ALERT}"
+            echo
+        fi
+    else
+        clear
+        echo
+        printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+        echo
+    fi
+}
+
+ALERT=""
+domain=""
+notify=""
+
+_select_alias_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+        if nginx -t; then
+            _restart_service
+            clear
+            printf "%s\n" "${GREEN}${notify}${NC}"
+        else
+            clear
+            nginx -t
+            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+        fi
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+ssl_le

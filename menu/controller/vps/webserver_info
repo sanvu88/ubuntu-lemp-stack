@@ -1,0 +1,42 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_set_var(){
+    nginx_status=$(pgrep nginx >/dev/null && printf "%s\n" "${GREEN}Hoat dong${NC}" || printf "%s\n" "${RED}Khong hoat dong${NC}")
+    mysql_status=$(pgrep mariadb >/dev/null && printf "%s\n" "${GREEN}Hoat dong${NC}" || printf "%s\n" "${RED}Khong hoat dong${NC}")
+    ssh_status=$(pgrep ssh >/dev/null && printf "%s\n" "${GREEN}Hoat dong${NC}" || printf "%s\n" "${RED}Khong hoat dong${NC}")
+    memcached_status=$(pgrep memcached >/dev/null && printf "%s\n" "${GREEN}Hoat dong${NC}" || printf "%s\n" "${RED}Khong hoat dong${NC}")
+    redis_status=$(pgrep redis >/dev/null && printf "%s\n" "${GREEN}Hoat dong${NC}" || printf "%s\n" "${RED}Khong hoat dong${NC}")
+}
+
+_show_info(){
+    printf "Nginx                   : %s\n" "${nginx_status}"
+    printf "MariaDB                 : %s\n" "${mysql_status}"
+    printf "SSH                     : %s\n" "${ssh_status}"
+    printf "Memcached               : %s\n" "${memcached_status}"
+    printf "Redis                   : %s\n" "${redis_status}"
+    printf "MariaDB version         : %s\n" "$(mysql --version | cut -f6 -d' ' | cut -f1 -d'-')"
+    printf "Nginx version           : %s\n" "$(nginx -v 2>&1 | grep -o '[0-9.]*$')"
+    printf "PHP default version     : %s\n" "${php1_version}"
+    if [ "${php2_release}" == "yes" ]; then
+        printf "PHP 2 version           : %s\n" "${php2_version}"
+    fi
+}
+
+_run(){
+    _set_var
+    _show_info
+}
+
+_run
+sleep 2
+menu_vps_manage

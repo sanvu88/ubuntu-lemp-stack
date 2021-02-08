@@ -1,0 +1,43 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_list_domain(){
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        domains=()
+        echo "${LIST_DOMAIN}"
+        _cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            domain=${entry/./}
+            domain=${domain//.conf/}
+            domains+=("${domain}")
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}"
+        else
+            PS3="Nhap 0 va nhan [ENTER] de thoat: "
+            select opt in "${domains[@]}"; do
+                domain=$opt
+                break
+            done
+        fi
+        clear
+    else
+        printf "%s\n" "${RED}${EMPTY_DOMAIN}${NC}"
+    fi
+}
+
+_list_domain
+menu_domain

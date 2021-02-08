@@ -1,0 +1,109 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s===============================================%s\n" "${GREEN}" "${NC}"
+printf "%s                     Quan ly VPS               %s\n" "${GREEN}" "${NC}"
+printf "%s===============================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "%s1. VPS info%s\n" "${GREEN}" "${NC}"
+    printf "%s2. Webserver info%s\n" "${GREEN}" "${NC}"
+    printf "%s3. Process (Tien trinh) %s\n" "${GREEN}" "${NC}"
+    printf "%s4. Kiem tra dung luong VPS (Disk size) %s\n" "${GREEN}" "${NC}"
+    printf "%s5. Thay doi thong tin SSH%s\n" "${GREEN}" "${NC}"
+    printf "%s6. Cap nhat lai cau hinh (Sau khi nang cap VPS)%s\n" "${GREEN}" "${NC}"
+    printf "%s7. Change IP VPS %s\n" "${GREEN}" "${NC}"
+    printf "%s8. Chuyen du lieu sang VPS HOSTVN Scripts khac %s\n" "${GREEN}" "${NC}"
+    #printf "%s9. Hoan thanh Convert du lieu tu VPSSIM %s\n" "${GREEN}" "${NC}"
+    printf "%s9. Update VPS %s\n" "${GREEN}" "${NC}"
+    printf "%s10. Create Swap %s\n" "${GREEN}" "${NC}"
+    printf "%s=============================================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        info_vps
+        ;;
+    2)
+        clear
+        info_webserver
+        ;;
+    3)
+        clear
+        echo ""
+        printf "%s\n" "${GREEN}Dang mo htop. De thoat khoi htop bam CTRL + C${NC}"
+        echo ""
+        sleep 4
+        if [ ! -f "/usr/bin/htop" ]; then
+            apt-get install htop
+        fi
+        htop
+        ;;
+    4)
+        clear
+        echo ""
+        printf "%s\n" "${GREEN}${PROCESSING}${NC}"
+        echo ""
+        sleep 3
+        df -h
+        menu_vps_manage
+        ;;
+    5)
+        clear
+        vps_ssh
+        ;;
+    6)
+        clear
+        change_vps_parameter
+        ;;
+    7)
+        clear
+        change_ip_vps
+        ;;
+    8)
+        clear
+        move_vps
+        ;;
+#    9)
+#        clear
+#        convert_vpssim
+#        ;;
+    9)
+        clear
+        apt update -y
+        apt upgrade -y
+        apt autoremove -y
+        clear
+        printf "%s\n" "${GREEN}Update VPS successfully.${NC}"
+        menu_vps_manage
+        ;;
+    10)
+        clear
+        vps_create_swap
+        ;;
+    0)
+        clear
+        menu_primary
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}${WRONG_OPTION}${NC}"
+        ;;
+    esac
+done

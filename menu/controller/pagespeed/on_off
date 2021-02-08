@@ -1,0 +1,214 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_pagespeed_action(){
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 4 ]: "
+    options_pagespeed=("Bat Nginx Pagespeed" "Tat Nginx Pagespeed" "Xoa Nginx Pagespeed cache" "Cancel")
+    select opt_pagespeed in "${options_pagespeed[@]}"; do
+        case $opt_pagespeed in
+        "Bat Nginx Pagespeed")
+            action="enable"
+            break
+            ;;
+        "Tat Nginx Pagespeed")
+            action="disable"
+            break
+            ;;
+        "Xoa Nginx Pagespeed cache")
+            action="clear_cache"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai. $REPLY" ;;
+        esac
+    done
+}
+
+_select_site_enable_pagespeed(){
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        echo "${LIST_DOMAIN}"
+        domains=()
+        _cd_dir "${USER_DIR}"
+        for entry_domain in .*.conf; do
+            domain=${entry_domain/.}
+            domain=${domain//.conf}
+            check_main_config=$(grep -w "main.conf" "${VHOST_DIR}/${domain}.conf")
+            if [ -z  "${check_main_config}" ]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Tat ca website da duoc cau hinh ngx_pagespeed.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt_domain in "${domains[@]}"
+            do
+                domain=$opt_domain
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}Khong co website nao tren VPS.${NC}")
+    fi
+}
+
+_select_site_disable_pagespeed(){
+    domain=""
+    if [[ "$(ls -A "${USER_DIR}")" ]]; then
+        echo "${LIST_DOMAIN}"
+        domains=()
+        _cd_dir "${USER_DIR}"
+        for entry_domain in .*.conf; do
+            domain=${entry_domain/.}
+            domain=${domain//.conf}
+            check_main_config=$(grep -w "main.conf" "${VHOST_DIR}/${domain}.conf")
+            if [ -n "${check_main_config}" ]; then
+                domains+=("${domain}")
+            fi
+        done
+
+        if [ ${#domains[@]} -eq 0 ]; then
+            ALERT=$(printf "%s\n" "${RED}Chua co website duoc cau hinh ngx_pagespeed.${NC}")
+        else
+            echo "Lua chon website"
+            PS3="${INPUT_SELECT} [0 = Thoat]: "
+            select opt_domain in "${domains[@]}"
+            do
+                domain=$opt_domain
+                break
+            done
+        fi
+    else
+        ALERT=$(printf "%s\n" "${RED}Khong co website nao tren VPS.${NC}")
+    fi
+}
+
+_enable_pagespeed(){
+    if [ ! -d "${PAGESPEED_DIR}" ]; then
+        mkdir -p "${PAGESPEED_DIR}"
+    fi
+
+    if [ ! -d "${PAGESPEED_DIR}/${domain}" ]; then
+        mkdir -p "${PAGESPEED_DIR}/${domain}"
+    fi
+
+    if [ ! -d "/home/${user}/${domain}/ngx_pagespeed" ]; then
+        mkdir -p "/home/${user}/${domain}/ngx_pagespeed"
+    fi
+
+    chown -R "${user}." /home/"${user}"/"${domain}"/ngx_pagespeed
+
+    if [ ! -f "${PAGESPEED_DIR}/${domain}/main.conf" ]; then
+        if [ -f "${CUSTOM_DIR}/ngx_pagespeed/main.conf" ]; then
+            cp "${CUSTOM_DIR}"/ngx_pagespeed/main.conf "${PAGESPEED_DIR}"/"${domain}"/main.conf
+        else
+            cp "${TEMPLATE_DIR}"/ngx_pagespeed/main.conf "${PAGESPEED_DIR}"/"${domain}"/main.conf
+        fi
+    fi
+
+    sed -i "s|WEBSITE_USER|${user}|g" "${PAGESPEED_DIR}"/"${domain}"/main.conf
+    sed -i "s|DOMAIN|${domain}|g" "${PAGESPEED_DIR}"/"${domain}"/main.conf
+
+    check_main_config=$(grep -w "main.conf" "${VHOST_DIR}/${domain}.conf")
+    if [ -z "${check_main_config}" ]; then
+        sed -i "/server_name/a include ${PAGESPEED_DIR}/${domain}/main.conf;" "${VHOST_DIR}"/"${domain}".conf
+    fi
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "%s\n" "${GREEN}Bat ngx_pagespeed thanh cong.${NC}"
+        printf "%s\n" "${GREEN}Vui long su dung menu de bat cac filter muon su dung.${NC}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+_disable_pagespeed(){
+    sed -i '/pagespeed/d' "${VHOST_DIR}"/"${domain}".conf
+
+    if nginx -t; then
+        _restart_service
+        clear
+        printf "%s\n" "${GREEN}Tat ngx_pagespeed thanh cong.${NC}"
+    else
+        clear
+        nginx -t
+        printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+        printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+    fi
+}
+
+_clear_cache(){
+    rm -rf /home/"${user}"/"${domain}"/ngx_pagespeed/*
+    if nginx -t; then
+        systemctl restart nginx
+    fi
+
+    clear
+    printf "%s\n" "${GREEN}Xoa Nginx Pagespeed cache thanh cong.${NC}"
+}
+
+_run(){
+    if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+        clear
+        printf "%s\n" "${RED}Huy thao tac.${NC}"
+    else
+        if [ -z "${ALERT}" ]; then
+            user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+            if [ "${action}" == "enable" ]; then
+                _enable_pagespeed
+            elif [ "${action}" == "disable" ]; then
+                _disable_pagespeed
+            else
+                _clear_cache
+            fi
+        else
+            clear
+            printf "%s\n" "${ALERT}"
+        fi
+    fi
+}
+
+ALERT=""
+action=""
+domain=""
+
+_select_pagespeed_action
+
+if [[ -z "${action}" || "${action}" == "cancel" ]]; then
+    clear
+    printf "%s\n" "${RED}Huy thao tac.${NC}"
+elif [ "${action}" == "enable" ]; then
+    _select_site_enable_pagespeed
+    _run
+else
+    _select_site_disable_pagespeed
+    _run
+fi
+
+lemp_ngx_pagespeed

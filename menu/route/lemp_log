@@ -1,0 +1,137 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "${GREEN}%s${NC}\n" "==================="
+printf "${GREEN}%s${NC}\n" " Error Log Manager "
+printf "${GREEN}%s${NC}\n" "==================="
+
+while [ "${CHOICE}" != "0" ]; do
+    printf "${GREEN}%s${NC}\n" "1. Nginx error log"
+    printf "${GREEN}%s${NC}\n" "2. PHP error log"
+    printf "${GREEN}%s${NC}\n" "3. MariaDB error log"
+    printf "${GREEN}%s${NC}\n" "4. Website error log"
+    printf "${GREEN}%s${NC}\n" "5. Delete error log"
+    printf "${GREEN}%s${NC}\n" "=============================="
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]; then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+    1)
+        clear
+        echo ""
+        if [ -f "/var/log/nginx/error.log" ]; then
+            if [ -f "/usr/bin/grc" ]; then
+                grc tail -n 20 /var/log/nginx/error.log
+            else
+                tail -n 20 /var/log/nginx/error.log
+            fi
+            printf "\n"
+
+        else
+            clear
+            printf "${RED}%s${NC}\n" "${lang_no_error_log}"
+        fi
+
+        lemp_log
+        ;;
+    2)
+        clear
+        echo ""
+        if [ -f "/var/log/php-fpm/error.log" ]; then
+            if [ -f "/usr/bin/grc" ]; then
+                grc tail -n 20 /var/log/php-fpm/error.log
+            else
+                tail -n 20 /var/log/php-fpm/error.log
+            fi
+            printf "\n"
+            printf "${RED}%s${NC}\n" "Log path: /var/log/php-fpm/error.log"
+        else
+            clear
+            printf "${RED}%s${NC}\n" "${lang_no_error_log}"
+        fi
+
+        lemp_log
+        ;;
+    3)
+        clear
+        echo ""
+        if [ -f "/var/log/mysql/mysqld.log" ]; then
+            if [ -f "/usr/bin/grc" ]; then
+                grc tail -n 20 /var/log/mysql/mysqld.log
+            else
+                tail -n 20 /var/log/mysql/mysqld.log
+            fi
+
+            printf "\n"
+            printf "%s\n" "${RED}Log path: /var/log/mysql/mysqld.log${NC}"
+        else
+            clear
+            printf "${RED}%s${NC}\n" "${lang_no_error_log}"
+        fi
+
+        lemp_log
+        ;;
+    4)
+        clear
+        lemp_domain_log
+        ;;
+    5)
+        clear
+        while true; do
+            read -r -p "You want delete log (y/n)? " prompt_del_log
+            echo
+            if [[ "${prompt_del_log}" =~ ^([yY])$ || "${prompt_del_log}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}${WRONG_OPTION}.${NC}"
+            fi
+        done
+
+        if [[ "${prompt_del_log}" =~ ^([yY])$ ]]; then
+            printf "${RED}%s${NC}\n" "${PROCESSING}"
+            rm -rf /var/log/mysql/*
+            rm -rf /var/log/nginx/*
+            rm -rf /var/log/php-fpm/*
+            for users in /home/*; do
+                if [[ -d "${users}" ]]; then
+                    user=${users##*/}
+                    for domains in /home/"${user}"/*; do
+                        if [[ -d "${domains}" ]]; then
+                            domain=${domains##*/}
+                            rm -rf /home/"${user}"/"${domain}"/logs/*
+                        fi
+                    done
+                fi
+            done
+            clear
+            printf "${GREEN}%s${NC}\n" "${lang_delete_log_success}"
+        else
+            clear
+            printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+        fi
+
+        lemp_log
+        ;;
+    0)
+        clear
+        menu_lemp
+        ;;
+    *)
+        clear
+        printf "%s\n" "${RED}${WRONG_OPTION}${NC}"
+        ;;
+    esac
+done

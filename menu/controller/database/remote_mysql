@@ -1,0 +1,205 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_remote_action() {
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 5 ]: "
+    options_remote_mysql=("Bat Remote Mysql" "Tat Remote Mysql" "Doi mat khau Remote Mysql" "Xem thong tin Remote Mysql" "Cancel")
+    select opt_rm in "${options_remote_mysql[@]}"; do
+        case $opt_rm in
+        "Bat Remote Mysql")
+            action="enable"
+            break
+            ;;
+        "Tat Remote Mysql")
+            action="disable"
+            break
+            ;;
+        "Doi mat khau Remote Mysql")
+            action="change_pass"
+            break
+            ;;
+        "Xem thong tin Remote Mysql")
+            action="view_info"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai." ;;
+        esac
+    done
+}
+
+_confirm_enable_remote_mysql() {
+    printf "%s\n" "${RED}Luu y: Viec bat Remote Mysql lam giam tinh bao mat. Can trong khi su dung.${NC}"
+    while true; do
+        read -r -p "Xac nhan bat Remote Mysql? (y/n): " confirm_enable_remote
+        echo
+        if [[ "${confirm_enable_remote}" =~ ^([yY])$ || "${confirm_enable_remote}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_enable_remote_mysql() {
+    if [[ "${confirm_enable_remote}" =~ ^([yY])$ ]]; then
+        ufw allow 3306/tcp
+        clear
+        user_remote_mysql=$(grep -w "user_remote_mysql" "${FILE_INFO}" | cut -f2 -d'=')
+        password_remote_mysql=$(grep -w "password_remote_mysql" "${FILE_INFO}" | cut -f2 -d'=')
+
+        if [ -z "${user_remote_mysql}" ]; then
+            while true; do
+                echo "Username khong chua ky tu dac biet va dai 5 - 8 ky tu."
+                read -r -p "Nhap vao User Remote Mysql muon tao: " user_remote_mysql
+                echo
+                if ! if_mysql_user_exists "${user_remote_mysql}"; then
+                    break
+                else
+                    printf "%s\n" "${RED}User da ton tai. Vui long nhap User khac.${NC}"
+                fi
+            done
+
+            sed -i '/user_remote_mysql/d' "${FILE_INFO}"
+            echo "user_remote_mysql=${user_remote_mysql}" >>"${FILE_INFO}"
+
+            if [ -z "${password_remote_mysql}" ]; then
+                password_remote_mysql=$(_gen_pass)
+                sed -i '/password_remote_mysql/d' "${FILE_INFO}"
+                echo "password_remote_mysql=${password_remote_mysql}" >>"${FILE_INFO}"
+            fi
+
+            Q1="CREATE USER IF NOT EXISTS '${user_remote_mysql}'@'localhost' IDENTIFIED BY '${password_remote_mysql}';"
+            Q2="GRANT ALL ON *.* to '${user_remote_mysql}'@'%' IDENTIFIED BY '${password_remote_mysql}' WITH GRANT OPTION;"
+            Q3="FLUSH PRIVILEGES;"
+            Q4="EXIT;"
+            mysql -uadmin -p"${mysql_pwd}" -e "${Q1}${Q2}${Q3}${Q4}"
+        fi
+
+        notify="${GREEN}Bat Remote Mysql thanh cong.${NC}"
+        user_remote_mysql="${user_remote_mysql}"
+        password_remote_mysql="${password_remote_mysql}"
+    else
+        notify="${RED}Huy thao tac.${NC}"
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+    if [ -n "${user_remote_mysql}" ]; then
+        printf "%s\n" "User Remote: ${RED}${user_remote_mysql}${NC}"
+    fi
+    if [ -n "${password_remote_mysql}" ]; then
+        printf "%s\n" "Password Remote: ${RED}${password_remote_mysql}${NC}"
+        printf "%s\n" "Port Remote: ${RED}3306${NC}"
+    fi
+}
+
+_confirm_disable_remote_mysql() {
+    while true; do
+        read -r -p "Ban muon tat Remote Mysql? (y/n): " confirm_disable_remote
+        echo
+        if [[ "${confirm_disable_remote}" =~ ^([yY])$ || "${confirm_disable_remote}" =~ ^([nN])$ ]]; then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+}
+
+_disable_remote_mysql() {
+    if [[ "${confirm_disable_remote}" =~ ^([yY])$ ]]; then
+        ufw deny 3306/tcp
+        notify="${GREEN}Tat Remote Mysql thanh cong.${NC}"
+    else
+        notify="${RED}Huy thao tac.${NC}"
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+}
+
+_change_pass_remote_mysql(){
+    user_remote_mysql=$(grep -w "user_remote_mysql" "${FILE_INFO}" | cut -f2 -d'=')
+
+    if [ -z "${user_remote_mysql}" ]; then
+        notify="${RED}Ban chua bat Remote Mysql.${NC}"
+    else
+        password_remote_mysql=$(_gen_pass)
+        mysql -uadmin -p"${mysql_pwd}" -e "SET PASSWORD FOR '${user_remote_mysql}'@'*' = PASSWORD('${password_remote_mysql}');"
+        sed -i '/password_remote_mysql/d' "${FILE_INFO}"
+        echo "password_remote_mysql=${password_remote_mysql}" >>"${FILE_INFO}"
+
+        notify="${RED}Doi mat khau Remote Mysql thanh cong.${NC}"
+        user_remote_mysql="${user_remote_mysql}"
+        password_remote_mysql="${password_remote_mysql}"
+    fi
+
+    clear
+    printf "%s\n" "${notify}"
+    if [ -n "${user_remote_mysql}" ]; then
+        printf "%s\n" "User Remote: ${RED}${user_remote_mysql}${NC}"
+    fi
+    if [ -n "${password_remote_mysql}" ]; then
+        printf "%s\n" "Password Remote: ${RED}${password_remote_mysql}${NC}"
+        printf "%s\n" "Port Remote: ${RED}3306${NC}"
+    fi
+}
+
+_view_info_remote_mysql(){
+    user_remote_mysql=$(grep -w "user_remote_mysql" "${FILE_INFO}" | cut -f2 -d'=')
+    password_remote_mysql=$(grep -w "password_remote_mysql" "${FILE_INFO}" | cut -f2 -d'=')
+
+    if [ -z "${user_remote_mysql}" ]; then
+        clear
+        printf "%s\n" "${RED}Ban chua bat Remote Mysql.${NC}"
+    else
+        clear
+        printf "%s\n" "User Remote: ${RED}${user_remote_mysql}${NC}"
+        printf "%s\n" "Password Remote: ${RED}${password_remote_mysql}${NC}"
+        printf "%s\n" "Port Remote: ${RED}3306${NC}"
+    fi
+}
+
+notify=""
+action=""
+user_remote_mysql=""
+password_remote_mysql=""
+confirm_enable_remote=""
+
+_select_remote_action
+
+if [ "${action}" == "cancel" ]; then
+    clear
+    printf "%s\n" "${RED}Huy thao tac.${NC}"
+else
+    if [ "${action}" == "enable" ]; then
+        _confirm_enable_remote_mysql
+        _enable_remote_mysql
+    elif [ "${action}" == "change_pass" ]; then
+        _change_pass_remote_mysql
+    elif [ "${action}" == "view_info" ]; then
+        _view_info_remote_mysql
+    else
+        _confirm_disable_remote_mysql
+        _disable_remote_mysql
+    fi
+fi
+
+lemp_database

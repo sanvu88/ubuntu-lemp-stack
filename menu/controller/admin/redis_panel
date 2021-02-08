@@ -1,0 +1,29 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_update(){
+    _cd_dir "${DEFAULT_DIR_TOOL}"
+    rm -rf ./redis
+    git clone https://github.com/ErikDubbelboer/phpRedisAdmin.git
+    mv phpRedisAdmin redis
+    _cd_dir "${DEFAULT_DIR_TOOL}"/redis
+    git clone https://github.com/nrk/predis.git vendor
+    cd "${DEFAULT_DIR_TOOL}" && chown -R nginx:nginx redis
+    clear
+    printf "%sUpdate Redis Dashboard success.%s\n" "${GREEN}" "${NC}"
+}
+
+_update
+menu_admin_tool

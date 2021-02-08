@@ -1,0 +1,60 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+# shellcheck disable=SC2154
+CHOICE=1
+
+opcache1_status=$(grep -w "opcache.enable" "/etc/php/${php1_version}/fpm/conf.d/10-opcache.ini" | cut -f2 -d'=');
+if [ "${php2_release}" == "yes" ]; then
+    opcache2_status=$(grep -w "opcache.enable" "/etc/php/${php2_version}/fpm/conf.d/10-opcache.ini" | cut -f2 -d'=');
+    if [[ ${opcache2_status} -eq 1 ]]; then
+        status="Active"
+    else
+        status="Inactive (Dead)"
+    fi
+fi
+
+if [[ ${opcache1_status} -eq 1 ]]; then
+    status="Active"
+else
+    status="Inactive (Dead)"
+fi
+
+printf "%s=========================================%s\n" "${GREEN}" "${NC}"
+printf "%s           Opcache Manager               %s\n" "${GREEN}" "${NC}"
+printf "%s         Opcache PHP 1: %s    %s\n" "${GREEN}" "${status}" "${NC}"
+if [ "${php2_release}" == "yes" ]; then
+   printf "%s      Opcache PHP 2: %s    %s\n" "${GREEN}" "${status}" "${NC}"
+fi
+printf "%s=========================================%s\n" "${GREEN}" "${NC}"
+echo
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "%s1. On/Off Opcache%s\n" "${GREEN}" "${NC}"
+    printf "%s2. ${lang_add_website_to_black_list}%s\n" "${GREEN}" "${NC}"
+    printf "%s3. ${lang_remove_website_from_black_list}%s\n" "${GREEN}" "${NC}"
+    printf "%s========================================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) clear; opcache_enable_disable ;;
+        2) clear; opcache_add_blacklist ;;
+        3) clear; opcache_remove_blacklist ;;
+        0) clear; menu_cache ;;
+        *) clear; printf "%s${WRONG_OPTION}%s\n" "${RED}" "${NC}";;
+    esac
+done

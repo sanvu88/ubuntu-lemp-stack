@@ -1,0 +1,58 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s===========================%s\n" "${GREEN}" "${NC}"
+printf "     %sAdmin Tool %s\n   " "${GREEN}" "${NC}"
+printf "%s  Port Admin: ${admin_port}%s\n" "${GREEN}" "${NC}"
+printf "%s===========================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "%s1. Update phpMyAdmin%s\n" "${GREEN}" "${NC}"
+    printf "%s2. Update Opcache Panel%s\n" "${GREEN}" "${NC}"
+    printf "%s3. Update Memcached Admin%s\n" "${GREEN}" "${NC}"
+    printf "%s4. Update Redis Admin%s\n" "${GREEN}" "${NC}"
+    printf "%s5. ${admin_tool_password_reset}%s\n" "${GREEN}" "${NC}"
+    printf "%s6. ${change_the_ssh_port}%s\n" "${GREEN}" "${NC}"
+    printf "%s=========================%s\n" "${GREEN}" "${NC}"
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) clear; update_phpmyadmin ;;
+        2) clear; update_opcache_panel ;;
+        3) clear; update_memcached_panel ;;
+        4) clear; update_redis_panel ;;
+        5)
+            admin_new_pwd=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c16)
+            if [ ! -d "/usr/share/nginx/auth" ]; then
+                mkdir -p "/usr/share/nginx/auth"
+            fi
+            rm -rf /usr/share/nginx/auth/.htpasswd
+            htpasswd -b -c /usr/share/nginx/auth/.htpasswd admin "${admin_new_pwd}"
+            sed -i '/admin_pwd=/d' "${FILE_INFO}"
+            echo "admin_pwd=${admin_new_pwd}" >> "${FILE_INFO}"
+            clear
+            printf "%s\n" "${GREEN}${change_password_success}.${NC}"
+            printf "%s\n" "${GREEN}${lang_new_password}:${NC} ${RED}${admin_new_pwd}${NC}"
+            menu_admin_tool
+            ;;
+        6) clear; admin_tool_change_port ;;
+        0) clear; menu_primary ;;
+        *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

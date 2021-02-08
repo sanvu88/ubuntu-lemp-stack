@@ -1,0 +1,88 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_run() {
+    USER=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    PHP_VERSION=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    PHP_POOL_PATH="/etc/php/${PHP_VERSION}/fpm/pool.d"
+
+    OPEN_BASEDIR_STATUS=$(grep -w "${PHP_POOL_PATH}/${domain}.conf" -e "open_basedir")
+
+    if [ -n "${OPEN_BASEDIR_STATUS}" ]; then
+        printf "${RED}%s${NC}\n" "Viec tat open_basedir se lam giam muc do bao mat cua VPS."
+        while true; do
+            read -r -p "Ban muon tat Open Basedir ? (y/n) " prompt_disable_open_basedir
+            echo
+            if [[ "${prompt_disable_open_basedir}" =~ ^([yY])$ || "${prompt_disable_open_basedir}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [[ "${prompt_disable_open_basedir}" =~ ^([yY])$ ]]; then
+            sed -i '/open_basedir/d' "${PHP_POOL_PATH}"/"$domain".conf
+            systemctl restart php"${PHP_VERSION}"-fpm
+
+            clear
+            printf "${GREEN}%s${NC}\n" "Tat open_basedir thanh cong."
+        else
+            clear
+            printf "${RED}%s${NC}\n" "Huy thao tac."
+        fi
+
+    else
+        while true; do
+            read -r -p "Ban muon bat Open Basedir ? (y/n) " prompt_enable_open_basedir
+            echo
+            if [[ "${prompt_enable_open_basedir}" =~ ^([yY])$ || "${prompt_enable_open_basedir}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [[ "${prompt_enable_open_basedir}" =~ ^([yY])$ ]]; then
+            cat >> "${PHP_POOL_PATH}/${domain}.conf" << END
+php_admin_value[open_basedir] = /home/${USER}/:/dev/urandom:/usr/share/php/:/dev/shm
+END
+
+            systemctl restart php"${PHP_VERSION}"-fpm
+
+            clear
+            printf "${GREEN}%s${NC}\n" "Bat open_basedir thanh cong."
+        else
+            clear
+            printf "${RED}%s${NC}\n" "Huy thao tac."
+        fi
+    fi
+}
+
+domain=""
+
+_select_domain
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+lemp_php

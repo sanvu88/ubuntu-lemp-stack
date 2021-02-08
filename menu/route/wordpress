@@ -1,0 +1,50 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+CHOICE=1
+
+printf "%s=========================================%s\n" "${GREEN}" "${NC}"
+printf "%s            WordPress Manager            %s\n" "${GREEN}" "${NC}"
+printf "%s=========================================%s\n" "${GREEN}" "${NC}"
+
+while [ "${CHOICE}" != "0" ]
+do
+    printf "${GREEN}%s${NC}\n" "1. ${lang_automatic_wordpress_installation}"
+    printf "${GREEN}%s${NC}\n" "2. Update WordPress Core"
+    printf "${GREEN}%s${NC}\n" "4. Plugins manager"
+    printf "${GREEN}%s${NC}\n" "5. ${lang_optimize} Database"
+    printf "${GREEN}%s${NC}\n" "6. Change password admin (wp-admin)"
+    printf "${GREEN}%s${NC}\n" "7. Move wp-config path"
+    printf "${GREEN}%s${NC}\n" "8. Protect wp-admin"
+    printf "${GREEN}%s${NC}\n" "9. Enable/Disable edit theme, plugins"
+    printf "${GREEN}%s${NC}\n" "10. Advanced"
+    printf "${GREEN}%s${NC}\n" "==============================================="
+    read -r -p " ${SELECT_OPTION} " CHOICE
+    if [ -z "${CHOICE}" ]
+    then
+        CHOICE=1
+        continue
+    fi
+    case ${CHOICE} in
+        1) clear; wordpress_auto_install ;;
+        2) clear; wordpress_update ;;
+        4) clear; wordpress_plugins_manage ;;
+        5) clear; wordpress_optimize_database ;;
+        6) clear; wordpress_change_pass_admin ;;
+        7) clear; wordpress_move_wp_config ;;
+        8) clear; wordpress_htpasswd_wp_admin ;;
+        9) clear; wordpress_disable_edit_theme_plugins ;;
+        10) clear; wordpress_advanced_menu ;;
+        0) clear; menu_primary ;;
+        *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
+    esac
+done

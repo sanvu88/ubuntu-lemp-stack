@@ -48,18 +48,16 @@ Script được viết bằng shell dùng để cài đặt LEMP Stack (Nginx - 
 ### 1.3. Bảo mật
 
 - Cấu hình tăng cường bảo mật từ tầng webserver.
-- Không tắt Selinux trên CentOS.
 - Cấu hình website chạy với user khác nhau hạn chế lây lan mã độc giữa các website.
 - Disable các hàm nguy hiểm, bật open_basedir và một số config khác nhằm tăng cường bảo mật.
-- Auto block bruteforce SSH, FTP .... với CSF Firewall.
+- Auto block bruteforce SSH, SFTP, Admin Tool .... với Fail2ban.
 - Block run shell trong thư mục uploads WordPress. Chặn truy cập các thư mục, file nhạy cảm trên WordPress.
 - Chống Bruteforce wp-admin.
 - BLock, Unblock IP dễ dàng với CSF Gui (Quản lý CSF qua giao diện Web) và menu quản lý CSF.
-- Disable User API - /wp-json/wp/v2/users - trên WordPress tránh lộ thông tin User (Sẽ phát triển menu bật tắt disable).
+- Disable User API - /wp-json/wp/v2/users - trên WordPress tránh lộ thông tin User.
 - Thay đổi Port SSH tránh scan SSH.
 - Cho phép thay đổi port Admin.
-- Cho phép thay đổi port FTP.
-- Cấu hình bảo mật FTP
+- Cho phép thay đổi port SSH/SFTP.
 - Tự động tạo mật khẩu mạnh.
 - Scan Malware với Clamav, ImunifyAV.
 - And More ...

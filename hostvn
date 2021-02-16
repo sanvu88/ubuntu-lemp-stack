@@ -1655,6 +1655,14 @@ if (\$request_uri ~* "/ping|/metrics|/nginx_status|/admin|/administrator|/login|
 if (\$request_uri ~* "/wp-admin/|/xmlrpc.php|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml") {
     set \$skip_cache 1;
 }
+# Magento
+# http://devdocs.magento.com/guides/v2.0/config-guide/varnish/config-varnish.html
+if (\$request_uri ~* "(index|litespeed).php|admin|api|cron.php|/checkout/|/account/|/brand-ambassador/|/brand-ambassador-coupon/|/brand-ambassador-program/|/affiliateplusstatistic/|/brand-ambassador/index/listTransaction/|/brand-ambassador/index/paymentForm/|/brand-ambassador-program/index/index/|/brand-ambassador/banner/list/|/brand-ambassador-coupon/index/index/|/brand-ambassador/refer/index/|/brand-ambassador/index/payments/|/brand-ambassador/index/referrers/|/affiliateplusstatistic/statistic/index/|/brand-ambassador/account/edit/|/checkout/cart/|/repeat-delivery") {
+    set \$skip_cache 1;
+}
+EOskip_cache
+
+    cat >> "/etc/nginx/extra/skip_cache_woo.conf" << EOskip_cache_woo
 #WooCommerce
 if (\$request_uri ~* "/store.*|/cart.*|/my-account.*|/checkout.*|/addons.*") {
          set \$skip_cache 1;
@@ -1665,12 +1673,7 @@ if ( \$arg_add-to-cart != "" ) {
 if ( \$cookie_woocommerce_items_in_cart != "0" ) {
     set \$skip_cache 1;
 }
-# Magento
-# http://devdocs.magento.com/guides/v2.0/config-guide/varnish/config-varnish.html
-if (\$request_uri ~* "(index|litespeed).php|admin|api|cron.php|/checkout/|/account/|/brand-ambassador/|/brand-ambassador-coupon/|/brand-ambassador-program/|/affiliateplusstatistic/|/brand-ambassador/index/listTransaction/|/brand-ambassador/index/paymentForm/|/brand-ambassador-program/index/index/|/brand-ambassador/banner/list/|/brand-ambassador-coupon/index/index/|/brand-ambassador/refer/index/|/brand-ambassador/index/payments/|/brand-ambassador/index/referrers/|/affiliateplusstatistic/statistic/index/|/brand-ambassador/account/edit/|/checkout/cart/|/repeat-delivery") {
-    set \$skip_cache 1;
-}
-EOskip_cache
+EOskip_cache_woo
 
     cat >> "/etc/nginx/extra/https.conf" << EOredirect_https
 if (\$http_x_forwarded_proto != 'https') { return 301 https://\$host\$request_uri; }

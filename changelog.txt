@@ -6,3 +6,4 @@ v0.1.2
 - Change: Check if change PHP version success or fail
 - Change: Only Install php-json if PHP version != 8.0
 - Fixed: Rewrite config
+- Fixed: Nginx Fast cgi cache status always Bypass if using wordpress without woocommerce plugins

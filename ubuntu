@@ -44,7 +44,7 @@ fixed_lock_frontend(){
 
 # Remove unnecessary services
 remove_old_service(){
-    apt-get -y remove mysql* mariadb* php* apache2* sendmail* postfix* rsyslog* nginx* pure-ftpd fail2ban
+    apt-get -y remove mysql* mariadb* php* apache2* postfix* rsyslog* nginx* fail2ban
     rm -rf /etc/nginx/nginx.conf /etc/nginx/alias /etc/nginx/rewrite /etc/nginx/ssl /etc/nginx/wordpress
     rm -rf /etc/nginx/apps /etc/nginx/extra /etc/nginx/pagespeed /etc/nginx/redirect /etc/nginx/rocket-nginx
     rm -rf /etc/nginx/web_apps.conf

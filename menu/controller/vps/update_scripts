@@ -51,8 +51,13 @@ _update(){
     bash update
     rm -rf update
     clear
-    printf "%s\n" "${GREEN}Update ${AUTHOR} Script thanh cong.${NC}"
-    printf "%s\n" "${RED}Script se tu dong thoat menu de ap dung update...${NC}"
+    if nginx -t; then
+        printf "%s\n" "${GREEN}Update ${AUTHOR} Script thanh cong.${NC}"
+        printf "%s\n" "${RED}Script se tu dong thoat menu de ap dung update...${NC}"
+    else
+        nginx -t
+        printf "%s\n" "${RED}Loi cau hinh Nginx. Vui long kiem tra lai cau hinh Nginx.${NC}"
+    fi
     sleep 3
     exit
 }

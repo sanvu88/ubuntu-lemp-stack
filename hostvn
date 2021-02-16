@@ -1200,7 +1200,7 @@ http {
     limit_req_zone \$binary_remote_addr zone=req_limit_per_ip:10m rate=1r/s;
 
     # Custom Response Headers
-    add_header X-Powered-By ${AUTHOR};
+    more_set_headers 'Server: HOSTVN.NET';
     add_header X-Content-Type-Options    "nosniff" always;
     add_header X-XSS-Protection          "1; mode=block" always;
     add_header Referrer-Policy           "no-referrer-when-downgrade" always;

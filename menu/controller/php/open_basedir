@@ -42,7 +42,6 @@ _run() {
             clear
             printf "${RED}%s${NC}\n" "Huy thao tac."
         fi
-
     else
         while true; do
             read -r -p "Ban muon bat Open Basedir ? (y/n) " prompt_enable_open_basedir

@@ -5,6 +5,7 @@ v0.1.2
 - Added: Install Node.JS & npm
 - Added: Check if change PHP version success or fail
 - Added: On/Off PHP allow_url_fopen
+- Added: On/Off PHP proc_close/proc_open function
 - Fixed: Rewrite config
 - Fixed: Nginx Fast cgi cache status always Bypass if using wordpress without woocommerce plugins
 - Change: Server header

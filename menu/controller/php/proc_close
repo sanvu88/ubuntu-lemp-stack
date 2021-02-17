@@ -1,0 +1,90 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_run() {
+    PHP_VERSION=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+    PHP_POOL_PATH="/etc/php/${PHP_VERSION}/fpm/pool.d"
+
+    proc_close=$(grep -w "${PHP_POOL_PATH}/${domain}.conf" -e "proc_close")
+
+    if [ -n "${proc_close}" ]; then
+        printf "${RED}%s${NC}\n" "Cho phep su dung proc_close se lam giam muc do bao mat cua VPS."
+        while true; do
+            read -r -p "Ban muon enable proc_close function ? (y/n) " prompt_enable_proc_close
+            echo
+            if [[ "${prompt_enable_proc_close}" =~ ^([yY])$ || "${prompt_enable_proc_close}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [[ "${prompt_enable_proc_close}" =~ ^([yY])$ ]]; then
+            sed -i '/disable_functions/d' "${PHP_POOL_PATH}"/"$domain".conf
+            cat >> "${PHP_POOL_PATH}/$domain.conf" << END
+php_admin_value[disable_functions] = exec,system,passthru,shell_exec,dl,popen,show_source,posix_kill,posix_mkfifo,posix_getpwuid,posix_setpgid,posix_setsid,posix_setuid,posix_setgid,posix_seteuid,posix_setegid,posix_uname
+END
+            systemctl restart php"${PHP_VERSION}"-fpm
+
+            clear
+            printf "${GREEN}%s${NC}\n" "Bat proc_close thanh cong."
+        else
+            clear
+            printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+        fi
+    else
+        while true; do
+            read -r -p "Ban muon disable proc_close function ? (y/n) " prompt_disable_proc_close
+            echo
+            if [[ "${prompt_disable_proc_close}" =~ ^([yY])$ || "${prompt_disable_proc_close}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [[ "${prompt_disable_proc_close}" =~ ^([yY])$ ]]; then
+            sed -i '/disable_functions/d' "${PHP_POOL_PATH}"/"$domain".conf
+            cat >> "${PHP_POOL_PATH}/$domain.conf" << END
+php_admin_value[disable_functions] = exec,system,passthru,shell_exec,proc_close,proc_open,dl,popen,show_source,posix_kill,posix_mkfifo,posix_getpwuid,posix_setpgid,posix_setsid,posix_setuid,posix_setgid,posix_seteuid,posix_setegid,posix_uname
+END
+            systemctl restart php"${PHP_VERSION}"-fpm
+
+            clear
+            printf "${GREEN}%s${NC}\n" "Tat proc_close thanh cong."
+        else
+            clear
+            printf "${RED}%s${NC}\n" "${lang_cancel_action}"
+        fi
+    fi
+}
+
+domain=""
+prompt_enable_proc_close="n"
+prompt_disable_proc_close="n"
+_select_domain
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+lemp_php

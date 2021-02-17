@@ -182,6 +182,10 @@ lemp_php_allow_url_fopen(){
     . /var/hostvn/menu/controller/php/allow_url_fopen
 }
 
+lemp_php_proc_close(){
+    . /var/hostvn/menu/controller/php/proc_close
+}
+
 lemp_database(){
     . /var/hostvn/menu/route/lemp_database
 }

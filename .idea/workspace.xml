@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/template/php_dynamic.conf" beforeDir="false" afterPath="$PROJECT_DIR$/menu/template/php_dynamic.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/template/php_ondemand.conf" beforeDir="false" afterPath="$PROJECT_DIR$/menu/template/php_ondemand.conf" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -270,7 +272,7 @@
       <workItem from="1613570537813" duration="376000" />
       <workItem from="1613571622723" duration="410000" />
       <workItem from="1613577069967" duration="233000" />
-      <workItem from="1613583502015" duration="1771000" />
+      <workItem from="1613583502015" duration="2184000" />
     </task>
     <servers />
   </component>

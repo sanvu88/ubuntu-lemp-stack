@@ -8,7 +8,7 @@
 
 ########################################################################################
 
-Script được viết bằng shell dùng để cài đặt LEMP Stack (Nginx - MariaDB - PHP-FPM) trên Ubuntu (18.04, 20.04).
+Script được viết bằng shell dùng để cài đặt LEMP Stack (Nginx - MariaDB - PHP-FPM) trên Ubuntu (18.04, 20.04), Debian 10.
 
 <b>Vui lòng không sao chép, phát hành lại với mục đích thương mại, donate. Xin cảm ơn.</b>
 
@@ -56,7 +56,7 @@ Script được viết bằng shell dùng để cài đặt LEMP Stack (Nginx - 
 - Auto block bruteforce SSH, SFTP, Admin Tool .... với Fail2ban.
 - Block run shell trong thư mục uploads WordPress. Chặn truy cập các thư mục, file nhạy cảm trên WordPress.
 - Chống Bruteforce wp-admin.
-- BLock, Unblock IP dễ dàng với CSF Gui (Quản lý CSF qua giao diện Web) và menu quản lý CSF.
+- BLock, Unblock IP dễ dàng với menu quản lý Firewall.
 - Disable User API - /wp-json/wp/v2/users - trên WordPress tránh lộ thông tin User.
 - Thay đổi Port SSH tránh scan SSH.
 - Cho phép thay đổi port Admin.
@@ -98,7 +98,7 @@ Script được viết bằng shell dùng để cài đặt LEMP Stack (Nginx - 
 ## 2. Yêu cầu
 
 - VPS tối thiểu 512MB ram và chưa cài đặt bất kỳ dịch vụ nào.
-- Ubuntu 18.04, 20.04.
+- Ubuntu 18.04, 20.04, Debian 10.
 
 ## 3. Cách cài đặt
 

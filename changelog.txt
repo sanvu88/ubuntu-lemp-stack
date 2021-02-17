@@ -3,7 +3,8 @@ v0.1.2
 - Added: Delete wordpress Post Revisions
 - Added: Config webp express plugins
 - Added: Install Node.JS & npm
-- Change: Check if change PHP version success or fail
-- Change: Only Install php-json if PHP version != 8.0
+- Added: Check if change PHP version success or fail
 - Fixed: Rewrite config
 - Fixed: Nginx Fast cgi cache status always Bypass if using wordpress without woocommerce plugins
+- Change: Server header
+- Change: Only Install php-json if PHP version != 8.0

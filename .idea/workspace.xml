@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/menu.tar.gz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hostvn" beforeDir="false" afterPath="$PROJECT_DIR$/hostvn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/vps/update_scripts" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/vps/update_scripts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -268,7 +267,9 @@
       <workItem from="1612799501586" duration="2902000" />
       <workItem from="1613478118188" duration="503000" />
       <workItem from="1613488820025" duration="1139000" />
-      <workItem from="1613495343555" duration="3013000" />
+      <workItem from="1613495343555" duration="3404000" />
+      <workItem from="1613570217924" duration="14000" />
+      <workItem from="1613570537813" duration="171000" />
     </task>
     <servers />
   </component>

@@ -178,6 +178,10 @@ lemp_php_process_manager(){
     . /var/hostvn/menu/controller/php/process_manager
 }
 
+lemp_php_allow_url_fopen(){
+    . /var/hostvn/menu/controller/php/allow_url_fopen
+}
+
 lemp_database(){
     . /var/hostvn/menu/route/lemp_database
 }

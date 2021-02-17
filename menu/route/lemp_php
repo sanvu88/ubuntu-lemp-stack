@@ -37,6 +37,7 @@ while [ "${CHOICE}" != "0" ]; do
     printf "%s6. Install ionCube    %s\n" "${GREEN}" "${NC}"
     printf "%s7. On/Off Open Basedir    %s\n" "${GREEN}" "${NC}"
     printf "%s8. Change PHP Process Manager type%s\n" "${GREEN}" "${NC}"
+    printf "%s9. On/Off allow_url_fopen%s\n" "${GREEN}" "${NC}"
     printf "%s====================================%s\n" "${GREEN}" "${NC}"
     read -r -p " ${SELECT_OPTION} " CHOICE
     if [ -z "${CHOICE}" ]; then
@@ -80,6 +81,10 @@ while [ "${CHOICE}" != "0" ]; do
     8)
         clear
         lemp_php_process_manager
+        ;;
+    9)
+        clear
+        lemp_php_allow_url_fopen
         ;;
     0)
         clear

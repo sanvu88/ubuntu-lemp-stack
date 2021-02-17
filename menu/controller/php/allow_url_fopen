@@ -1,0 +1,129 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_allow_url_fopen(){
+    while true
+    do
+        printf "%s\n" "${RED}allow_url_fopen lien quan den bao mat. Can can than khi bat.${NC}"
+        read -r -p "Ban co muon bat allow_url_fopen khong ? (y/n) " prompt_allow_url_fopen
+        echo
+        if [[ "${prompt_allow_url_fopen}" =~ ^([yY])$ || "${prompt_allow_url_fopen}" =~ ^([nN])$ ]];
+        then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+
+    if [[ "${prompt_allow_url_fopen}" =~ ^([yY])$ ]]; then
+        sed -i '/allow_url_fopen/d' "${PHP1_INI_PATH}"/00-hostvn-custom.ini
+
+        cat >> "${PHP1_INI_PATH}/00-hostvn-custom.ini" << END
+allow_url_fopen = on
+END
+
+        rm -rf "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+        cp "${PHP1_INI_PATH}"/00-hostvn-custom.ini "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+
+        systemctl restart php"${PHP1_VERSION}"-fpm
+        if [ "${PHP2_RELEASE}" == "yes" ]; then
+            sed -i '/allow_url_fopen/d' "${PHP2_INI_PATH}"/00-hostvn-custom.ini
+            cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" << END
+allow_url_fopen = on
+END
+            rm -rf "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+            cp "${PHP2_INI_PATH}"/00-hostvn-custom.ini "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+            systemctl restart php"${PHP2_VERSION}"-fpm
+        fi
+
+        clear
+        printf "%s\n" "${GREEN}ON allow_url_fopen thanh cong.${NC}"
+    else
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    fi
+}
+
+_disallow_url_fopen(){
+    while true
+    do
+        read -r -p "Ban co muon tat allow_url_fopen khong ? (y/n) " prompt_disallow_url_fopen
+        echo
+        if [[ "${prompt_disallow_url_fopen}" =~ ^([yY])$ || "${prompt_disallow_url_fopen}" =~ ^([nN])$ ]];
+        then
+            break
+        else
+            printf "%s\n" "${RED}Gia tri ban nhap khong chinh xac. Vui long nhap lai.${NC}"
+        fi
+    done
+
+    if [[ "${prompt_disallow_url_fopen}" =~ ^([yY])$ ]]; then
+        sed -i '/allow_url_fopen/d' "${PHP1_INI_PATH}"/00-hostvn-custom.ini
+
+        cat >> "${PHP1_INI_PATH}/00-hostvn-custom.ini" << END
+allow_url_fopen = off
+END
+
+        rm -rf "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+        cp "${PHP1_INI_PATH}"/00-hostvn-custom.ini "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+
+        systemctl restart php"${PHP1_VERSION}"-fpm
+        if [ "${PHP2_RELEASE}" == "yes" ]; then
+            sed -i '/allow_url_fopen/d' "${PHP2_INI_PATH}"/00-hostvn-custom.ini
+            cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" << END
+allow_url_fopen = off
+END
+            rm -rf "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+            cp "${PHP2_INI_PATH}"/00-hostvn-custom.ini "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+            systemctl restart php"${PHP2_VERSION}"-fpm
+        fi
+
+        clear
+        printf "%s\n" "${GREEN}OFF allow_url_fopen thanh cong.${NC}"
+    else
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    fi
+}
+
+_run() {
+    PHP1_VERSION=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
+    PHP1_CONFIG_PATH="/etc/php/${PHP1_VERSION}/fpm"
+    PHP1_CLI_PATH="/etc/php/${PHP1_VERSION}/cli/conf.d"
+    PHP1_INI_PATH="${PHP1_CONFIG_PATH}/conf.d"
+
+    PHP2_RELEASE=$(grep -w "php2_release" "${FILE_INFO}" | cut -f2 -d'=')
+    if [ "${PHP2_RELEASE}" == "yes" ]; then
+        PHP2_VERSION=$(grep -w "php2_version" "${FILE_INFO}" | cut -f2 -d'=')
+        PHP2_CONFIG_PATH="/etc/php/${PHP2_VERSION}/fpm"
+        PHP2_CLI_PATH="/etc/php/${PHP2_VERSION}/cli/conf.d"
+        PHP2_INI_PATH="${PHP2_CONFIG_PATH}/conf.d"
+    fi
+
+    PHP1_URL_FOPEN_STATUS=$(grep -w "allow_url_fopen" "${PHP1_INI_PATH}/00-hostvn-custom.ini" | cut -f2 -d' = ')
+    if [[ -n "${PHP1_URL_FOPEN_STATUS}" && "${PHP1_URL_FOPEN_STATUS}" == "off" ]]; then
+        _allow_url_fopen
+    elif [[ -n "${PHP1_URL_FOPEN_STATUS}" && "${PHP1_URL_FOPEN_STATUS}" == "on" ]]; then
+        _disallow_url_fopen
+    else
+        clear
+        printf "%s\n" "${RED}Error !.${NC}"
+    fi
+}
+
+prompt_disallow_url_fopen="n"
+prompt_allow_url_fopen="n"
+_run
+lemp_php

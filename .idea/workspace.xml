@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/menu/controller/php/allow_url_fopen" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hostvn" beforeDir="false" afterPath="$PROJECT_DIR$/hostvn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/install_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/install_php2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/route/lemp_php" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/lemp_php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/route/parent" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/parent" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -269,7 +272,10 @@
       <workItem from="1613488820025" duration="1139000" />
       <workItem from="1613495343555" duration="3404000" />
       <workItem from="1613570217924" duration="14000" />
-      <workItem from="1613570537813" duration="171000" />
+      <workItem from="1613570537813" duration="376000" />
+      <workItem from="1613571622723" duration="410000" />
+      <workItem from="1613577069967" duration="233000" />
+      <workItem from="1613583502015" duration="1660000" />
     </task>
     <servers />
   </component>

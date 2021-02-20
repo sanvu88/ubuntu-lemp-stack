@@ -120,6 +120,7 @@ _select_source(){
         "Ecshop"
         "CS-Cart"
         "Magento 2"
+        "Nextcloud"
         "Other"
     )
     select opt_source in "${source_options[@]}"

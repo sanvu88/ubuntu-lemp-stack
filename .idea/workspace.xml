@@ -2,12 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/menu/controller/php/proc_close" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/menu/template/nextcloud.conf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/php/open_basedir" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/open_basedir" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/route/lemp_php" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/lemp_php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/route/parent" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/parent" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/php_setting" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/php_setting" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/webp_express" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/webp_express" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/helpers/function" beforeDir="false" afterPath="$PROJECT_DIR$/menu/helpers/function" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/route/wordpress_advanced" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/wordpress_advanced" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -275,7 +276,10 @@
       <workItem from="1613570537813" duration="376000" />
       <workItem from="1613571622723" duration="410000" />
       <workItem from="1613577069967" duration="233000" />
-      <workItem from="1613583502015" duration="3020000" />
+      <workItem from="1613583502015" duration="3095000" />
+      <workItem from="1613649456827" duration="414000" />
+      <workItem from="1613743914517" duration="2501000" />
+      <workItem from="1613810434553" duration="720000" />
     </task>
     <servers />
   </component>

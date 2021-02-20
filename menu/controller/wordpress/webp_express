@@ -101,11 +101,39 @@ _select_site_disable_webp() {
 _enable_webp(){
     sed -i "/server_name/a include /etc/nginx/wordpress/webp_express.conf;" "${VHOST_DIR}"/"${domain}".conf
     notify="${GREEN}Bat cau hinh Webp Express thanh cong.${NC}"
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
+    if [ ! -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
+        prompt_inst_webp_express="n"
+        while true; do
+            read -r -p "Ban chua cai dat plugins webp-express, ban co muon cai dat no khong ? (y/n) " prompt_inst_webp_express
+            echo
+            if [[ "${prompt_inst_webp_express}" =~ ^([yY])$ || "${prompt_inst_webp_express}" =~ ^([nN])$ ]]; then
+                break
+            else
+                printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long nhap lai.${NC}"
+            fi
+        done
+
+        if [[ "${prompt_inst_webp_express}" =~ ^([yY])$ ]]; then
+            cd_dir /home/"${user}"/"${domain}"/pulbic_html
+            wp plugin install webp-express --activate --allow-root
+            if [ ! -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
+                notify_inst_webp="${RED}Cai dat plugins webp-express khong thanh cong. Ban co the cai no trong wp-admin.${NC}"
+            else
+                notify_inst_webp="${GREEN}Cai dat plugins webp-express thanh cong.${NC}"
+            fi
+        fi
+    fi
 }
 
 _disable_webp(){
     sed -i '/webp_express/d' "${VHOST_DIR}"/"${domain}".conf
     notify="${GREEN}Tat cau hinh Webp Express thanh cong.${NC}"
+
+    if [ -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
+        wp plugin deactivate webp-express --allow-root
+    fi
 }
 
 _run(){
@@ -122,6 +150,9 @@ _run(){
         _restart_service
         clear
         printf "%s\n" "${notify}"
+        if [ -n "${notify_inst_webp}" ]; then
+            printf "%s\n" "${notify_inst_webp}"
+        fi
     else
         nginx -t
         printf "%s\n" "${RED}${lang_error_vhost}${NC}"

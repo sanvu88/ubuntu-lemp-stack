@@ -46,11 +46,11 @@ _select_parameter(){
     select opt in "${options[@]}"
     do
         case $opt in
-            "post_max_size") parameter="post_max_size"; current_parameter="${post_max_size_old}"; break;;
-            "upload_max_filesize") parameter="upload_max_filesize"; current_parameter="${upload_max_filesize_old}"; break;;
-            "memory_limit") parameter="memory_limit"; current_parameter="${memory_limit_old}"; break;;
-            "max_input_time") parameter="max_input_time"; current_parameter="${max_input_time_old}"; break;;
-            "max_execution_time") parameter="max_execution_time"; current_parameter="${max_execution_time_old}"; break;;
+            "post_max_size") parameter="post_max_size"; current_parameter_value="${post_max_size_old}"; break;;
+            "upload_max_filesize") parameter="upload_max_filesize"; current_parameter_value="${upload_max_filesize_old}"; break;;
+            "memory_limit") parameter="memory_limit"; current_parameter_value="${memory_limit_old}"; break;;
+            "max_input_time") parameter="max_input_time"; current_parameter_value="${max_input_time_old}"; break;;
+            "max_execution_time") parameter="max_execution_time"; current_parameter_value="${max_execution_time_old}"; break;;
             "Cancel") parameter="0"; break;;
             *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}" ;;
         esac
@@ -61,7 +61,7 @@ _input_parameter(){
     clear
     while true
     do
-        printf "%s\n" "Thong so ${parameter} hien tai la: ${RED}${current_parameter}${NC}"
+        printf "%s\n" "Thong so ${parameter} hien tai la: ${RED}${current_parameter_value}${NC}"
         read -r -p "Nhap vao thong so moi (Ex: 120) [0 = Thoat]: " num
         echo
         if [[ "${num}" =~ ^[0-9]+$ ]]; then
@@ -92,21 +92,21 @@ _remove_ini_bak(){
 
 _change_parameter(){
     if [[ "${parameter}" == "max_input_time" || "${parameter}" == "max_execution_time" ]]; then
-        parameter_new=${num}
+        parameter_new_value=${num}
     else
-        parameter_new=${num}M
+        parameter_new_value=${num}M
     fi
 
     sed -i.bak "/${parameter}/d" "${PHP1_INI}"
     sed -i.bak "/${parameter}/d" "${PHP1_CLI}"
-    echo "${parameter} = ${parameter_new}" >> "${PHP1_INI}"
-    echo "${parameter} = ${parameter_new}" >> "${PHP1_CLI}"
+    echo "${parameter} = ${parameter_new_value}" >> "${PHP1_INI}"
+    echo "${parameter} = ${parameter_new_value}" >> "${PHP1_CLI}"
 
     if [[ "${PHP2_RELEASE}" == "yes" ]]; then
         sed -i.bak "/${parameter}/d" "${PHP2_INI}"
         sed -i.bak "/${parameter}/d" "${PHP2_CLI}"
-        echo "${parameter} = ${parameter_new}" >> "${PHP2_INI}"
-        echo "${parameter} = ${parameter_new}" >> "${PHP2_CLI}"
+        echo "${parameter} = ${parameter_new_value}" >> "${PHP2_INI}"
+        echo "${parameter} = ${parameter_new_value}" >> "${PHP2_CLI}"
     fi
 }
 

@@ -80,8 +80,8 @@ _select_php_ver(){
 
     PHP1_VERSION_NEW=${PHP1_VERSION_NEW//php/}
     PHP1_NEW_CONFIG_PATH="/etc/php/${PHP1_VERSION_NEW}/fpm"
-    PHP1_NEW_INI_PATH="${PHP1_CONFIG_PATH}/conf.d"
-    PHP1_NEW_POOL_PATH="${PHP1_CONFIG_PATH}/pool.d"
+    PHP1_NEW_INI_PATH="${PHP1_NEW_CONFIG_PATH}/conf.d"
+    PHP1_NEW_POOL_PATH="${PHP1_NEW_CONFIG_PATH}/pool.d"
     PHP1_NEW_CLI_PATH="/etc/php/${PHP1_VERSION_NEW}/cli/conf.d"
 }
 
@@ -94,6 +94,16 @@ _remove_old_php(){
         php"${PHP1_VERSION_OLD}"-xmlrpc php"${PHP1_VERSION_OLD}"-tidy php"${PHP1_VERSION_OLD}"-opcache php"${PHP1_VERSION_OLD}"-cli \
         php"${PHP1_VERSION_OLD}"-dev php"${PHP1_VERSION_OLD}"-sqlite3 php"${PHP1_VERSION_OLD}"-imagick
     apt autoremove -y
+
+    rm -rf /etc/php/"${PHP1_VERSION_OLD}"
+
+    if [ -f "/usr/lib/systemd/system/php${PHP1_VERSION_OLD}-fpm.service" ]; then
+        rm -rf /usr/lib/systemd/system/php"${PHP1_VERSION_OLD}"-fpm.service
+    fi
+
+    if [ -f "/lib/systemd/system/php${PHP1_VERSION_OLD}-fpm.service" ]; then
+        rm -rf /lib/systemd/system/php"${PHP1_VERSION_OLD}"-fpm.service
+    fi
 }
 
 _install_php(){
@@ -107,6 +117,32 @@ _install_php(){
 
     if [ "${PHP1_VERSION_NEW}" != "8.0" ]; then
         apt -y install php"${PHP1_VERSION_NEW}"-json
+    fi
+
+    php1_service_file_1="/usr/lib/systemd/system/php${PHP1_VERSION_NEW}-fpm.service"
+    if [ -f "${php1_service_file_1}" ]; then
+        sed -i '/ExecReload=/a LimitNOFILE=65535' "${php1_service_file_1}"
+        sed -i '/ExecReload=/a LimitMEMLOCK=infinity' "${php1_service_file_1}"
+        sed -i '/LimitNOFILE=65535/a PrivateTmp=true' "${php1_service_file_1}"
+        sed -i '/PrivateTmp=true/a ProtectKernelModules=true' "${php1_service_file_1}"
+        sed -i '/ProtectKernelModules=true/a ProtectKernelTunables=true' "${php1_service_file_1}"
+        sed -i '/ProtectKernelTunables=true/a ProtectControlGroups=true' "${php1_service_file_1}"
+        sed -i '/ProtectControlGroups=true/a RestrictRealtime=true' "${php1_service_file_1}"
+        sed -i '/RestrictRealtime=true/a RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' "${php1_service_file_1}"
+        systemctl daemon-reload
+    fi
+
+    php1_service_file_2="/lib/systemd/system/php${PHP1_VERSION_NEW}-fpm.service"
+    if [ -f "$php1_service_file_2" ]; then
+        sed -i '/ExecReload=/a LimitNOFILE=65535' "${php1_service_file_2}"
+        sed -i '/ExecReload=/a LimitMEMLOCK=infinity' "${php1_service_file_2}"
+        sed -i '/LimitNOFILE=65535/a PrivateTmp=true' "${php1_service_file_2}"
+        sed -i '/PrivateTmp=true/a ProtectKernelModules=true' "${php1_service_file_2}"
+        sed -i '/ProtectKernelModules=true/a ProtectKernelTunables=true' "${php1_service_file_2}"
+        sed -i '/ProtectKernelTunables=true/a ProtectControlGroups=true' "${php1_service_file_2}"
+        sed -i '/ProtectControlGroups=true/a RestrictRealtime=true' "${php1_service_file_2}"
+        sed -i '/RestrictRealtime=true/a RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' "${php1_service_file_2}"
+        systemctl daemon-reload
     fi
 }
 
@@ -303,6 +339,55 @@ EOopcache_blacklist
     cp "${PHP1_NEW_INI_PATH}"/10-opcache.ini "${PHP1_NEW_CLI_PATH}"/10-opcache.ini
 }
 
+_change_php_website(){
+    if [ -d "/etc/php/${PHP1_VERSION_NEW}/fpm/pool.d" ]; then
+        cd_dir "${USER_DIR}"
+        for entry in .*.conf; do
+            php_v=$(grep -w 'php_version' "${USER_DIR}/${entry}")
+
+            domain=${entry/.}
+            domain=${domain//.conf}
+
+            if [ "${php_v}" == "${PHP1_VERSION_OLD}" ]; then
+                user=$(grep -w 'username' "${USER_DIR}/${entry}")
+                SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
+                ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
+                TMP_DIR="/home/${user}/tmp"
+                SESSION_PATH="/home/${user}/php/session"
+                CACHE_DIR="/home/${user}/php/wsdlcache"
+                PHP1_NEW_CONFIG_FILE="/etc/php/${PHP1_VERSION_NEW}/fpm/pool.d/${domain}.conf"
+
+                sed -i '/php_version/d' "${USER_DIR}"/"${entry}"
+                echo "php_version=${PHP1_VERSION_NEW}" >> "${USER_DIR}"/"${entry}"
+
+                if [ ! -f "${PHP1_NEW_CONFIG_FILE}" ]; then
+                    if [[ -f "/etc/php/${PHP1_VERSION_OLD}/fpm/pool.d/${domain}.conf" ]]; then
+                        cp /etc/php/"${PHP1_VERSION_OLD}"/fpm/pool.d/"${domain}".conf "${PHP1_NEW_CONFIG_FILE}"
+                    else
+                        if [ -f "${CUSTOM_DIR}/php_ondemand.conf" ]; then
+                            cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP1_NEW_CONFIG_FILE}"
+                        else
+                            cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP1_NEW_CONFIG_FILE}"
+                        fi
+
+                        sed -i "s|WEBSITE_USER|${user}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|TMP_DIR|${TMP_DIR}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${PHP1_NEW_CONFIG_FILE}"
+                        sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${PHP1_NEW_CONFIG_FILE}"
+                    fi
+                fi
+            fi
+        done
+    fi
+}
+
 _write_info(){
     sed -i '/php1_version=/d' "${FILE_INFO}"
     echo "php1_version=${PHP1_VERSION_NEW}" >> "${FILE_INFO}"
@@ -326,6 +411,7 @@ _run(){
                 _php_global_config
                 _hostvn_custom_ini
                 _php_opcache
+                _change_php_website
 
                 _remove_old_php
 

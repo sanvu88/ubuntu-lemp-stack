@@ -41,7 +41,7 @@ AUTHOR_CONTACT="https://www.facebook.com/groups/hostvn.vn"
 PHPMYADMIN_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "phpmyadmin_version=" | cut -f2 -d'=')
 MARIADB_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "mariadb_version=" | cut -f2 -d'=')
 # shellcheck disable=SC2207
-PHP_LIST=($(curl -s "${UPDATE_LINK}"/version | grep "php_list=" | cut -f2 -d'='))
+PHP_LIST=($(curl -s https://scripts.hostvn.net/ubuntu/update/version | grep "php_list=" | cut -f2 -d'='))
 
 # Set Lang
 OPTION_CHANGE_SSH="Ban co muon thay doi port SSH khong ? "
@@ -2440,7 +2440,6 @@ mysqlnd.collect_memory_statistics = Off
 mysqlnd.mempool_default_size = 16000
 always_populate_raw_post_data=-1
 error_reporting = E_ALL & ~E_NOTICE
-allow_url_fopen = Off
 EOhostvn_custom_ini
 
     if [ -f "$PHP1_CLI_PATH/00-hostvn-custom.ini" ]; then
@@ -2471,7 +2470,6 @@ mysqlnd.collect_memory_statistics = Off
 mysqlnd.mempool_default_size = 16000
 always_populate_raw_post_data=-1
 error_reporting = E_ALL & ~E_NOTICE
-allow_url_fopen = Off
 EOhostvn_custom_ini_2
 
     if [ -f "$PHP2_CLI_PATH/00-hostvn-custom.ini" ]; then
@@ -2813,12 +2811,25 @@ install_rclone() {
 
 install_wp_cli_packages() {
     sed -i '/memory_limit/d' "$PHP1_INI_PATH"/00-hostvn-custom.ini
+    sed -i '/memory_limit/d' "$PHP1_CLI_PATH"/00-hostvn-custom.ini
     echo "memory_limit = -1" >>"$PHP1_INI_PATH"/00-hostvn-custom.ini
+    echo "memory_limit = -1" >>"$PHP1_CLI_PATH"/00-hostvn-custom.ini
+
     systemctl restart php"${PHP_VERSION}"-fpm
+
     wp package install iandunn/wp-cli-rename-db-prefix --allow-root
     wp package install trepmal/wp-revisions-cli --allow-root
+
     sed -i '/memory_limit/d' "$PHP1_INI_PATH"/00-hostvn-custom.ini
+    sed -i '/memory_limit/d' "$PHP1_CLI_PATH"/00-hostvn-custom.ini
     echo "memory_limit = ${MAX_MEMORY}M" >>"$PHP1_INI_PATH"/00-hostvn-custom.ini
+    echo "memory_limit = ${MAX_MEMORY}M" >>"$PHP1_CLI_PATH"/00-hostvn-custom.ini
+
+#    echo "allow_url_fopen = Off" >> "$PHP2_INI_PATH"/00-hostvn-custom.ini
+#    echo "allow_url_fopen = Off" >> "$PHP2_CLI_PATH"/00-hostvn-custom.ini
+#    echo "allow_url_fopen = Off" >> "$PHP1_INI_PATH"/00-hostvn-custom.ini
+#    echo "allow_url_fopen = Off" >> "$PHP1_CLI_PATH"/00-hostvn-custom.ini
+
     systemctl restart php"${PHP_VERSION}"-fpm
 }
 

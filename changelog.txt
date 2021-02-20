@@ -8,6 +8,7 @@ v0.1.2
 - Added: On/Off PHP allow_url_fopen
 - Added: On/Off PHP proc_close/proc_open function
 - Added: Nextcloud vhost
+- Added: Optimize service when install php 2
 - Change: Server header
 - Change: Only Install php-json if PHP version != 8.0
 - Fixed: Rewrite config

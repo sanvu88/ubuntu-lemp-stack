@@ -88,6 +88,32 @@ _install_php(){
         if [ "${PHP2_VERSION}" != "8.0" ]; then
             apt -y install php"${PHP2_VERSION}"-json
         fi
+
+        php2_service_file_1="/usr/lib/systemd/system/php${PHP2_VERSION}-fpm.service"
+        if [ -f "${php2_service_file_1}" ]; then
+            sed -i '/ExecReload=/a LimitNOFILE=65535' "${php2_service_file_1}"
+            sed -i '/ExecReload=/a LimitMEMLOCK=infinity' "${php2_service_file_1}"
+            sed -i '/LimitNOFILE=65535/a PrivateTmp=true' "${php2_service_file_1}"
+            sed -i '/PrivateTmp=true/a ProtectKernelModules=true' "${php2_service_file_1}"
+            sed -i '/ProtectKernelModules=true/a ProtectKernelTunables=true' "${php2_service_file_1}"
+            sed -i '/ProtectKernelTunables=true/a ProtectControlGroups=true' "${php2_service_file_1}"
+            sed -i '/ProtectControlGroups=true/a RestrictRealtime=true' "${php2_service_file_1}"
+            sed -i '/RestrictRealtime=true/a RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' "${php2_service_file_1}"
+            systemctl daemon-reload
+        fi
+
+        php2_service_file_2="/lib/systemd/system/php${PHP2_VERSION}-fpm.service"
+        if [ -f "php2_service_file_2" ]; then
+            sed -i '/ExecReload=/a LimitNOFILE=65535' "${php2_service_file_2}"
+            sed -i '/ExecReload=/a LimitMEMLOCK=infinity' "${php2_service_file_2}"
+            sed -i '/LimitNOFILE=65535/a PrivateTmp=true' "${php2_service_file_2}"
+            sed -i '/PrivateTmp=true/a ProtectKernelModules=true' "${php2_service_file_2}"
+            sed -i '/ProtectKernelModules=true/a ProtectKernelTunables=true' "${php2_service_file_2}"
+            sed -i '/ProtectKernelTunables=true/a ProtectControlGroups=true' "${php2_service_file_2}"
+            sed -i '/ProtectControlGroups=true/a RestrictRealtime=true' "${php2_service_file_2}"
+            sed -i '/RestrictRealtime=true/a RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' "${php2_service_file_2}"
+            systemctl daemon-reload
+        fi
 }
 
 _install_ig_binary(){

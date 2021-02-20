@@ -44,37 +44,36 @@ _create_php_new_config(){
     php_old_config_file=/etc/php/"${php_version_current}"/fpm/pool.d/"${domain}".conf
     php_new_conf_file=/etc/php/"${php_version_new}"/fpm/pool.d/"${domain}".conf
 
-    if [ ! -f "${php_new_conf_file}" ]; then
-       if [ -f "${php_old_config_file}" ]; then
-            mv "${php_old_config_file}" "${php_new_conf_file}"
-       else
-            user=$(grep -w 'username' "${USER_DIR}/.${domain}.conf")
-            SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
-            ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
-            TMP_DIR="/home/${user}/tmp"
-            SESSION_PATH="/home/${user}/php/session"
-            CACHE_DIR="/home/${user}/php/wsdlcache"
+    rm -rf "${php_new_conf_file}"
 
-            if [ -f "${CUSTOM_DIR}/php_ondemand.conf" ]; then
-                cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP1_NEW_CONFIG_FILE}"
-            else
-                cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP1_NEW_CONFIG_FILE}"
-            fi
+    if [ -f "${php_old_config_file}" ]; then
+        mv "${php_old_config_file}" "${php_new_conf_file}"
+    else
+        user=$(grep -w 'username' "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+        SLOW_LOG="/home/${user}/${domain}/logs/php-slow.log"
+        ERROR_LOG_PATH="/home/${user}/${domain}/logs/php-error.log"
+        TMP_DIR="/home/${user}/tmp"
+        SESSION_PATH="/home/${user}/php/session"
+        CACHE_DIR="/home/${user}/php/wsdlcache"
 
-            sed -i "s|WEBSITE_USER|${user}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|TMP_DIR|${TMP_DIR}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${PHP1_NEW_CONFIG_FILE}"
-            sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${PHP1_NEW_CONFIG_FILE}"
-       fi
-    fi
+        if [ -f "${CUSTOM_DIR}/php_ondemand.conf" ]; then
+            cp "${CUSTOM_DIR}/php_ondemand.conf" "${php_new_conf_file}"
+        else
+            cp "${TEMPLATE_DIR}/php_ondemand.conf" "${php_new_conf_file}"
+        fi
 
+        sed -i "s|WEBSITE_USER|${user}|g" "${php_new_conf_file}"
+        sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${php_new_conf_file}"
+        sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${php_new_conf_file}"
+        sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${php_new_conf_file}"
+        sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${php_new_conf_file}"
+        sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${php_new_conf_file}"
+        sed -i "s|SLOW_LOG|${SLOW_LOG}|g" "${php_new_conf_file}"
+        sed -i "s|TMP_DIR|${TMP_DIR}|g" "${php_new_conf_file}"
+        sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH}|g" "${php_new_conf_file}"
+        sed -i "s|SESSION_PATH|${SESSION_PATH}|g" "${php_new_conf_file}"
+        sed -i "s|CACHE_DIR|${CACHE_DIR}|g" "${php_new_conf_file}"
+   fi
 }
 
 _edit_user_info(){
@@ -87,10 +86,10 @@ _run(){
     if [[ "${php2_release}" == "yes" ]]; then
         _select_php_version
         if [ "${php_version_new}" == "0" ]; then
-            clear
+            #clear
             printf "%s\n" "${RED}Huy thao tac.${NC}"
         elif [ "${php_version_new}" == "${php_version_current}" ]; then
-            clear
+            #clear
             printf "%s\n" "${RED}Phien ban PHP ban chon trung voi phien ban dang su dung.${NC}"
         else
             _create_php_new_config
@@ -101,17 +100,17 @@ _run(){
                 systemctl restart php"${php_version_current}"-fpm
                 systemctl restart php"${php_version_new}"-fpm
 
-                clear
+                #clear
                 printf "%s\n" "${GREEN}Thay doi phien ban PHP thanh cong.${NC}"
             else
-                clear
+                #clear
                 nginx -t
                 printf "%s\n" "${RED}${lang_error_vhost}${NC}"
                 printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
             fi
         fi
     else
-        clear
+        #clear
         printf "%s\n" "${RED}Ban chua cai phien ban PHP thu 2.${NC}"
     fi
 }
@@ -126,13 +125,13 @@ php2=""
 _select_domain
 
 if [[ -z "${domain}" && -z "${ALERT}" ]]; then
-    clear
+    #clear
     printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
 else
     if [ -z "${ALERT}" ]; then
         _run
     else
-        clear
+        #clear
         printf "%s\n" "${ALERT}"
     fi
 fi

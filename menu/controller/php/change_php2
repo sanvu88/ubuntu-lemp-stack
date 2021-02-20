@@ -341,12 +341,12 @@ _change_php_website(){
     if [ -d "/etc/php/${PHP2_VERSION_NEW}/fpm/pool.d" ]; then
         cd_dir "${USER_DIR}"
         for entry in .*.conf; do
-            php2_v=$(grep -w 'php_version' "${USER_DIR}/${entry}")
+            php2_v=$(grep -w 'php_version' "${USER_DIR}/${entry}" | cut -f2 -d'=')
             domain=${entry/.}
             domain=${domain//.conf}
 
             if [ "${php2_v}" == "${PHP2_VERSION_OLD}" ]; then
-                user=$(grep -w 'username' "${USER_DIR}/${entry}")
+                user=$(grep -w 'username' "${USER_DIR}/${entry}" | cut -f2 -d'=')
                 SLOW_LOG_2="/home/${user}/${domain}/logs/php-slow.log"
                 ERROR_LOG_PATH_2="/home/${user}/${domain}/logs/php-error.log"
                 TMP_DIR_2="/home/${user}/tmp"
@@ -357,28 +357,28 @@ _change_php_website(){
                 sed -i '/php_version/d' "${USER_DIR}"/"${entry}"
                 echo "php_version=${PHP2_VERSION_NEW}" >> "${USER_DIR}"/"${entry}"
 
-                if [ ! -f "${PHP2_NEW_CONFIG_FILE}" ]; then
-                    if [[ -f "/etc/php/${PHP2_VERSION_OLD}/fpm/pool.d/${domain}.conf" ]]; then
-                        cp /etc/php/"${PHP2_VERSION_OLD}"/fpm/pool.d/"${domain}".conf "${PHP2_NEW_CONFIG_FILE}"
-                    else
-                        if [ -f "${CUSTOM_DIR}/php_ondemand.conf" ]; then
-                            cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP2_NEW_CONFIG_FILE}"
-                        else
-                            cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP2_NEW_CONFIG_FILE}"
-                        fi
+                rm -rf "${PHP2_NEW_CONFIG_FILE}"
 
-                        sed -i "s|WEBSITE_USER|${user}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|SLOW_LOG|${SLOW_LOG_2}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|TMP_DIR|${TMP_DIR_2}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH_2}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|SESSION_PATH|${SESSION_PATH_2}|g" "${PHP2_NEW_CONFIG_FILE}"
-                        sed -i "s|CACHE_DIR|${CACHE_DIR_2}|g" "${PHP2_NEW_CONFIG_FILE}"
+                if [[ -f "/etc/php/${PHP2_VERSION_OLD}/fpm/pool.d/${domain}.conf" ]]; then
+                    cp /etc/php/"${PHP2_VERSION_OLD}"/fpm/pool.d/"${domain}".conf "${PHP2_NEW_CONFIG_FILE}"
+                else
+                    if [ -f "${CUSTOM_DIR}/php_ondemand.conf" ]; then
+                        cp "${CUSTOM_DIR}/php_ondemand.conf" "${PHP2_NEW_CONFIG_FILE}"
+                    else
+                        cp "${TEMPLATE_DIR}/php_ondemand.conf" "${PHP2_NEW_CONFIG_FILE}"
                     fi
+
+                    sed -i "s|WEBSITE_USER|${user}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|PM_MAX_CHILDREN|${PM_MAX_CHILDREN}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|PM_MAX_REQUEST|${PM_MAX_REQUEST}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|PM_START_SERVERS|${PM_START_SERVERS}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|PM_MIN_SPARE_SERVER|${PM_MIN_SPARE_SERVER}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|PM_MAX_SPARE_SERVER|${PM_MAX_SPARE_SERVER}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|SLOW_LOG|${SLOW_LOG_2}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|TMP_DIR|${TMP_DIR_2}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|ERROR_LOG_PATH|${ERROR_LOG_PATH_2}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|SESSION_PATH|${SESSION_PATH_2}|g" "${PHP2_NEW_CONFIG_FILE}"
+                    sed -i "s|CACHE_DIR|${CACHE_DIR_2}|g" "${PHP2_NEW_CONFIG_FILE}"
                 fi
             fi
         done

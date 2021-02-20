@@ -539,7 +539,7 @@ EOF
         php"${PHP_VERSION}"-curl php"${PHP_VERSION}"-bcmath php"${PHP_VERSION}"-snmp php"${PHP_VERSION}"-pspell \
         php"${PHP_VERSION}"-gmp php"${PHP_VERSION}"-intl php"${PHP_VERSION}"-imap php"${PHP_VERSION}"-enchant \
         php"${PHP_VERSION}"-xmlrpc php"${PHP_VERSION}"-tidy php"${PHP_VERSION}"-opcache php"${PHP_VERSION}"-cli \
-        php"${PHP_VERSION}"-dev php"${PHP_VERSION}"-imagick
+        php"${PHP_VERSION}"-dev php"${PHP_VERSION}"-imagick php"${PHP_VERSION}"-sqlite3
 
         if [ "${PHP_VERSION}" != "8.0" ]; then
             apt -y install php"${PHP_VERSION}"-json
@@ -577,7 +577,7 @@ install_php_2() {
         php"${PHP_VERSION_2}"-curl php"${PHP_VERSION_2}"-bcmath php"${PHP_VERSION_2}"-snmp php"${PHP_VERSION_2}"-pspell \
         php"${PHP_VERSION_2}"-gmp php"${PHP_VERSION_2}"-intl php"${PHP_VERSION_2}"-imap php"${PHP_VERSION_2}"-enchant \
         php"${PHP_VERSION_2}"-xmlrpc php"${PHP_VERSION_2}"-tidy php"${PHP_VERSION_2}"-opcache php"${PHP_VERSION_2}"-cli \
-        php"${PHP_VERSION_2}"-dev php"${PHP_VERSION_2}"-imagick
+        php"${PHP_VERSION_2}"-dev php"${PHP_VERSION_2}"-imagick php"${PHP_VERSION_2}"-sqlite3
 
     if [ "${PHP_VERSION_2}" != "8.0" ]; then
         apt -y install php"${PHP_VERSION_2}"-json

@@ -1,0 +1,201 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_select_app(){
+    APP=""
+    echo "${SELECT_SOURCE}"
+    PS3="${INPUT_SELECT}"
+    app_options=(
+        "WordPress"
+        "Laravel"
+        "CodeIgniter"
+        "Joomla"
+        "Drupal"
+        "OpenCart"
+        "PrestaShop"
+        "Magento 2"
+        "Nextcloud"
+    )
+    select app_source in "${app_options[@]}"
+    do
+        case $app_source in
+            "WordPress") APP="wordpress"; break;;
+            "Laravel") APP="laravel"; break;;
+            "CodeIgniter") APP="codeigniter"; break;;
+            "Joomla") APP="joomla"; break;;
+            "Drupal") APP="drupal"; break;;
+            "OpenCart") APP="opencart"; break;;
+            "PrestaShop") APP="prestashop"; break;;
+            "Magento 2") APP="magento2"; break;;
+            "Nextcloud") APP="nextcloud"; break;;
+            *) printf "%s\n" "${RED}${WRONG_SELECT}${NC}";;
+        esac
+    done
+}
+
+_install_nextcloud(){
+    wget -O- http://scripts.hostvn.net/app/nextcloud.tar.gz | tar -xz
+
+    sed -i "s/WEBSITE_DOMAIN/${domain}/g" /home/"${user}"/"${domain}"/public_html/config/config.php
+    sed -i "s/WEBSITE_USER/${user}/g" /home/"${user}"/"${domain}"/public_html/config/config.php
+    sed -i "s/DB_NAME/${db_name}/g" /home/"${user}"/"${domain}"/public_html/config/config.php
+    sed -i "s/DB_USER/${db_user}/g" /home/"${user}"/"${domain}"/public_html/config/config.php
+    sed -i "s/DB_PASSWORD/${db_password}/g" /home/"${user}"/"${domain}"/public_html/config/config.php
+
+    mysql -uadmin -p"${mysql_pwd}" "${db_name}" < nextcloud.sql
+
+    rm -rf nextcloud.sql
+    rm -rf nextcloud.tar.gz
+}
+
+_install_wordpress(){
+    db_prefix="$(perl -le "print map+(A..Z,a..z,0..9)[rand 62],0..4")_"
+    _wp_auto_install_info
+
+    # Download WordPress
+    wp core download --locale=en_US --allow-root
+    rm -rf license.txt readme.html
+
+    wp config create --allow-root --dbname="${db_name}" --dbuser="${db_user}" --dbpass="${db_password}" \
+            --dbprefix="${db_prefix}" --extra-php <<PHP
+define( 'WP_DEBUG', false );
+define( 'FS_METHOD', 'direct');
+define( 'WP_CACHE', true);
+define( 'WP_MEMORY_LIMIT', '128M' );
+define( 'WP_MAX_MEMORY_LIMIT', '128M' );
+PHP
+
+    # Install WordPress
+    wp core install --url="${domain}" --title="${site_name}" --admin_user="${admin_user}" --admin_password="${admin_pwd}" \
+        --admin_email="${admin_email}" --allow-root
+
+    if [ -f "/home/$user/$domain/public_html/robots.txt" ]; then
+        rm -rf /home/"$user"/"$domain"/public_html/robots.txt
+    fi
+
+    # Create robots.txt
+    cat >>"/home/$user/$domain/public_html/robots.txt" <<END
+User-agent: *
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /search?q=*
+Disallow: *?replytocom
+Disallow: */attachment/*
+Disallow: /images/
+Allow: /wp-admin/admin-ajax.php
+Allow: /*.js$
+Allow: /*.css$
+END
+    mv /home/"${user}"/"${domain}"/public_html/wp-config.php /home/"${user}"/"${domain}"/wp-config.php
+}
+
+_laravel_install() {
+    laravel_version="8"
+        echo "Lua chon phien ban laravel ban muon cai dat ?"
+        PS3='Nhap lua chon cua ban (1-2): '
+        options=("8" "7" "6" "5")
+        select opt in "${options[@]}"; do
+            case $opt in
+            "8")
+                laravel_version="8"
+                break
+                ;;
+            "7")
+                laravel_version="7"
+                break
+                ;;
+            "6")
+                laravel_version="6"
+                break
+                ;;
+            "5")
+                laravel_version="5"
+                break
+                ;;
+            *) printf "%s\n" "${RED}Ban nhap sai, vui long nhap lai.${NC}" ;;
+            esac
+        done
+
+        _cd_dir "/home/${user}/${domain}"
+        rm -rf public_html
+        composer create-project laravel/laravel="${laravel_version}.*" public_html <<EOF
+yes
+EOF
+        if [ -f "/home/$user/$domain/public_html/robots.txt" ]; then
+            rm -rf /home/"$user"/"$domain"/public_html/robots.txt
+        fi
+        cat >>"/home/$user/$domain/public_html/robots.txt" <<END
+User-agent: *
+END
+        sed -i "s|APP_URL=http://localhost|APP_URL=http://${domain}|g" /home/"$user"/"$domain"/public_html/.env
+        sed -i "s|DB_DATABASE=laravel|DB_DATABASE=${db_name}|g" /home/"$user"/"$domain"/public_html/.env
+        sed -i "s|DB_USERNAME=root|DB_USERNAME=${db_user}|g" /home/"$user"/"$domain"/public_html/.env
+        sed -i "s|DB_PASSWORD=|DB_PASSWORD=${db_password}|g" /home/"$user"/"$domain"/public_html/.env
+}
+
+_chmod_chown(){
+    chmod 711 /home
+    chmod 755 /home/"${user}"
+    chmod 711 /home/"${user}"/"${domain}"
+    chmod 711 /home/"${user}"/"${domain}"/logs
+    chmod 755 /home/"${user}"/"${domain}"/public_html
+    find /home/"${user}"/"${domain}"/public_html/ -type d -print0 | xargs -I {} -0 chmod 0755 {}
+    find /home/"${user}"/"${domain}"/public_html/ -type f -print0 | xargs -I {} -0 chmod 0644 {}
+    chown root:root /home/"${user}"
+    chown -R "${user}":"${user}" /home/"${user}"/"${domain}"
+    chown -R "${user}":"${user}" /home/"${user}"/tmp
+    chown -R "${user}":"${user}" /home/"${user}"/php
+}
+
+_recreate_vhost
+
+_install_app(){
+    cd_dir /home/"${user}"/"${domain}"/public_html
+
+    _chmod_chown
+}
+
+_run(){
+    user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+    db_name=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+    db_user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+    db_password=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+
+    _select_app
+    if [ -n "${APP}" ]; then
+        _install_app
+    else
+        clear
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
+    fi
+}
+
+ALERT=""
+domain=""
+_select_domain
+
+if [[ -z "${domain}" && -z "${ALERT}" ]]; then
+    clear
+    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+else
+    if [ -z "${ALERT}" ]; then
+        _run
+    else
+        clear
+        printf "%s\n" "${ALERT}"
+    fi
+fi
+
+menu_tools

@@ -92,7 +92,7 @@ _remove_old_php(){
         php"${PHP1_VERSION_OLD}"-curl php"${PHP1_VERSION_OLD}"-bcmath php"${PHP1_VERSION_OLD}"-snmp php"${PHP1_VERSION_OLD}"-pspell \
         php"${PHP1_VERSION_OLD}"-gmp php"${PHP1_VERSION_OLD}"-intl php"${PHP1_VERSION_OLD}"-imap php"${PHP1_VERSION_OLD}"-enchant \
         php"${PHP1_VERSION_OLD}"-xmlrpc php"${PHP1_VERSION_OLD}"-tidy php"${PHP1_VERSION_OLD}"-opcache php"${PHP1_VERSION_OLD}"-cli \
-        php"${PHP1_VERSION_OLD}"-dev
+        php"${PHP1_VERSION_OLD}"-dev php"${PHP1_VERSION_OLD}"-sqlite3 php"${PHP1_VERSION_OLD}"-imagick
     apt autoremove -y
 }
 
@@ -103,7 +103,7 @@ _install_php(){
         php"${PHP1_VERSION_NEW}"-curl php"${PHP1_VERSION_NEW}"-bcmath php"${PHP1_VERSION_NEW}"-snmp php"${PHP1_VERSION_NEW}"-pspell \
         php"${PHP1_VERSION_NEW}"-gmp php"${PHP1_VERSION_NEW}"-intl php"${PHP1_VERSION_NEW}"-imap php"${PHP1_VERSION_NEW}"-enchant \
         php"${PHP1_VERSION_NEW}"-xmlrpc php"${PHP1_VERSION_NEW}"-tidy php"${PHP1_VERSION_NEW}"-opcache php"${PHP1_VERSION_NEW}"-cli \
-        php"${PHP1_VERSION_NEW}"-dev php"${PHP1_VERSION_NEW}"-imagick
+        php"${PHP1_VERSION_NEW}"-dev php"${PHP1_VERSION_NEW}"-imagick php"${PHP1_VERSION_NEW}"-sqlite3
 
     if [ "${PHP1_VERSION_NEW}" != "8.0" ]; then
         apt -y install php"${PHP1_VERSION_NEW}"-json

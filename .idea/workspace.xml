@@ -2,13 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/menu/template/nextcloud.conf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/menu/controller/tools/auto_install_source" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/php/php_setting" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/php_setting" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/webp_express" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/webp_express" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hostvn" beforeDir="false" afterPath="$PROJECT_DIR$/hostvn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu.tar.gz" beforeDir="false" afterPath="$PROJECT_DIR$/menu.tar.gz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/domain/add_domain" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/domain/add_domain" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/change_php1" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/change_php1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/change_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/change_php2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/install_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/install_php2" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu/helpers/function" beforeDir="false" afterPath="$PROJECT_DIR$/menu/helpers/function" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/route/wordpress_advanced" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/wordpress_advanced" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -279,7 +281,8 @@
       <workItem from="1613583502015" duration="3095000" />
       <workItem from="1613649456827" duration="414000" />
       <workItem from="1613743914517" duration="2501000" />
-      <workItem from="1613810434553" duration="720000" />
+      <workItem from="1613810434553" duration="6308000" />
+      <workItem from="1613831426632" duration="440000" />
     </task>
     <servers />
   </component>

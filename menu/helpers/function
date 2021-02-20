@@ -140,6 +140,7 @@ _select_source(){
             "CakePHP") SOURCE="cakephp"; break;;
             "Discuz") SOURCE="discuz"; break;;
             "Ecshop") SOURCE="ecshop"; break;;
+            "Nextcloud") SOURCE="nextcloud"; break;;
             "Magento 2") SOURCE="magento2"; break;;
             "CS-Cart") SOURCE="cscart"; break;;
             "Other") SOURCE="default"; break;;

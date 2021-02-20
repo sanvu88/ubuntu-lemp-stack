@@ -224,6 +224,8 @@ Allow: /*.js$
 Allow: /*.css$
 END
     fi
+
+    mv /home/"${user}"/"${domain}"/public_html/wp-config.php /home/"${user}"/"${domain}"/wp-config.php
 }
 
 # Create

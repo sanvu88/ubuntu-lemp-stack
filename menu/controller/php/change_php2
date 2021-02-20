@@ -91,7 +91,7 @@ _remove_old_php(){
         php"${PHP2_VERSION_OLD}"-curl php"${PHP2_VERSION_OLD}"-bcmath php"${PHP2_VERSION_OLD}"-snmp php"${PHP2_VERSION_OLD}"-pspell \
         php"${PHP2_VERSION_OLD}"-gmp php"${PHP2_VERSION_OLD}"-intl php"${PHP2_VERSION_OLD}"-imap php"${PHP2_VERSION_OLD}"-enchant \
         php"${PHP2_VERSION_OLD}"-xmlrpc php"${PHP2_VERSION_OLD}"-tidy php"${PHP2_VERSION_OLD}"-opcache php"${PHP2_VERSION_OLD}"-cli \
-        php"${PHP2_VERSION_OLD}"-dev
+        php"${PHP2_VERSION_OLD}"-dev php"${PHP2_VERSION_OLD}"-imagick php"${PHP2_VERSION_OLD}"-sqlite3
     apt autoremove -y
 }
 
@@ -102,7 +102,7 @@ _install_php(){
         php"${PHP2_VERSION_NEW}"-curl php"${PHP2_VERSION_NEW}"-bcmath php"${PHP2_VERSION_NEW}"-snmp php"${PHP2_VERSION_NEW}"-pspell \
         php"${PHP2_VERSION_NEW}"-gmp php"${PHP2_VERSION_NEW}"-intl php"${PHP2_VERSION_NEW}"-imap php"${PHP2_VERSION_NEW}"-enchant \
         php"${PHP2_VERSION_NEW}"-xmlrpc php"${PHP2_VERSION_NEW}"-tidy php"${PHP2_VERSION_NEW}"-opcache php"${PHP2_VERSION_NEW}"-cli \
-        php"${PHP2_VERSION_NEW}"-dev php"${PHP2_VERSION_NEW}"-imagick
+        php"${PHP2_VERSION_NEW}"-dev php"${PHP2_VERSION_NEW}"-imagick php"${PHP2_VERSION_NEW}"-sqlite3
 
         if [ "${PHP2_VERSION_NEW}" != "8.0" ]; then
             apt -y install php"${PHP2_VERSION_NEW}"-json

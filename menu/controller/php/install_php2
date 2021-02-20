@@ -83,7 +83,7 @@ _install_php(){
         php"${PHP2_VERSION}"-curl php"${PHP2_VERSION}"-bcmath php"${PHP2_VERSION}"-snmp php"${PHP2_VERSION}"-pspell \
         php"${PHP2_VERSION}"-gmp php"${PHP2_VERSION}"-intl php"${PHP2_VERSION}"-imap php"${PHP2_VERSION}"-enchant \
         php"${PHP2_VERSION}"-xmlrpc php"${PHP2_VERSION}"-tidy php"${PHP2_VERSION}"-opcache php"${PHP2_VERSION}"-cli \
-        php"${PHP2_VERSION}"-dev php"${PHP2_VERSION}"-imagick
+        php"${PHP2_VERSION}"-dev php"${PHP2_VERSION}"-imagick php"${PHP2_VERSION}"-sqlite3
 
         if [ "${PHP2_VERSION}" != "8.0" ]; then
             apt -y install php"${PHP2_VERSION}"-json

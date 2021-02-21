@@ -65,11 +65,11 @@ _install_redis(){
 }
 
 _install_php_redis_admin(){
-    cd_dir "${DEFAULT_DIR_TOOL}"
+    _cd_dir "${DEFAULT_DIR_TOOL}"
     rm -rf ./redis
     git clone https://github.com/ErikDubbelboer/phpRedisAdmin.git
     mv phpRedisAdmin redis
-    cd_dir "${DEFAULT_DIR_TOOL}"/redis
+    _cd_dir "${DEFAULT_DIR_TOOL}"/redis
     git clone https://github.com/nrk/predis.git vendor
     cd "${DEFAULT_DIR_TOOL}" && chown -R nginx:nginx redis
 }

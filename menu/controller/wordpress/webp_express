@@ -116,7 +116,7 @@ _enable_webp(){
         done
 
         if [[ "${prompt_inst_webp_express}" =~ ^([yY])$ ]]; then
-            cd_dir /home/"${user}"/"${domain}"/pulbic_html
+            _cd_dir /home/"${user}"/"${domain}"/pulbic_html
             wp plugin install webp-express --activate --allow-root
             if [ ! -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
                 notify_inst_webp="${RED}Cai dat plugins webp-express khong thanh cong. Ban co the cai no trong wp-admin.${NC}"

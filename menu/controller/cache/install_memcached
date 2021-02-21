@@ -84,7 +84,7 @@ END
 }
 
 _install_php_memcached_admin(){
-    cd_dir "${DEFAULT_DIR_TOOL}"
+    _cd_dir "${DEFAULT_DIR_TOOL}"
     rm -rf ./memcached
     git clone https://github.com/elijaa/phpmemcachedadmin.git
     rm -rf "${DEFAULT_DIR_TOOL}"/phpmemcachedadmin/docker

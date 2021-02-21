@@ -77,7 +77,8 @@ _create_php_new_config(){
 }
 
 _edit_user_info(){
-    sed -i "s|php_version=${php_version_current}|php_version=${php_version_new}|g" "${USER_DIR}"/."${domain}".conf
+    sed -i '/php_version/d' "${USER_DIR}/.${domain}.conf"
+    echo "php_version=${php_version_new}" >> "${USER_DIR}/.${domain}.conf"
 }
 
 _run(){

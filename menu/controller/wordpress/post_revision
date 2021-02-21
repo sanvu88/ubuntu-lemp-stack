@@ -45,7 +45,7 @@ _run() {
     _backup_confirm
     _backup_db
 
-    cd_dir /home/"${user}"/"${domain}"/public_html
+    _cd_dir /home/"${user}"/"${domain}"/public_html
     wp revisions clean -1 --allow-root
     clear
     printf "%s\n" "${GREEN}Xoa post revisions thanh cong.${NC}"

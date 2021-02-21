@@ -274,7 +274,7 @@ EOwww_conf
 }
 
 _hostvn_custom_ini(){
-    cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" <<EOhostvn_custom_ini_2
+    cat > "${PHP2_INI_PATH}/00-hostvn-custom.ini" <<EOhostvn_custom_ini_2
 date.timezone = Asia/Ho_Chi_Minh
 max_execution_time = 600
 max_input_time = 600
@@ -305,7 +305,7 @@ EOhostvn_custom_ini_2
 }
 
 _php_opcache(){
-    cat >> "${PHP2_INI_PATH}/10-opcache.ini" <<EOphp_opcache
+    cat > "${PHP2_INI_PATH}/10-opcache.ini" <<EOphp_opcache
 zend_extension=opcache.so
 opcache.enable=1
 opcache.memory_consumption=${OPCACHE_MEM}
@@ -321,7 +321,7 @@ opcache.validate_timestamps=1
 opcache.blacklist_filename=${PHP2_INI_PATH}/opcache-default.blacklist
 EOphp_opcache
 
-    cat >> "${PHP2_INI_PATH}/opcache-default.blacklist" <<EOopcache_blacklist
+    cat > "${PHP2_INI_PATH}/opcache-default.blacklist" <<EOopcache_blacklist
 /home/*/*/public_html/wp-content/plugins/backwpup/*
 /home/*/*/public_html/wp-content/plugins/duplicator/*
 /home/*/*/public_html/wp-content/plugins/updraftplus/*

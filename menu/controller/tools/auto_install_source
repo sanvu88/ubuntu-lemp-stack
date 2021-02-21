@@ -162,7 +162,7 @@ _chmod_chown(){
 _recreate_vhost
 
 _install_app(){
-    cd_dir /home/"${user}"/"${domain}"/public_html
+    _cd_dir /home/"${user}"/"${domain}"/public_html
 
     _chmod_chown
 }

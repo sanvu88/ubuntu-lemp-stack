@@ -85,7 +85,7 @@ _select_php_ver(){
 }
 
 _remove_old_php(){
-    apt -y remove php"${PHP2_VERSION_OLD}" php"${PHP2_VERSION_OLD}"-fpm php"${PHP2_VERSION_OLD}"-ldap php"${PHP2_VERSION_OLD}"-zip \
+    apt -y purge php"${PHP2_VERSION_OLD}" php"${PHP2_VERSION_OLD}"-fpm php"${PHP2_VERSION_OLD}"-ldap php"${PHP2_VERSION_OLD}"-zip \
         php"${PHP2_VERSION_OLD}"-cli php"${PHP2_VERSION_OLD}"-mysql php"${PHP2_VERSION_OLD}"-gd php"${PHP2_VERSION_OLD}"-xml \
         php"${PHP2_VERSION_OLD}"-mbstring php"${PHP2_VERSION_OLD}"-common php"${PHP2_VERSION_OLD}"-soap php"${PHP2_VERSION_OLD}"-json \
         php"${PHP2_VERSION_OLD}"-curl php"${PHP2_VERSION_OLD}"-bcmath php"${PHP2_VERSION_OLD}"-snmp php"${PHP2_VERSION_OLD}"-pspell \
@@ -106,6 +106,9 @@ _remove_old_php(){
 }
 
 _install_php(){
+    systemctl stop php"${PHP2_VERSION_OLD}"-fpm
+    systemctl disable php"${PHP2_VERSION_OLD}"-fpm
+
     apt -y install php"${PHP2_VERSION_NEW}" php"${PHP2_VERSION_NEW}"-fpm php"${PHP2_VERSION_NEW}"-ldap php"${PHP2_VERSION_NEW}"-zip \
         php"${PHP2_VERSION_NEW}"-cli php"${PHP2_VERSION_NEW}"-mysql php"${PHP2_VERSION_NEW}"-gd php"${PHP2_VERSION_NEW}"-xml \
         php"${PHP2_VERSION_NEW}"-mbstring php"${PHP2_VERSION_NEW}"-common php"${PHP2_VERSION_NEW}"-soap \
@@ -244,7 +247,7 @@ EOF
 
 _php_global_config() {
     if [[ -f "${PHP2_NEW_CONFIG_PATH}/php-fpm.conf" ]]; then
-        mv "${PHP2_NEW_CONFIG_PATH}"/php-fpm.conf "${PHP2_NEW_CONFIG_PATH}"/php-fpm.conf.orig
+        mv "${PHP2_NEW_CONFIG_PATH}"/php-fpm.conf "${PHP2_NEW_CONFIG_PATH}"/php-fpm.conf."${CURRENT_DATE}"
     fi
 
     cat >>"${PHP2_NEW_CONFIG_PATH}/php-fpm.conf" <<EOphp_fpm_conf
@@ -265,7 +268,7 @@ daemonize = yes
 EOphp_fpm_conf
 
     if [[ -f "${PHP2_NEW_POOL_PATH}/www.conf" ]]; then
-        mv "${PHP2_NEW_POOL_PATH}"/www.conf "${PHP2_NEW_POOL_PATH}"/www.conf.orig
+        mv "${PHP2_NEW_POOL_PATH}"/www.conf "${PHP2_NEW_POOL_PATH}"/www.conf."${CURRENT_DATE}"
     fi
     cat >>"${PHP2_NEW_POOL_PATH}/www.conf" <<EOwww_conf
 [www]
@@ -304,12 +307,40 @@ EOwww_conf
 
 # Custom PHP Ini
 _hostvn_custom_ini(){
-    cp "${PHP2_OLD_CLI_PATH}"/00-hostvn-custom.ini "${PHP2_NEW_CLI_PATH}"/00-hostvn-custom.ini
-    cp "${PHP2_OLD_CLI_PATH}"/00-hostvn-custom.ini "${PHP2_NEW_INI_PATH}"/00-hostvn-custom.ini
+    rm -rf "${PHP2_NEW_CLI_PATH}"/00-hostvn-custom.ini
+    rm -rf "${PHP2_NEW_INI_PATH}"/00-hostvn-custom.ini
+    if [ -f "${PHP2_OLD_CLI_PATH}/00-hostvn-custom.ini" ]; then
+        cp "${PHP2_OLD_CLI_PATH}"/00-hostvn-custom.ini "${PHP2_NEW_CLI_PATH}"/00-hostvn-custom.ini
+        cp "${PHP2_OLD_CLI_PATH}"/00-hostvn-custom.ini "${PHP2_NEW_INI_PATH}"/00-hostvn-custom.ini
+    else
+        cat >"${PHP2_NEW_INI_PATH}/00-hostvn-custom.ini" <<EOhostvn_custom_ini
+date.timezone = Asia/Ho_Chi_Minh
+max_execution_time = 600
+max_input_time = 600
+short_open_tag = On
+realpath_cache_size = ${PHP_REAL_PATH_LIMIT}
+realpath_cache_ttl = ${PHP_REAL_PATH_TTL}
+memory_limit = ${MAX_MEMORY}M
+upload_max_filesize = ${MAX_MEMORY}M
+post_max_size = ${MAX_MEMORY}M
+expose_php = Off
+display_errors = Off
+mail.add_x_header = Off
+max_input_nesting_level = 128
+max_input_vars = ${MAX_INPUT_VARS}
+mysqlnd.net_cmd_buffer_size = 16384
+mysqlnd.collect_memory_statistics = Off
+mysqlnd.mempool_default_size = 16000
+always_populate_raw_post_data=-1
+error_reporting = E_ALL & ~E_NOTICE
+EOhostvn_custom_ini
+        cp "${PHP2_NEW_INI_PATH}"/00-hostvn-custom.ini "${PHP2_NEW_CLI_PATH}"/00-hostvn-custom.ini
+    fi
+
 }
 
 _php_opcache(){
-    cat >> "${PHP2_NEW_INI_PATH}/10-opcache.ini" <<EOphp_opcache
+    cat > "${PHP2_NEW_INI_PATH}/10-opcache.ini" <<EOphp_opcache
 zend_extension=opcache.so
 opcache.enable=1
 opcache.memory_consumption=${OPCACHE_MEM}
@@ -325,7 +356,7 @@ opcache.validate_timestamps=1
 opcache.blacklist_filename=${PHP2_NEW_INI_PATH}/opcache-default.blacklist
 EOphp_opcache
 
-    cat >> "${PHP2_NEW_INI_PATH}/opcache-default.blacklist" <<EOopcache_blacklist
+    cat > "${PHP2_NEW_INI_PATH}/opcache-default.blacklist" <<EOopcache_blacklist
 /home/*/*/public_html/wp-content/plugins/backwpup/*
 /home/*/*/public_html/wp-content/plugins/duplicator/*
 /home/*/*/public_html/wp-content/plugins/updraftplus/*
@@ -338,15 +369,16 @@ EOopcache_blacklist
 }
 
 _change_php_website(){
-    if [ -d "/etc/php/${PHP2_VERSION_NEW}/fpm/pool.d" ]; then
-        cd_dir "${USER_DIR}"
-        for entry in .*.conf; do
-            php2_v=$(grep -w 'php_version' "${USER_DIR}/${entry}" | cut -f2 -d'=')
-            domain=${entry/.}
+    if [[ -d "/etc/php/${PHP2_VERSION_NEW}/fpm/pool.d" && "$(ls -A "${USER_DIR}")" ]]; then
+        _cd_dir "${USER_DIR}"
+        for entry_domain in .*.conf; do
+            domain=${entry_domain/.}
             domain=${domain//.conf}
 
+            php2_v=$(grep -w 'php_version' "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+
             if [ "${php2_v}" == "${PHP2_VERSION_OLD}" ]; then
-                user=$(grep -w 'username' "${USER_DIR}/${entry}" | cut -f2 -d'=')
+                user=$(grep -w 'username' "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
                 SLOW_LOG_2="/home/${user}/${domain}/logs/php-slow.log"
                 ERROR_LOG_PATH_2="/home/${user}/${domain}/logs/php-error.log"
                 TMP_DIR_2="/home/${user}/tmp"
@@ -354,8 +386,8 @@ _change_php_website(){
                 CACHE_DIR_2="/home/${user}/php/wsdlcache"
                 PHP2_NEW_CONFIG_FILE="/etc/php/${PHP2_VERSION_NEW}/fpm/pool.d/${domain}.conf"
 
-                sed -i '/php_version/d' "${USER_DIR}"/"${entry}"
-                echo "php_version=${PHP2_VERSION_NEW}" >> "${USER_DIR}"/"${entry}"
+                sed -i '/php_version/d' "${USER_DIR}/.${domain}.conf"
+                echo "php_version=${PHP2_VERSION_NEW}" >> "${USER_DIR}/.${domain}.conf"
 
                 rm -rf "${PHP2_NEW_CONFIG_FILE}"
 

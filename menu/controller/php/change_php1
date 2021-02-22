@@ -1,10 +1,5 @@
 #!/bin/bash
 
-exec 19>/opt/change_php1.txt
-BASH_XTRACEFD=19
-set -x
-
-
 ######################################################################
 #           Auto Install & Optimize LEMP Stack on Ubuntu             #
 #                                                                    #
@@ -163,8 +158,9 @@ _install_ig_binary(){
             IG_BINARY_VERSION="2.0.8"
         fi
 
-        DIR="/opt/php-extension"
-        _cd_dir "${DIR}"
+        EX_DIR="/opt/php-extension"
+        mkdir -p "${EX_DIR}"
+        _cd_dir "${EX_DIR}"
         if [ -f "igbinary-${IG_BINARY_VERSION}.tgz" ]; then
             rm -rf igbinary-"${IG_BINARY_VERSION}".tgz
         fi
@@ -176,7 +172,7 @@ _install_ig_binary(){
         _cd_dir igbinary-"${IG_BINARY_VERSION}"
         /usr/bin/phpize"${PHP1_VERSION_NEW}" && ./configure --with-php-config=/usr/bin/php-config"${PHP1_VERSION_NEW}"
         make && make install
-        _cd_dir "${DIR}"
+        _cd_dir "${EX_DIR}"
         rm -rf igbinary-"${IG_BINARY_VERSION}" igbinary-"${IG_BINARY_VERSION}".tgz
 
         cat >> "${PHP1_NEW_INI_PATH}/30-igbinary.ini" << EOF
@@ -196,8 +192,9 @@ _install_php_memcached(){
             PHP_MEMCACHED_VERSION="2.2.0"
         fi
 
-        DIR="/opt/php-extension"
-        _cd_dir "${DIR}"
+        EX_DIR="/opt/php-extension"
+        mkdir -p "${EX_DIR}"
+        _cd_dir "${EX_DIR}"
         if [ -f "memcached-${PHP_MEMCACHED_VERSION}.tgz" ]; then
             rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz
         fi
@@ -209,7 +206,7 @@ _install_php_memcached(){
         _cd_dir "memcached-${PHP_MEMCACHED_VERSION}"
         /usr/bin/phpize"${PHP1_VERSION_NEW}" && ./configure --enable-memcached-igbinary --with-php-config=/usr/bin/php-config"${PHP1_VERSION_NEW}"
         make && make install
-        cd "${DIR}" && rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz memcached-"${PHP_MEMCACHED_VERSION}"
+        cd "${EX_DIR}" && rm -rf memcached-"${PHP_MEMCACHED_VERSION}".tgz memcached-"${PHP_MEMCACHED_VERSION}"
 
         cat >> "${PHP1_NEW_INI_PATH}/40-memcached.ini" << EOF
 extension=memcached.so
@@ -228,8 +225,9 @@ _install_php_redis(){
             PHP_REDIS_VERSION="4.3.0"
         fi
 
-        DIR="/opt/php-extension"
-        _cd_dir "${DIR}"
+        EX_DIR="/opt/php-extension"
+        mkdir -p "${EX_DIR}"
+        _cd_dir "${EX_DIR}"
         if [ -f "redis-${PHP_REDIS_VERSION}.tgz" ]; then
             rm -rf redis-"${PHP_REDIS_VERSION}".tgz
         fi
@@ -238,10 +236,10 @@ _install_php_redis(){
         fi
         wget "${MODULE_LINK}"/redis-"${PHP_REDIS_VERSION}".tgz
         tar -xvf redis-"${PHP_REDIS_VERSION}".tgz
-        _cd_dir "${DIR}/redis-${PHP_REDIS_VERSION}"
+        _cd_dir "${EX_DIR}/redis-${PHP_REDIS_VERSION}"
         /usr/bin/phpize"${PHP1_VERSION_NEW}" && ./configure --enable-redis-igbinary --with-php-config=/usr/bin/php-config"${PHP1_VERSION_NEW}"
         make && make install
-        cd "${DIR}" && rm -rf redis-"${PHP_REDIS_VERSION}".tgz redis-"${PHP_REDIS_VERSION}"
+        cd "${EX_DIR}" && rm -rf redis-"${PHP_REDIS_VERSION}".tgz redis-"${PHP_REDIS_VERSION}"
 
         cat >> "${PHP1_NEW_INI_PATH}/50-redis.ini" << EOF
 extension=redis.so
@@ -440,7 +438,7 @@ _run(){
             _install_php
 
             if [ -d "/etc/php/${PHP1_VERSION_NEW}" ]; then
-                _install_igbinary
+                _install_ig_binary
                 _install_php_memcached
                 _install_php_redis
                 _php_global_config

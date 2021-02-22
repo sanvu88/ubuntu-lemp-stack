@@ -3,8 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/php/change_php1" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/change_php1" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/php/change_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/change_php2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/deactivate_all_plugins" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/deactivate_all_plugins" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -282,6 +281,8 @@
       <workItem from="1613915061131" duration="412000" />
       <workItem from="1613963147748" duration="281000" />
       <workItem from="1613966761259" duration="310000" />
+      <workItem from="1613984691286" duration="314000" />
+      <workItem from="1613986663763" duration="211000" />
     </task>
     <servers />
   </component>

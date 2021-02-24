@@ -11,6 +11,7 @@ v0.1.2
 - Added: Optimize service when install php 2
 - Added: Check pool file exists when change website php version
 - Added: Auto change website php version when change php on VPS
+- Added: Block/Unblock IP UFW firewall
 - Change: Server header
 - Change: Only Install php-json if PHP version != 8.0
 - Fixed: Rewrite config

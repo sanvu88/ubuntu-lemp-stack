@@ -60,7 +60,8 @@ do
         3)
             read -r -p "${lang_enter_ip}: " ip
             fail2ban-client set sshd banip "${ip}"
-            fail2ban-client set nginx-http-aut banip "${ip}"
+            fail2ban-client set nginx-http-auth banip "${ip}"
+            ufw deny from "${ip}" to any
             clear
             printf "%s\n" "${GREEN}${lang_block_ip_success}.${NC}"
             echo ""
@@ -70,6 +71,7 @@ do
             read -r -p "${lang_enter_ip}: " ip
             fail2ban-client set sshd unbanip "${ip}"
             fail2ban-client set nginx-http-auth unbanip "${ip}"
+            ufw delete deny from "${ip}"
             clear
             printf "%s\n" "${GREEN}${lang_unblock_ip_success}.${NC}"
             echo ""

@@ -18,3 +18,4 @@ v0.1.2
 - Fixed: Nginx Fast cgi cache status always Bypass if using wordpress without woocommerce plugins
 - Fixed: Error php-fpm service don't working when change php version
 - Fixed: Error detect wp-rocket config
+- Fixed: Don't create wp-config when clone website

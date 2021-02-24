@@ -113,15 +113,21 @@ _copy_source() {
     cp -r /home/"${user_source}"/"${source_domain}"/public_html/* /home/"${user_clone}"/"${clone_domain}"/public_html/
 
     if [ -d "/home/${user_source}/${source_domain}/public_html/wp-includes" ]; then
+        _cd_dir /home/"${user_source}"/"${source_domain}"/public_html
+        db_prefix="$(wp db prefix --allow-root)"
+
         _cd_dir /home/"${user_clone}"/"${clone_domain}"/public_html
 
-        db_prefix=$(wp config get table_prefix --allow-root)
+        if [ -z "${db_prefix}" ]; then
+            db_prefix="wp_"
+        fi
 
         rm -rf wp-config.php
-        rm -rf license.txt readme.html
+        rm -rf license.txt readme.html wp-config-sample.php
 
         # Create wp-config.php
-        wp config create --allow-root --dbname="${db_clone}" --dbuser="${db_user_clone}" --dbpass="${db_clone_password}" --dbprefix="${db_prefix}" --extra-php <<PHP
+        wp config create --allow-root --dbname="${db_clone}" --dbuser="${db_user_clone}" \
+            --dbpass="${db_clone_password}" --dbprefix="${db_prefix}" --extra-php <<PHP
 define( 'WP_DEBUG', false );
 define( 'FS_METHOD', 'direct');
 define( 'WP_CACHE', true);
@@ -133,7 +139,12 @@ PHP
             sed -i "/WP_MAX_MEMORY_LIMIT/a define('DISABLE_WP_CRON', true);" /home/"${user_clone}"/"${clone_domain}"/public_html/wp-config.php
         fi
 
-        if [ -f "/home/${user_clone}/${clone_domain}/public_html/robots.txt" ]; then
+        if [ -f "/home/${user_clone}/${clone_domain}/public_html/wp-config.php" ]; then
+            rm -rf /home/"${user_clone}"/"${clone_domain}"/wp-config.php
+            mv /home/"${user_clone}"/"${clone_domain}"/public_html/wp-config.php /home/"${user_clone}"/"${clone_domain}"/wp-config.php
+        fi
+
+        if [ ! -f "/home/${user_clone}/${clone_domain}/public_html/robots.txt" ]; then
             cat >>"/home/${user_clone}/${clone_domain}/public_html/robots.txt" <<EOrobots_txt
 User-agent: *
 Disallow: /wp-admin/
@@ -168,7 +179,7 @@ EOrobots_txt
 
 _copy_db() {
     _cd_dir /home/"${user_source}"
-    mysqldump -uadmin -p"${mysql_pwd}" "${db_source}" >"${db_source}".sql
+    mysqldump -uadmin -p"${mysql_pwd}" "${db_source}" > "${db_source}".sql
 
     #Empty DB
     tables=$(mysql -uadmin -p"${mysql_pwd}" "${db_clone}" -e 'show tables' | awk '{ print $1}' | grep -v '^Tables')
@@ -176,7 +187,7 @@ _copy_db() {
         mysql -uadmin -p"${mysql_pwd}" "${db_clone}" -e "drop table ${t}"
     done
 
-    mysql -uadmin -p"${mysql_pwd}" "${db_clone}" <"${db_source}".sql
+    mysql -uadmin -p"${mysql_pwd}" "${db_clone}" < "${db_source}".sql
     rm -rf "${db_source}".sql
 }
 
@@ -206,29 +217,48 @@ _copy_vhost() {
 }
 
 _run() {
-    _set_var
-    _check_doc_root_empty
-    _check_database_empty
-    if [[ "${prompt_clone}" =~ ^([yY])$ ]]; then
-        _copy_source "$@"
-        _copy_db
-        _change_url_if_is_wordpress
-        _copy_htpasswd
-        _copy_vhost
-        clear
-        if nginx -t; then
-            _restart_service
-            clear
-            printf "%s\n" "${GREEN}Clone website thanh cong.${NC}"
+    while true
+    do
+        printf "%s\n" "Ban muon clone tu website ${RED}${source_domain}${NC} sang webiste ${RED}${clone_domain}${NC} ?"
+        read -r -p "${INPUT_SELECT} (y/n)" prompt_clone
+        echo
+        if [[ "${prompt_clone}" =~ ^([yY])$ || "${prompt_clone}" =~ ^([nN])$ ]]; then
+            break
         else
             clear
-            nginx -t
-            printf "%s\n" "${RED}${lang_error_vhost}${NC}"
-            printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            printf "%s\n"  "${RED}${WRONG_SELECT}${NC}"
+        fi
+    done
+
+    if [[ "${prompt_clone}" =~ ^([yY])$ ]]; then
+        printf "%s\n" "${GREEN}${PROCESSING}${NC}"
+        _set_var
+        _check_doc_root_empty
+        _check_database_empty
+        if [[ "${prompt_clone}" =~ ^([yY])$ ]]; then
+            _copy_source "$@"
+            _copy_db
+            _change_url_if_is_wordpress
+            _copy_htpasswd
+            _copy_vhost
+            clear
+            if nginx -t; then
+                _restart_service
+                clear
+                printf "%s\n" "${GREEN}Clone website thanh cong.${NC}"
+            else
+                clear
+                nginx -t
+                printf "%s\n" "${RED}${lang_error_vhost}${NC}"
+                printf "%s\n" "${RED}${lang_use_rewrite_config}${NC}"
+            fi
+        else
+            clear
+            printf "%s\n" "${RED}${lang_cancel_action}${NC}"
         fi
     else
         clear
-        printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
     fi
 }
 
@@ -241,12 +271,14 @@ if [[ -z "${source_domain}" && -z "${ALERT}" ]]; then
     printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
 else
     if [ -z "${ALERT}" ]; then
+        clear
         _select_clone_domain
         if [[ -z "${source_domain}" && -z "${ALERT}" ]]; then
             clear
             printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
         else
             if [ -z "${ALERT}" ]; then
+                clear
                 _run "$@"
             else
                 clear

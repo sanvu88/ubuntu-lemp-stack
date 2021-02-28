@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/domain/clone_website" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/domain/clone_website" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/disable_edit_theme_plugins" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/disable_edit_theme_plugins" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -294,6 +295,9 @@
       <workItem from="1614164295030" duration="58000" />
       <workItem from="1614166387224" duration="1108000" />
       <workItem from="1614182656903" duration="6305000" />
+      <workItem from="1614438877345" duration="23000" />
+      <workItem from="1614440758628" duration="1201000" />
+      <workItem from="1614512721707" duration="235000" />
     </task>
     <servers />
   </component>

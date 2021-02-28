@@ -21,11 +21,11 @@ _select_file_edit_action(){
     select opt in "${options[@]}"; do
         case $opt in
         "Cho phep Edit theme, plugins trong admin")
-            action="disallow"
+            action="allow"
             break
             ;;
         "Khong cho phep Edit theme, plugins trong admin")
-            action="allow"
+            action="disallow"
             break
             ;;
         "Cancel")

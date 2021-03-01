@@ -99,11 +99,13 @@ _select_site_disable_webp() {
 }
 
 _enable_webp(){
-    sed -i "/server_name/a include /etc/nginx/wordpress/webp_express.conf;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/webp_express/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 80/a include /etc/nginx/wordpress/webp_express.conf;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a include /etc/nginx/wordpress/webp_express.conf;" "${VHOST_DIR}"/"${domain}".conf
     notify="${GREEN}Bat cau hinh Webp Express thanh cong.${NC}"
     user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
 
-    if [ ! -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
+    if [ ! -d "/home/${user}/${domain}/public_html/wp-content/plugins/webp-express" ]; then
         prompt_inst_webp_express="n"
         while true; do
             read -r -p "Ban chua cai dat plugins webp-express, ban co muon cai dat no khong ? (y/n) " prompt_inst_webp_express
@@ -116,12 +118,25 @@ _enable_webp(){
         done
 
         if [[ "${prompt_inst_webp_express}" =~ ^([yY])$ ]]; then
-            _cd_dir /home/"${user}"/"${domain}"/pulbic_html
+            _cd_dir /home/"${user}"/"${domain}"/public_html
             wp plugin install webp-express --activate --allow-root
-            if [ ! -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
+            if [ ! -d "/home/${user}/${domain}/public_html/wp-content/plugins/webp-express" ]; then
                 notify_inst_webp="${RED}Cai dat plugins webp-express khong thanh cong. Ban co the cai no trong wp-admin.${NC}"
             else
+                user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
+                chmod 711 /home
+                chmod 755 /home/"${user}"
+                chmod 711 /home/"${user}"/"${domain}"
+                chmod 711 /home/"${user}"/"${domain}"/logs
+                chmod 755 /home/"${user}"/"${domain}"/public_html
+                find /home/"${user}"/"${domain}"/public_html/ -type d -print0 | xargs -I {} -0 chmod 0755 {}
+                find /home/"${user}"/"${domain}"/public_html/ -type f -print0 | xargs -I {} -0 chmod 0644 {}
+                chown root:root /home/"${user}"
+                chown -R "${user}":"${user}" /home/"${user}"/"${domain}"
+                chown -R "${user}":"${user}" /home/"${user}"/tmp
+                chown -R "${user}":"${user}" /home/"${user}"/php
                 notify_inst_webp="${GREEN}Cai dat plugins webp-express thanh cong.${NC}"
+                notify_inst_webp2="${GREEN}Dang nhap wp-admin -> Settings -> Webp Express va bam Save settings de hoan tat.${NC}"
             fi
         fi
     fi
@@ -131,7 +146,7 @@ _disable_webp(){
     sed -i '/webp_express/d' "${VHOST_DIR}"/"${domain}".conf
     notify="${GREEN}Tat cau hinh Webp Express thanh cong.${NC}"
 
-    if [ -d "/home/${user}/${domain}/pulbic_html/wp-content/plugins/webp-express" ]; then
+    if [ -d "/home/${user}/${domain}/public_html/wp-content/plugins/webp-express" ]; then
         wp plugin deactivate webp-express --allow-root
     fi
 }
@@ -152,6 +167,9 @@ _run(){
         printf "%s\n" "${notify}"
         if [ -n "${notify_inst_webp}" ]; then
             printf "%s\n" "${notify_inst_webp}"
+        fi
+        if [ -n "${notify_inst_webp2}" ]; then
+            printf "%s\n" "${notify_inst_webp2}"
         fi
     else
         nginx -t

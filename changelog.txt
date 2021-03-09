@@ -14,6 +14,7 @@ v0.1.2
 - Added: Block/Unblock IP UFW firewall
 - Change: Server header
 - Change: Only Install php-json if PHP version != 8.0
+- Change: Htpasswd wp-admin
 - Fixed: Rewrite config
 - Fixed: Nginx Fast cgi cache status always Bypass if using wordpress without woocommerce plugins
 - Fixed: Error php-fpm service don't working when change php version

@@ -51,7 +51,23 @@ _input(){
                     printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
                 fi
             done
-            password=$(_gen_pass)
+
+            while true
+            do
+                read -r -p "Ban co muon tao mat khau random khong? (y/n): " prompt_pass
+                echo
+                if [[ "${prompt_pass}" =~ ^([yY])$ || "${prompt_pass}" =~ ^([nN])$ ]]; then
+                    break
+                else
+                    printf "%s\n"  "${RED}Gia tri khong chinh xac. Vui long nhap lai.${NC}"
+                fi
+            done
+
+            if [[ "${prompt_pass}" =~ ^([yY])$ ]]; then
+                password=$(_gen_pass)
+            else
+                read -r -p "Nhap mat khau Database: " password
+            fi
         fi
     fi
 }

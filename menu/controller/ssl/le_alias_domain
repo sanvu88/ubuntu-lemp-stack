@@ -68,6 +68,7 @@ _sign_ssl() {
     #grep "${domain}" "${NGINX_CONF_DIR}"/conf.d/*.conf | cut -f1 -d":" | cut -f5 -d"/"
 
     /root/.acme.sh/acme.sh --issue --nginx "${ALIAS_DIR}"/"${domain}".conf -d "${domain}" --force
+#    acme.sh --issue -w /home/wwwroot/example.com -d "${domain}" --force
 
     if [ ! -d "${SSL_DIR}/${domain}" ]; then
         mkdir -p "${SSL_DIR}"/"${domain}"

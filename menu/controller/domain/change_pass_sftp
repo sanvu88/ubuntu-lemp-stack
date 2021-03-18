@@ -35,7 +35,7 @@ $new_password
 $new_password
 EOF
         sed -i '/user_pass/d' "${USER_DIR}"/."${domain}".conf
-        sed -i "/user_pass=${new_password}/d" "${USER_DIR}"/."${domain}".conf
+        echo "user_pass=${new_password}" >> "${USER_DIR}"/."${domain}".conf
         clear
         printf "%s\n" "${GREEN}Doi mat khau SFTP cho user${NC} ${RED}${user}${NC} ${GREEN}thanh cong.${NC}"
         printf "%s\n" "${GREEN}Mat khau moi la:${NC} ${RED}${new_password}${NC}"

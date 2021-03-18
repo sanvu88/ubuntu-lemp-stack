@@ -26,7 +26,7 @@ _set_var(){
 _update(){
     _cd_dir "${DEFAULT_DIR_TOOL}"
     rm -rf phpmyadmin
-    wget -O- http://scripts.hostvn.net/modules/phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.tar.gz | tar -xz
+    wget -O- https://files.phpmyadmin.net/phpMyAdmin/"${PHPMYADMIN_VERSION}"/phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.tar.gz | tar -xz
     mv phpMyAdmin-"${PHPMYADMIN_VERSION}"-english phpmyadmin
     rm -rf "${DEFAULT_DIR_TOOL}"/phpmyadmin/setup
 }

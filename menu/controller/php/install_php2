@@ -354,7 +354,7 @@ _run(){
             _install_php
 
             if [ -d "/etc/php/${PHP2_VERSION}" ]; then
-                _install_igbinary
+                _install_ig_binary
                 _install_php_memcached
                 _install_php_redis
                 _php_global_config

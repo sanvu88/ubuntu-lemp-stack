@@ -147,10 +147,24 @@ _added_cache_config() {
     fi
 
     if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
-        sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
-        sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
-        sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
-        sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+        if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+            sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        fi
+    fi
+
+    if [[ -f "${SSL_DIR}/${domain}/paid/key.pem" && -f "${SSL_DIR}/${domain}/paid/cert.pem" && -s "${SSL_DIR}/${domain}/paid/key.pem" && -s "${SSL_DIR}/${domain}/paid/cert.pem" ]]; then
+        expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/paid/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+        if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+            sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i '/https.conf;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/paid/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/paid/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
+        fi
     fi
 
     if [ -n "${check_php_cache}" ]; then

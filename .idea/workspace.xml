@@ -2,13 +2,23 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="dcc093a2-6ddf-4530-b00b-eb174cc40869" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/rebuild_nginx.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/changelog.txt" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/database/create_db" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/database/create_db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/controller/ssl/le_alias_domain" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/ssl/le_alias_domain" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/account/website_info" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/account/website_info" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/admin/update_phpmyadmin" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/admin/update_phpmyadmin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/domain/change_pass_sftp" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/domain/change_pass_sftp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/domain/rewrite_config" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/domain/rewrite_config" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/php/install_php2" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/php/install_php2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/tools/find_large_file_folder" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/tools/find_large_file_folder" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/auto" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/auto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/auto_install" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/auto_install" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/cache_plugins" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/cache_plugins" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/disable_user_api" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/disable_user_api" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/disable_xmlrpc" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/disable_xmlrpc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/htpasswd_wp_admin" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/htpasswd_wp_admin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/route/firewall" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/firewall" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/menu/route/parent" beforeDir="false" afterPath="$PROJECT_DIR$/menu/route/parent" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/rank_math_seo" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/rank_math_seo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/menu/controller/wordpress/yoast_seo" beforeDir="false" afterPath="$PROJECT_DIR$/menu/controller/wordpress/yoast_seo" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -314,6 +324,29 @@
       <workItem from="1615213969008" duration="347000" />
       <workItem from="1615227993469" duration="52000" />
       <workItem from="1615231741751" duration="443000" />
+      <workItem from="1615392535090" duration="31000" />
+      <workItem from="1615392645385" duration="80000" />
+      <workItem from="1615396427405" duration="52000" />
+      <workItem from="1615396729779" duration="620000" />
+      <workItem from="1615466040758" duration="18000" />
+      <workItem from="1615565991354" duration="1000" />
+      <workItem from="1615571247885" duration="370000" />
+      <workItem from="1615574443778" duration="9000" />
+      <workItem from="1615574465592" duration="2000" />
+      <workItem from="1615574477032" duration="4000" />
+      <workItem from="1615629163934" duration="1161000" />
+      <workItem from="1615717218991" duration="147000" />
+      <workItem from="1615902674734" duration="123000" />
+      <workItem from="1615905770633" duration="145000" />
+      <workItem from="1615906379861" duration="8000" />
+      <workItem from="1615906397036" duration="14000" />
+      <workItem from="1615910394905" duration="142000" />
+      <workItem from="1615911442475" duration="13000" />
+      <workItem from="1615956173913" duration="607000" />
+      <workItem from="1615962620291" duration="162000" />
+      <workItem from="1615963138517" duration="194000" />
+      <workItem from="1615996135439" duration="263000" />
+      <workItem from="1616080128367" duration="744000" />
     </task>
     <servers />
   </component>

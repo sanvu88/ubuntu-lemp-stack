@@ -16,6 +16,7 @@ source /var/hostvn/menu/helpers/function
 _set_var() {
     #https://www.howtoforge.com/tutorial/linux-grep-command/
     #https://stackoverflow.com/a/6284370
+    php_version=$(grep -w "php_version" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
     user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
     db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
     db_user=$(grep -w "db_user" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
@@ -27,22 +28,23 @@ _set_var() {
 }
 
 _show_info() {
-    printf "1.  Domain                     : %s\n" "${domain}"
-    printf "2.  DB_Name                    : %s\n" "${db_name}"
-    printf "3.  DB_User                    : %s\n" "${db_user}"
-    printf "4.  DB_Password                : %s\n" "${db_password}"
-    printf "5.  Username (SFTP)            : %s\n" "${user}"
-    printf "6.  Password (SFTP)            : %s\n" "${user_pass}"
-    printf "7.  FTP Host                   : %s\n" "${IPADDRESS}"
-    printf "8.  FTP Port                   : %s\n" "${ssh_port}"
-    printf "9.  Public_html                : %s\n" "/home/${user}/${domain}/public_html"
-    printf "10. Nginx vHost                : %s\n" "/etc/nginx/conf.d/${domain}.conf"
-    printf "11. PHP config                 : %s\n" "/etc/php/${php_version}/fpm/pool.d/${domain}.conf"
+    printf "1.  Phien ban PHP dang chay    : %s\n" "${php_version}"
+    printf "2.  Domain                     : %s\n" "${domain}"
+    printf "3.  DB_Name                    : %s\n" "${db_name}"
+    printf "4.  DB_User                    : %s\n" "${db_user}"
+    printf "5.  DB_Password                : %s\n" "${db_password}"
+    printf "6.  Username (SFTP)            : %s\n" "${user}"
+    printf "7.  Password (SFTP)            : %s\n" "${user_pass}"
+    printf "8.  FTP Host                   : %s\n" "${IPADDRESS}"
+    printf "9.  FTP Port                   : %s\n" "${ssh_port}"
+    printf "10.  Public_html                : %s\n" "/home/${user}/${domain}/public_html"
+    printf "11. Nginx vHost                : %s\n" "/etc/nginx/conf.d/${domain}.conf"
+    printf "12. PHP config                 : %s\n" "/etc/php/${php_version}/fpm/pool.d/${domain}.conf"
     if [ -n "${htpasswd_user}" ]; then
-        printf "12.  HTTP Authenticate User    : %s\n" "${htpasswd_user}"
+        printf "13.  HTTP Authenticate User    : %s\n" "${htpasswd_user}"
     fi
     if [ -n "${htpasswd_passwd}" ]; then
-        printf "13. HTTP Authenticate password : %s\n" "${htpasswd_passwd}"
+        printf "14. HTTP Authenticate password : %s\n" "${htpasswd_passwd}"
     fi
 }
 

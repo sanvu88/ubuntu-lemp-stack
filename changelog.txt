@@ -21,3 +21,4 @@ v0.1.2
 - Fixed: Error detect wp-rocket config
 - Fixed: Don't create wp-config when clone website
 - Fixed: On/Off Edit theme, plugins trong admin
+- Fixed: 404 Https when enable wp-rocket config, plugins SEO config

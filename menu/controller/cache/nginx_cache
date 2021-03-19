@@ -52,7 +52,8 @@ _select_domain_enable_cache() {
             domain=${entry/./}
             domain=${domain//.conf/}
             check_cache_config=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf")
-            if [[ -z "${check_cache_config}" ]]; then
+            check_cache_woo_config=$(grep -w "php_cache_woo.conf" "${VHOST_DIR}/${domain}.conf")
+            if [[ -z "${check_cache_config}" && -z "${check_cache_woo_config}" ]]; then
                 domains+=("${domain}")
             fi
         done
@@ -81,7 +82,8 @@ _select_domain_disable_cache() {
             domain=${entry/./}
             domain=${domain//.conf/}
             check_cache_config=$(grep -w "php_cache.conf" "${VHOST_DIR}/${domain}.conf")
-            if [[ -n "${check_cache_config}" ]]; then
+            check_cache_woo_config=$(grep -w "php_cache_woo.conf" "${VHOST_DIR}/${domain}.conf")
+            if [[ -n "${check_cache_config}" || -n "${check_cache_woo_config}" ]]; then
                 domains+=("${domain}")
             fi
         done

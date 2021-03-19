@@ -10,7 +10,7 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
-UPDATE_LINK="https://scripts.hostvn.net/update"
+UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
 MODULE_PATH="/usr/share/nginx_module"
 mkdir -p "${MODULE_PATH}"
 NGINX_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_version=" | cut -f2 -d'=')

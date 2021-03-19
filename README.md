@@ -19,7 +19,7 @@ Script được viết bằng shell dùng để cài đặt LEMP Stack (Nginx - 
 - Cập nhật liên tục, cung cấp Menu giúp dễ dàng thao tác, tự động cài đặt.
 - Cài đặt các phần mềm với phiên bản mới nhất từ chính trang chủ.
 - Mariadb: 10.5.
-- Phiên bản Nginx: 1.19.x.
+- Phiên bản Nginx Stable.
 - Cho phép lựa chọn phiên bản PHP: 5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0
 - phpMyAdmin 4.9.x nếu cài đặt PHP mặc định là 5.6, phpMyAdmin 5.0.x nếu cài đặt PHP mặc định là 7.x.
 - Cấu hình Nginx FastCGI cache

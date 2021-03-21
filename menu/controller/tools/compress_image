@@ -45,6 +45,10 @@ _run() {
         printf "%s\n" "${GREEN}Dang toi uu anh, vui long doi den khi qua trinh nen anh hoan tat...${NC}"
         find /home/"${user}"/"${domain}"/public_html/wp-content/uploads -type f -size +100k -iname "*.png" -exec pngquant --quality=75-80 --ext=.png --force {} \;
         find /home/"${user}"/"${domain}"/public_html/wp-content/uploads -type f -size +100k \( -iname "*.jpg" -o -iname "*.jpeg" \) -exec jpegoptim -s -m 75 -f --strip-all {} \;
+
+        find /home/"${user}"/"${domain}"/public_html/wp-content/upload -type d -print0 | xargs -I {} -0 chmod 0755 {}
+        find /home/"${user}"/"${domain}"/public_html/wp-content/upload -type f -print0 | xargs -I {} -0 chmod 0644 {}
+
         after_compress=$(du -sh /home/"${user}"/"${domain}"/public_html/wp-content/uploads | cut -f1 -d"/")
         clear
         printf "%s\n" "${GREEN}Toi uu hinh anh thanh cong${NC}"
@@ -71,6 +75,10 @@ _run() {
             printf "%s\n" "${GREEN}Dang toi uu anh, vui long doi...${NC}"
             find /home/"${user}"/"${domain}"/public_html/"${uploads_path}" -type f -size +100k -iname "*.png" -exec pngquant --quality=75-80 --ext=.png --force {} \;
             find /home/"${user}"/"${domain}"/public_html/"${uploads_path}" -type f -size +100k \( -iname "*.jpg" -o -iname "*.jpeg" \) -exec jpegoptim -m 75 -f --strip-all {} \;
+
+            find /home/"${user}"/"${domain}"/public_html/"${uploads_path}" -type d -print0 | xargs -I {} -0 chmod 0755 {}
+            find /home/"${user}"/"${domain}"/public_html/"${uploads_path}" -type f -print0 | xargs -I {} -0 chmod 0644 {}
+
             after_compress=$(du -sh /home/"${user}"/"${domain}"/public_html/"${uploads_path}" | cut -f1 -d"/")
             clear
             printf "%s\n" "${GREEN}Toi uu hinh anh thanh cong${NC}"

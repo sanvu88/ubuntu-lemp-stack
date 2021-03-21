@@ -91,10 +91,16 @@ _destroy_other() {
     if [ -f "/var/hostvn/ggdrive/${domain}" ]; then
         rm -rf /var/hostvn/ggdrive/"${domain}"
     fi
-    if [ -f "${SSL_DIR}/${domain}" ]; then
-        rm -rf "${SSL_DIR}"/"${domain}"
+    if [ -d "${SSL_DIR}/${domain}" ]; then
+        rm -rf "${SSL_DIR}"/"${domain:?}"
     fi
-    rm -rf "${PAGESPEED_DIR}"/"${domain}"
+    if [ -d "/root/.acme.sh/${domain}" ]; then
+        rm -rf "/root/.acme.sh/${domain}"
+    fi
+    if [ -d "${PAGESPEED_DIR}/${domain}" ]; then
+        rm -rf "${PAGESPEED_DIR}"/"${domain:?}"
+    fi
+
     check_nginx_cache=$(grep -w "${username}" "${NGINX_CONF_DIR}/extra/nginx_cache.conf")
     if [ -n "${check_nginx_cache}" ]; then
         sed -i "/${username}/d" "${NGINX_CONF_DIR}"/extra/nginx_cache.conf

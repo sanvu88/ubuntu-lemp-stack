@@ -1,24 +1,7 @@
-v0.1.2
+v0.1.3
 
-- Added: PHP 8.0
-- Added: Delete wordpress Post Revisions
-- Added: Config webp express plugins
-- Added: Install Node.JS & npm
-- Added: Check if change PHP version success or fail
-- Added: On/Off PHP allow_url_fopen
-- Added: On/Off PHP proc_close/proc_open function
-- Added: Nextcloud vhost
-- Added: Optimize service when install php 2
-- Added: Check pool file exists when change website php version
-- Added: Auto change website php version when change php on VPS
-- Added: Block/Unblock IP UFW firewall
-- Change: Server header
-- Change: Only Install php-json if PHP version != 8.0
-- Change: Htpasswd wp-admin
-- Fixed: Rewrite config
-- Fixed: Nginx Fast cgi cache status always Bypass if using wordpress without woocommerce plugins
-- Fixed: Error php-fpm service don't working when change php version
-- Fixed: Error detect wp-rocket config
-- Fixed: Don't create wp-config when clone website
-- Fixed: On/Off Edit theme, plugins trong admin
-- Fixed: 404 Https when enable wp-rocket config, plugins SEO config
+- Added: Chmod image file after compress
+- Added: Change method wp-cron when enable Nginx Fastcgi cache
+- Fixed: Wrong detect website enable fastcgi cache
+- Fixed: Config CloudFlare DNS API
+- Fixed: Don't delete SSL when remove domain

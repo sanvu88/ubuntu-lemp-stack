@@ -39,7 +39,7 @@ fixed_lock_frontend(){
     killall apt apt-get
     rm -rf /var/lib/apt/lists/lock
     rm -rf /var/cache/apt/archives/*
-    rm -rf /var/lib/dpkg/lock-frontend
+    rm -rf /var/lib/dpkg/*
 }
 
 # Remove unnecessary services

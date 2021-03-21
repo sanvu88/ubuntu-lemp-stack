@@ -136,6 +136,20 @@ _enable_cache() {
             fi
         fi
 
+        _cd_dir /home/"${user}"/"${domain}"/public_html
+        wp config set DISABLE_WP_CRON true --raw --allow-root
+        if [ ! -f "${WORDPRESS_CRON_DIR}/${domain}" ]; then
+            touch "${WORDPRESS_CRON_DIR}"/"${domain}"
+
+            cron_exists=$(crontab -l | grep -w 'wpcron')
+            if [ -z "${cron_exists}" ]; then
+                crontab -l >wpcron
+                echo "* * * * * bash /var/hostvn/menu/cronjob/wpcron >/dev/null 2>&1" >>wpcron
+                crontab wpcron
+                rm -rf wpcron
+            fi
+        fi
+
         sed -i "s|php_no_cache.conf|php_cache_woo.conf|g" "${VHOST_DIR}"/"${domain}".conf
     else
         sed -i "s|php_no_cache.conf|php_cache.conf|g" "${VHOST_DIR}"/"${domain}".conf

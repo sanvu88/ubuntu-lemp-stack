@@ -232,7 +232,7 @@ END
 _create_user() {
     if ! if_user_exists "${user}"; then
         user_pass=$(_gen_pass)
-        useradd --shell /sbin/nologin "${user}"
+        useradd --shell=/bin/false "${user}"
         usermod -G filetransfer "${user}"
         passwd "${user}" <<EOF
 ${user_pass}
@@ -490,7 +490,6 @@ _show_info() {
     printf "* SFTP Port                   : %s\n" "${ssh_port}"
     printf "* Public_html                 : %s\n" "/home/${user}/${domain}/public_html"
     if [ "${prompt_inst_wp}" = "y" ]; then
-        printf "* User dang nhap wp-admin    : %s\n" "${admin_user}"
         printf "* User dang nhap wp-admin    : %s\n" "${admin_user}"
         printf "* Mat khau dang nhap wp-admin: %s\n" "${admin_pwd}"
     fi

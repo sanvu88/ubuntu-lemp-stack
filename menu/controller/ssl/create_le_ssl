@@ -136,7 +136,7 @@ _run() {
 
         if [ -z "${ALERT}" ]; then
             if [ -f "/root/.acme.sh/account.conf" ]; then
-                check_cf_config=$(grep -w "CF_Token" "/root/.acme.sh/account.conf")
+                check_cf_config=$(grep -w "CF_Key" "/root/.acme.sh/account.conf")
                 if [ -n "${check_cf_config}" ]; then
                     _method_verify
                 fi

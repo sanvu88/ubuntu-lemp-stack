@@ -39,15 +39,23 @@ _select_cf_action() {
 
 _enable_cf_api() {
     if [ -f "/root/.acme.sh/account.conf" ]; then
-        check_cf_config=$(grep -w "CF_Token" "/root/.acme.sh/account.conf")
+        check_cf_config=$(grep -w "CF_Key" "/root/.acme.sh/account.conf")
         if [ -z "${check_cf_config}" ]; then
             read -r -p "Nhap vao CF Token [0 = thoat]: " cf_token
 
+
             if [[ -n "${cf_token}" && "${cf_token}" != 0 ]]; then
-                cat >>"/root/.acme.sh/account.conf" <<END
-CF_Token="${cf_token}"
+                read -r -p "Nhap vao Email dang nhap CloudFlare [0 = thoat]: " cf_email
+
+                if [[ -n "${cf_email}" && "${cf_email}" != 0 ]]; then
+                    cat >>"/root/.acme.sh/account.conf" <<END
+CF_Key="${cf_token}"
+CF_Email="${cf_email}"
 END
-                notify="${GREEN}Cau hinh thanh cong. Vui long thoat SSH va login lai de cau hinh co hieu luc.${NC}"
+                    notify="${GREEN}Cau hinh thanh cong. Vui long thoat SSH va login lai de cau hinh co hieu luc.${NC}"
+                else
+                    notify="${RED}Huy thao tac.${NC}"
+                fi
             else
                 notify="${RED}Huy thao tac.${NC}"
             fi
@@ -64,7 +72,7 @@ END
 
 _disable_cf_api() {
     if [ -f "/root/.acme.sh/account.conf" ]; then
-        check_cf_config=$(grep -w "CF_Token" "/root/.acme.sh/account.conf")
+        check_cf_config=$(grep -w "CF_Key" "/root/.acme.sh/account.conf")
         if [ -n "${check_cf_config}" ]; then
             while true; do
                 read -r -p "Ban muon xoa cau hinh CloudFlare API ? (y/n) " promt_disable_cf
@@ -78,7 +86,8 @@ _disable_cf_api() {
             done
 
             if [[ "${promt_disable_cf}" =~ ^([yY])$ ]]; then
-                sed -i "/CF_Token/d" /root/.acme.sh/account.conf
+                sed -i "/CF_Key/d" /root/.acme.sh/account.conf
+                sed -i "/CF_Email/d" /root/.acme.sh/account.conf
                 #                sed -i "/CF_Account_ID/d" /root/.acme.sh/account.conf
                 #                sed -i "/CF_Zone_ID/d" /root/.acme.sh/account.conf
                 notify="${GREEN}Xoa cau hinh thanh cong.${NC} ${RED}Vui long thoat SSH va login lai de cau hinh co hieu luc.${NC}"

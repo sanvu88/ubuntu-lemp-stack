@@ -35,9 +35,9 @@ _show_info() {
     printf "5.  DB_Password                : %s\n" "${db_password}"
     printf "6.  Username (SFTP)            : %s\n" "${user}"
     printf "7.  Password (SFTP)            : %s\n" "${user_pass}"
-    printf "8.  FTP Host                   : %s\n" "${IPADDRESS}"
-    printf "9.  FTP Port                   : %s\n" "${ssh_port}"
-    printf "10.  Public_html                : %s\n" "/home/${user}/${domain}/public_html"
+    printf "8.  SFTP Host                  : %s\n" "${IPADDRESS}"
+    printf "9.  SFTP Port                  : %s\n" "${ssh_port}"
+    printf "10.  Public_html               : %s\n" "/home/${user}/${domain}/public_html"
     printf "11. Nginx vHost                : %s\n" "/etc/nginx/conf.d/${domain}.conf"
     printf "12. PHP config                 : %s\n" "/etc/php/${php_version}/fpm/pool.d/${domain}.conf"
     if [ -n "${htpasswd_user}" ]; then

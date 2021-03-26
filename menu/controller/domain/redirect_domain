@@ -136,8 +136,9 @@ _create_redirect_vhost() {
             protocol="https://"
         fi
 
-        cat >>"${REDIRECT_DIR}/${redirect_domain}" <<END
+        cat >>"${REDIRECT_DIR}/${redirect_domain}.conf" <<END
 server {
+    listen 80;
     server_name ${redirect_domain} www.${redirect_domain};
     return       301 ${protocol}${domain}\$request_uri;
 }

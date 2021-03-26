@@ -33,6 +33,7 @@ _run() {
         printf "%s\n" "${RED}Ban da huy hanh dong.${NC}"
     else
         rclone config delete "${remote}"
+        sed -i "/${remote}/d" "${FILE_INFO}"
         clear
         printf "%s\n" "${GREEN}Xoa remote thanh cong.${NC}"
     fi

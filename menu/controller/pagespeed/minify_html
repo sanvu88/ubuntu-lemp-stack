@@ -43,8 +43,8 @@ _select_site_enable_minify_html(){
         domains=()
         echo "${LIST_DOMAIN}"
         _cd_dir "${USER_DIR}"
-        for entry in .*.conf; do
-            domain=${entry/./}
+        for entry_html in .*.conf; do
+            domain=${entry_html/./}
             domain=${domain//.conf/}
             if [ -f "${PAGESPEED_DIR}/${domain}/main.conf" ]; then
                 check_minify_html=$(grep -w "minify_html.conf" "${PAGESPEED_DIR}/${domain}/main.conf")
@@ -59,8 +59,8 @@ _select_site_enable_minify_html(){
         else
             echo "Lua chon website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "
-            select opt in "${domains[@]}"; do
-                domain=$opt
+            select opt_html in "${domains[@]}"; do
+                domain=$opt_html
                 break
             done
         fi

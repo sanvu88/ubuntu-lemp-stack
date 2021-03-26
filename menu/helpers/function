@@ -263,12 +263,18 @@ _select_remote(){
 
     PS3="${SELECT_OPTION}"
 
-    select opt in "${remotes[@]}"
+    select opt_remote in ${remotes[@]}
     do
-        case $opt in
-            "$opt") remote=${opt}; break ;;
-        esac
+        remote=${opt_remote}
+        break
     done
+
+#    select opt_remote in "${remotes[@]}"
+#    do
+#        case $opt_remote in
+#            "$opt_remote") remote=${opt_remote}; break ;;
+#        esac
+#    done
 }
 
 _restart_service(){

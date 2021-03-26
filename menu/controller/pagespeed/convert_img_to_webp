@@ -18,8 +18,8 @@ _select_action(){
     printf "%s\n" "Lua chon thao tac ban muon thuc hien"
     PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
     options_css=("Enable Convert Image to Webp" "Disable Convert Image to Webp" "Cancel")
-    select opt_css in "${options_css[@]}"; do
-        case $opt_css in
+    select opt_webp in "${options_css[@]}"; do
+        case $opt_webp in
         "Enable Convert Image to Webp")
             action="enable"
             break
@@ -43,8 +43,8 @@ _select_site_enable_convert_img_to_webp(){
         domains=()
         echo "${LIST_DOMAIN}"
         _cd_dir "${USER_DIR}"
-        for entry in .*.conf; do
-            domain=${entry/./}
+        for entry_webp in .*.conf; do
+            domain=${entry_webp/./}
             domain=${domain//.conf/}
             if [ -f "${PAGESPEED_DIR}/${domain}/main.conf" ]; then
                 check_img_to_webp=$(grep -w "img_to_webp.conf" "${PAGESPEED_DIR}/${domain}/main.conf")
@@ -59,8 +59,8 @@ _select_site_enable_convert_img_to_webp(){
         else
             echo "Lua chon website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "
-            select opt in "${domains[@]}"; do
-                domain=$opt
+            select opt_webp in "${domains[@]}"; do
+                domain=$opt_webp
                 break
             done
         fi
@@ -75,8 +75,8 @@ _select_site_disable_convert_img_to_webp(){
         domains=()
         echo "${LIST_DOMAIN}"
         _cd_dir "${USER_DIR}"
-        for entry in .*.conf; do
-            domain=${entry/./}
+        for entry_webp in .*.conf; do
+            domain=${entry_webp/./}
             domain=${domain//.conf/}
             if [ -f "${PAGESPEED_DIR}/${domain}/main.conf" ]; then
                 check_img_to_webp=$(grep -w "img_to_webp.conf" "${PAGESPEED_DIR}/${domain}/main.conf")
@@ -91,8 +91,8 @@ _select_site_disable_convert_img_to_webp(){
         else
             echo "Lua chon website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "
-            select opt in "${domains[@]}"; do
-                domain=$opt
+            select opt_webp in "${domains[@]}"; do
+                domain=$opt_webp
                 break
             done
         fi

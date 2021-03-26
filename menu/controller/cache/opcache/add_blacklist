@@ -24,7 +24,7 @@ _run(){
     if [ "${php2_release}" == "yes" ]; then
         string2=$(grep -rnw "/etc/php/${php2_version}/fpm/conf.d/opcache-default.blacklist" -e "${domain}")
         if [ -z "$string2" ]; then
-            echo "/home/${user}/${domain}/public_html" >> /etc/php/"${php2_version}"/fpm/conf.d/opcache-default.blacklist
+            echo "/home/${user}/${domain}/public_html/*" >> /etc/php/"${php2_version}"/fpm/conf.d/opcache-default.blacklist
             systemctl restart php"${php2_version}"-fpm
         fi
     fi

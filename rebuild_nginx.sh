@@ -10,6 +10,8 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
+apt-get install build-essential zlib1g-dev libpcre3 libpcre3-dev unzip uuid-dev -y
+
 UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
 MODULE_PATH="/usr/share/nginx_module"
 mkdir -p "${MODULE_PATH}"

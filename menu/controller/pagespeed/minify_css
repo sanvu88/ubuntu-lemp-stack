@@ -71,8 +71,8 @@ _select_site_enable_minify_css(){
         domains=()
         echo "${LIST_DOMAIN}"
         _cd_dir "${USER_DIR}"
-        for entry in .*.conf; do
-            domain=${entry/./}
+        for entry_minfy_css in .*.conf; do
+            domain=${entry_minfy_css/./}
             domain=${domain//.conf/}
             if [ -f "${PAGESPEED_DIR}/${domain}/main.conf" ]; then
                 check_minify_css=$(grep -w "minify_css.conf" "${PAGESPEED_DIR}/${domain}/main.conf")
@@ -87,8 +87,8 @@ _select_site_enable_minify_css(){
         else
             echo "Lua chon website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "
-            select opt in "${domains[@]}"; do
-                domain=$opt
+            select opt_minify_css in "${domains[@]}"; do
+                domain=$opt_minify_css
                 break
             done
         fi

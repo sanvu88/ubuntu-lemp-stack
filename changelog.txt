@@ -1,7 +1,4 @@
-v0.1.3
+v0.1.4
 
-- Added: Chmod image file after compress
-- Added: Change method wp-cron when enable Nginx Fastcgi cache
-- Fixed: Wrong detect website enable fastcgi cache
-- Fixed: Config CloudFlare DNS API
-- Fixed: Don't delete SSL when remove domain
+- Fixed: Add website to opcache blacklist
+- Fixed: phpMyAdmin on php 8.0

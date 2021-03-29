@@ -142,11 +142,21 @@ server {
     server_name ${redirect_domain} www.${redirect_domain};
     return       301 ${protocol}${domain}\$request_uri;
 }
+
+server {
+    listen 443 ssl http2;
+    server_name ${redirect_domain} www.${redirect_domain};
+
+    ssl_certificate_key /etc/nginx/ssl/${domain}/paid/key.pem;
+    ssl_certificate /etc/nginx/ssl/${domain}/paid/cert.pem;
+
+    return       301 ${protocol}${domain}\$request_uri;
+}
 END
         if nginx -t; then
             systemctl restart nginx
             clear
-            printf "%s\n" "${GREEN}Tao Alias Domain thanh cong.${NC}"
+            printf "%s\n" "${GREEN}Tao Redirect Domain thanh cong.${NC}"
         else
             clear
             nginx -t

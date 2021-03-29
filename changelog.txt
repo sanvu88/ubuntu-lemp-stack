@@ -2,3 +2,4 @@ v0.1.4
 
 - Fixed: Add website to opcache blacklist
 - Fixed: phpMyAdmin on php 8.0
+- Fixed: Error SSL When use Redirect domain

@@ -77,7 +77,7 @@ _destroy_redirect_domain() {
         rm -rf "/root/.acme.sh/${redirect_domain}"
 
         if nginx -t; then
-            systemctl restart nginx
+            systemctl reload nginx
             clear
             printf "%s\n" "${GREEN}Xoa Redirect domain thanh cong.${NC}"
         else
@@ -154,7 +154,7 @@ server {
 }
 END
         if nginx -t; then
-            systemctl restart nginx
+            systemctl reload nginx
             clear
             printf "%s\n" "${GREEN}Tao Redirect Domain thanh cong.${NC}"
         else

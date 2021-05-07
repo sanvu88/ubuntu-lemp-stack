@@ -80,7 +80,7 @@ _destroy_alias_domain() {
         done
 
         if nginx -t; then
-            systemctl restart nginx
+            systemctl reload nginx
             clear
             printf "%s\n" "${GREEN}Xoa Parked/Alias thanh cong.${NC}"
         else
@@ -195,7 +195,7 @@ _add_alias_domain() {
 include ${ALIAS_DIR}/${alias_domain}.conf;
 END
         if nginx -t; then
-            systemctl restart nginx
+            systemctl reload nginx
             clear
             printf "%s\n" "${GREEN}Tao Alias Domain thanh cong.${NC}"
         else

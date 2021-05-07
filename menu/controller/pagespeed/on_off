@@ -165,7 +165,7 @@ _disable_pagespeed(){
 _clear_cache(){
     rm -rf /home/"${user}"/"${domain}"/ngx_pagespeed/*
     if nginx -t; then
-        systemctl restart nginx
+        systemctl reload nginx
     fi
 
     clear

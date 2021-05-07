@@ -332,7 +332,7 @@ _run(){
     _change_php_user
 
     if nginx -t; then
-        systemctl restart nginx
+        systemctl reload nginx
         systemctl restart php"${php1_version}"-fpm
         if [ "${php2_release}" == "yes" ]; then
             systemctl restart php"${php2_version}"-fpm

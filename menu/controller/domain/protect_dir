@@ -168,7 +168,7 @@ END
     fi
 
     if nginx -t; then
-        systemctl restart nginx
+        systemctl reload nginx
         clear
         printf "%s\n" "${GREEN}${notify}${NC}"
         if [ -n "${user_notify}" ]; then

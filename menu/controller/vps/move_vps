@@ -544,7 +544,7 @@ _run() {
                 fi
 
                 if nginx -t; then
-                    systemctl restart nginx
+                    systemctl reload nginx
                 fi
 
                 systemctl restart mariadb

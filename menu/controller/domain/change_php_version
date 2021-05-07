@@ -97,7 +97,7 @@ _run(){
             _edit_user_info
 
             if nginx -t; then
-                systemctl restart nginx
+                systemctl reload nginx
                 systemctl restart php"${php_version_current}"-fpm
                 systemctl restart php"${php_version_new}"-fpm
 

@@ -76,7 +76,7 @@ _change_port() {
     systemctl restart fail2ban
 
     if nginx -t; then
-        systemctl restart nginx
+        systemctl reload nginx
         clear
         printf "%s\n" "${GREEN}${lang_change_port_success} New port:${NC} ${RED}${new_port}${NC}"
     else

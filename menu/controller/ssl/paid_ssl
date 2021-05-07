@@ -21,8 +21,8 @@ echo
 _select_ssl_action() {
     clear
     printf "%s\n" "Lua chon thao tac ban muon thuc hien"
-    PS3="Nhap vao lua chon cua ban [ 1 - 4 ]: "
-    options=("Tao CSR" "Tao CRT/CA" "Tao Private Key" "Redirect http to https" "Remove SSL" "Cancel")
+    PS3="Nhap vao lua chon cua ban [ 1 - 3 ]: "
+    options=("Tao CSR" "Tao CRT/CA" "Tao Private Key" "Remove SSL" "Cancel")
     select opt in "${options[@]}"; do
         case $opt in
         "Tao CSR")
@@ -35,10 +35,6 @@ _select_ssl_action() {
             ;;
         "Tao Private Key")
             action="create_key"
-            break
-            ;;
-        "Redirect http to https")
-            action="http_https"
             break
             ;;
         "Remove SSL")
@@ -115,6 +111,7 @@ _create_crt(){
         sleep 3
         nano "${SSL_DIR}"/"${domain}"/paid/cert.pem
         notify="${GREEN}Tao file CRT thanh cong.${NC}"
+        _redirect_http_to_https
     fi
 }
 
@@ -141,6 +138,7 @@ _create_key(){
         sleep 3
         nano "${SSL_DIR}"/"${domain}"/paid/key.pem
         notify="${GREEN}Tao file Private Key thanh cong.${NC}"
+        _redirect_http_to_https
     fi
 }
 
@@ -198,8 +196,6 @@ _run(){
         _create_csr
     elif [ "${action}" == "create_crt" ]; then
         _create_crt
-    elif [ "${action}" == "http_https" ]; then
-        _redirect_http_to_https
     elif [ "${action}" == "remove_ssl" ]; then
         _remove_ssl
     else

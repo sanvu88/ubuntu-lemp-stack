@@ -1,9 +1,5 @@
 #!/bin/bash
 
-exec 19>/opt/deploy.txt
-BASH_XTRACEFD=19
-set -x
-
 ######################################################################
 #           Auto Install & Optimize LEMP Stack on Ubuntu             #
 #                                                                    #
@@ -17,7 +13,7 @@ set -x
 source /var/hostvn/menu/validate/rule
 source /var/hostvn/menu/helpers/function
 
-_select_resource(){
+_select_resource() {
     _cd_dir /home/"${user}"/"${domain}"/public_html
     compress_files=()
     for file_entry in *.{zip,tar.gz,tgz}; do
@@ -30,8 +26,7 @@ _select_resource(){
         clear
         echo "Chon file  muon giai nen"
         PS3="Nhap vao lua chon cua ban [0 = Thoat]: "
-        select opt_file in "${compress_files[@]}"
-        do
+        select opt_file in "${compress_files[@]}"; do
             file=$opt_file
             break
         done
@@ -50,8 +45,7 @@ _select_resource(){
             if [ ${#sql_files[@]} -ne 0 ]; then
                 echo "Chon file database muon khoi phuc"
                 PS3="Nhap vao lua chon cua ban [0 = Thoat]: "
-                select opt_sql in "${sql_files[@]}"
-                do
+                select opt_sql in "${sql_files[@]}"; do
                     sql=$opt_sql
                     break
                 done
@@ -59,8 +53,6 @@ _select_resource(){
                 if [ -z "${sql}" ]; then
                     ALERT=$(printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}")
                 fi
-            else
-                ALERT=$(printf "%s\n" "${RED}Khong tim thay file sql nao trong Public_html.${NC}")
             fi
         fi
     else
@@ -68,7 +60,7 @@ _select_resource(){
     fi
 }
 
-_deploy_source(){
+_deploy_source() {
     file_type=$(file --mime-type -b "${file}")
     if [ "${file_type}" == "application/zip" ]; then
         if [ ! -f "/usr/bin/unzip" ]; then
@@ -88,20 +80,22 @@ _deploy_source(){
     rm -rf "${file}"
 }
 
-_deploy_db(){
+_deploy_db() {
     _empty_db
-    if [[ ${sql} == *"sql.gz"* ]]; then
-        sql_file=$(echo "${sql}" | cut -f1 -d'.')
-        gzip -d "${sql}"
-        mysql -uadmin -p"${mysql_pwd}" "${db_name}" <  "${sql_file}".sql
-        rm -rf "${sql_file}".sql
-    else
-        mysql -uadmin -p"${mysql_pwd}" "${db_name}" < "${sql}"
-        rm -rf "${sql}"
+    if [[ ${sql} == *"sql.gz"* || ${sql} == *".sql"* ]]; then
+        if [[ ${sql} == *"sql.gz"* ]]; then
+            sql_file=$(echo "${sql}" | cut -f1 -d'.')
+            gzip -d "${sql}"
+            mysql -uadmin -p"${mysql_pwd}" "${db_name}" <"${sql_file}".sql
+            rm -rf "${sql_file}".sql
+        else
+            mysql -uadmin -p"${mysql_pwd}" "${db_name}" <"${sql}"
+            rm -rf "${sql}"
+        fi
     fi
 }
 
-_edit_wp_config(){
+_edit_wp_config() {
     _cd_dir /home/"${user}"/"${domain}"/public_html
     db_prefix=$(wp config get table_prefix --allow-root)
 
@@ -117,7 +111,7 @@ define( 'WP_MAX_MEMORY_LIMIT', '128M' );
 PHP
 }
 
-_change_wordpress_domain(){
+_change_wordpress_domain() {
     old_domain=$(wp option get siteurl --allow-root | cut -f2 -d':')
     old_domain=${old_domain//[\/]/}
     if [ "${old_domain}" != "${domain}" ]; then
@@ -126,7 +120,7 @@ _change_wordpress_domain(){
     fi
 }
 
-_chmod_chown(){
+_chmod_chown() {
     chmod 711 /home
     chmod 755 /home/"${user}"
     chmod 711 /home/"${user}"/"${domain}"
@@ -140,7 +134,7 @@ _chmod_chown(){
     chown -R "${user}":"${user}" /home/"${user}"/php
 }
 
-_run(){
+_run() {
     _select_resource
 
     if [ -n "${ALERT}" ]; then

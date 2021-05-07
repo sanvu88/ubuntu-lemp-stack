@@ -1,5 +1,4 @@
-v0.1.4
+v0.1.5
 
-- Fixed: Add website to opcache blacklist
-- Fixed: phpMyAdmin on php 8.0
-- Fixed: Error SSL When use Redirect domain
+- Fixed: Khong tim thay file SQL trong Tool Deploy website
+

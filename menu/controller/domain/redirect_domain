@@ -113,7 +113,7 @@ _input_redirect_domain() {
         fi
     done
 
-    redirect_domain=${redirect_domain//www.}
+    redirect_domain=${redirect_domain//www./}
 }
 
 _create_redirect_vhost() {
@@ -147,8 +147,8 @@ server {
     listen 443 ssl http2;
     server_name ${redirect_domain} www.${redirect_domain};
 
-    ssl_certificate_key /etc/nginx/ssl/${domain}/paid/key.pem;
-    ssl_certificate /etc/nginx/ssl/${domain}/paid/cert.pem;
+    ${ssl_cert}
+    ${ssl_key}
 
     return       301 ${protocol}${domain}\$request_uri;
 }
@@ -187,8 +187,28 @@ else
         clear
         printf "%s\n" "${RED}Huy thao tac.${NC}"
     else
-        _input_redirect_domain
-        _create_redirect_vhost
+        if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+            expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+            if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+                ssl_cert="ssl_certificate ${SSL_DIR}/${domain}/cert.pem;"
+                ssl_key="ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;"
+            fi
+        fi
+
+        if [[ -f "${SSL_DIR}/${domain}/paid/key.pem" && -f "${SSL_DIR}/${domain}/paid/cert.pem" && -s "${SSL_DIR}/${domain}/paid/key.pem" && -s "${SSL_DIR}/${domain}/paid/cert.pem" ]]; then
+            expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/paid/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+            if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+                ssl_cert="ssl_certificate  ${SSL_DIR}/${domain}/paid/cert.pem;"
+                ssl_key="ssl_certificate_key ${SSL_DIR}/${domain}/paid/key.pem;"
+            fi
+        fi
+        if [[ -z "${ssl_cert}" || -z "${ssl_key}" ]]; then
+            clear
+            printf "%s\n" "${RED}Vui long cai dat SSL cho ten mien chinh truoc.${NC}"
+        else
+            _input_redirect_domain
+            _create_redirect_vhost
+        fi
     fi
 fi
 

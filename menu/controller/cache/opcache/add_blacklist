@@ -17,7 +17,7 @@ _run(){
     string1=$(grep -rnw "/etc/php/${php1_version}/fpm/conf.d/opcache-default.blacklist" -e "${domain}")
     user=$(grep -w "username" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=');
     if [ -z "${string1}" ]; then
-        echo "/home/${user}/${domain}/public_html" >> /etc/php/"${php1_version}"/fpm/conf.d/opcache-default.blacklist
+        echo "/home/${user}/${domain}/public_html/*" >> /etc/php/"${php1_version}"/fpm/conf.d/opcache-default.blacklist
         systemctl restart php"${php1_version}"-fpm
     fi
 

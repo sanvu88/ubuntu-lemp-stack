@@ -10,26 +10,24 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
+
+df -P / | grep / | awk '{ print $5}' | sed 's/%//g'
+
 _create_service_notify_file(){
     mkdir -p /var/hostvn/telegram
-    cat >> "/var/hostvn/telegram/servicesNotify.sh" << END
+    cat >> "/var/hostvn/telegram/diskNotify.sh" << END
 #!/bin/sh
 
 USERID="$TELEGRAM_ID"
 KEY="$TELEGRAM_KEY"
 TIMEOUT="10"
+THRESHOLD=90
 URL="https://api.telegram.org/bot\$KEY/sendMessage"
 DATE_EXEC="\$(date "+%d %b %Y %H:%M")"
-NGINX_STATUS=$(systemctl is-active nginx)
-MARIADB_STATUS=$(systemctl is-active mariadb)
+DISK_CURRENT=\$(df -P / | grep / | awk '{ print $5}' | sed 's/%//g')
 
-if [ \$NGINX_STATUS != "active" ]; then
-    TEXT="\$DATE_EXEC: CANH BAO - Nginx hien khong hoat dong"
-    curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
-fi
-
-if [ \$MARIADB_STATUS != "active" ]; then
-    TEXT="\$DATE_EXEC: CANH BAO - Mysql hien khong hoat dong"
+if [ \$DISK_CURRENT >= \$THRESHOLD ]; then
+    TEXT="\$DATE_EXEC: CANH BAO - VPS da su dung \${DISK_CURRENT}% dung luong."
     curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
 fi
 END

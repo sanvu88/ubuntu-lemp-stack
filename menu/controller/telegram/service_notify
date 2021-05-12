@@ -1,0 +1,45 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_create_service_notify_file(){
+  cat >> "/etc/profile.d/nginx-notify.sh" << END
+#!/bin/sh
+
+USERID="$TELEGRAM_ID"
+KEY="$TELEGRAM_KEY"
+TIMEOUT="10"
+URL="https://api.telegram.org/bot\$KEY/sendMessage"
+DATE_EXEC="\$(date "+%d %b %Y %H:%M")"
+NGINX_STATUS=$(systemctl is-active nginx)
+
+if [ \$NGINX_STATUS != "active" ]; then
+    TEXT="\$DATE_EXEC: WARNING - Nginx is not running"
+    curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+fi
+END
+
+    cat >> "/etc/profile.d/mariadb-notify.sh" << END
+#!/bin/sh
+
+USERID="$TELEGRAM_ID"
+KEY="$TELEGRAM_KEY"
+TIMEOUT="10"
+URL="https://api.telegram.org/bot\$KEY/sendMessage"
+DATE_EXEC="\$(date "+%d %b %Y %H:%M")"
+MARIADB_STATUS=$(systemctl is-active mariadb)
+
+if [ \$MARIADB_STATUS != "active" ]; then
+    TEXT="\$DATE_EXEC: WARNING - Mysql is not running"
+    curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+fi
+END
+}

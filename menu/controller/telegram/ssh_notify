@@ -1,0 +1,54 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_check(){
+  if [ -f /etc/profile.d/ssh-notify.sh ]; then
+      echo ''
+  fi
+
+  if [ ! -f /usr/bin/jq ]; then
+      apt update && apt install jq -y
+      clear
+  fi
+}
+
+_create_ssh_notify_file(){
+  cat >> "/etc/profile.d/ssh-notify.sh" << END
+#!/bin/sh
+
+USERID="$TELEGRAM_ID"
+KEY="$TELEGRAM_KEY"
+
+TIMEOUT="10"
+URL="https://api.telegram.org/bot\$KEY/sendMessage"
+DATE_EXEC="\$(date "+%d %b %Y %H:%M")"
+TMPFILE='/tmp/ipinfo-\$DATE_EXEC.txt'
+
+if [ -n "\$SSH_CLIENT" ]; then
+  IP=\$(echo \$SSH_CLIENT | awk '{print \$1}')
+  PORT=\$(echo \$SSH_CLIENT | awk '{print \$3}')
+  HOSTNAME=\$(hostname -f)
+  IPADDR=\$(hostname -I | awk '{print \$1}')
+  curl http://ipinfo.io/\$IP -s -o \$TMPFILE
+  CITY=\$(cat \$TMPFILE | jq '.city' | sed 's/"//g')
+  REGION=\$(cat \$TMPFILE | jq '.region' | sed 's/"//g')
+  COUNTRY=\$(cat \$TMPFILE | jq '.country' | sed 's/"//g')
+  ORG=\$(cat \$TMPFILE | jq '.org' | sed 's/"//g')
+  TEXT="\$DATE_EXEC: \${USER} logged in to \$HOSTNAME (\$IPADDR) from \$IP - \$ORG - \$CITY, \$REGION, \$COUNTRY on port \$PORT"
+  curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+  rm \$TMPFILE
+fi
+END
+}

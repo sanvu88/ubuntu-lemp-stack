@@ -1,9 +1,5 @@
 #!/bin/bash
 
-exec 19>/opt/css.txt
-BASH_XTRACEFD=19
-set -x
-
 ######################################################################
 #           Auto Install & Optimize LEMP Stack on Ubuntu             #
 #                                                                    #

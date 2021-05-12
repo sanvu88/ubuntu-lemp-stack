@@ -1,5 +1,8 @@
 #!/bin/bash
 
+exec 19>/opt/install.txt
+BASH_XTRACEFD=19
+set -x
 
 ######################################################################
 #           Auto Install & Optimize LEMP Stack on Ubuntu             #

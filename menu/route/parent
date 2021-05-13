@@ -525,3 +525,23 @@ update_script(){
 change_language(){
     . /var/hostvn/menu/controller/vps/change_language
 }
+
+telegram_notify(){
+    . /var/hostvn/menu/route/notify
+}
+
+telegram_ssh_notify(){
+    . /var/hostvn/menu/controller/telegram/ssh_notify
+}
+
+telegram_service_notify(){
+    . /var/hostvn/menu/controller/telegram/service_notify
+}
+
+telegram_disk_notify(){
+    . /var/hostvn/menu/controller/telegram/disk_notify
+}
+
+telegram_delete_notify(){
+    . /var/hostvn/menu/controller/telegram/delete_notify
+}

@@ -10,13 +10,10 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
-
-df -P / | grep / | awk '{ print $5}' | sed 's/%//g'
-
-_create_service_notify_file(){
+_create_disk_notify_file(){
     mkdir -p /var/hostvn/telegram
     cat >> "/var/hostvn/telegram/diskNotify.sh" << END
-#!/bin/sh
+#!/bin/bash
 
 USERID="$TELEGRAM_ID"
 KEY="$TELEGRAM_KEY"
@@ -24,11 +21,53 @@ TIMEOUT="10"
 THRESHOLD=90
 URL="https://api.telegram.org/bot\$KEY/sendMessage"
 DATE_EXEC="\$(date "+%d %b %Y %H:%M")"
-DISK_CURRENT=\$(df -P / | grep / | awk '{ print $5}' | sed 's/%//g')
+DISK_CURRENT=\$(df -P / | grep / | awk '{ print \$5}' | sed 's/%//g')
+IPADDR=\$(curl -s http://cyberpanel.sh/?ip)
 
-if [ \$DISK_CURRENT >= \$THRESHOLD ]; then
-    TEXT="\$DATE_EXEC: CANH BAO - VPS da su dung \${DISK_CURRENT}% dung luong."
+if [[ \$DISK_CURRENT -ge \$THRESHOLD ]]; then
+    TEXT="\$DATE_EXEC: CANH BAO - VPS \$IPADDR da su dung \${DISK_CURRENT}% dung luong."
     curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
 fi
 END
+
+    disk_cron_exists=$(crontab -l | grep -w 'diskNotify')
+    if [ -z "${disk_cron_exists}" ]; then
+        crontab -l >diskNotify
+        echo "*/5 * * * * bash /var/hostvn/telegram/diskNotify.sh >/dev/null 2>&1" >>diskNotify
+        crontab diskNotify
+        rm -rf diskNotify
+    fi
 }
+
+_run(){
+    if [ -f /var/hostvn/telegram/diskNotify.sh ]; then
+        ALERT=$(printf "%s" "${RED}Ban da tao Disk Notify roi.${NC}")
+    else
+        read -r -p "Nhap vao Telegram Chat ID: " TELEGRAM_ID
+        read -r -p "Nhap vao Telegram Token: " TELEGRAM_TOKEN
+
+        if [ -z "$TELEGRAM_ID" ]; then
+            ALERT=$(printf "%s" "${RED}Ban chua nhap Telegram ID.${NC}")
+        fi
+
+        if [ -z "$TELEGRAM_TOKEN" ]; then
+            ALERT=$(printf "%s" "${RED}Ban chua nhap Telegram Token.${NC}")
+        fi
+    fi
+
+    if [ -z "$ALERT" ]; then
+        _create_disk_notify_file
+        clear
+        printf "%s\n" "${GREEN}Tao Disk Notify thanh cong.${NC}"
+    else
+        clear
+        printf "%s\n" "$ALERT"
+    fi
+}
+
+ALERT=''
+TELEGRAM_ID=''
+TELEGRAM_TOKEN=''
+
+_run
+telegram_notify

@@ -13,19 +13,15 @@
 CHOICE=1
 
 printf "%s========================================%s\n" "${GREEN}" "${NC}"
-printf "%s                 Tools                  %s\n" "${GREEN}" "${NC}"
+printf "%s            Telegram Notify             %s\n" "${GREEN}" "${NC}"
 printf "%s========================================%s\n" "${GREEN}" "${NC}"
 
 while [ "${CHOICE}" != "0" ]
 do
-    printf "%s1. ${lang_compress_image}%s\n" "${GREEN}" "${NC}"
-    printf "%s2. Deploy website%s\n" "${GREEN}" "${NC}"
-    printf "%s3. ${lang_decompress} file (zip, tar.gz, tgz)%s\n" "${GREEN}" "${NC}"
-    printf "%s4. ${lang_check_website_size}%s\n" "${GREEN}" "${NC}"
-    printf "%s5. ${lang_find_large_file_folder}%s\n" "${GREEN}" "${NC}"
-    printf "%s6. Install Anti Virus%s\n" "${GREEN}" "${NC}"
-    printf "%s7. Install node.js & npm%s\n" "${GREEN}" "${NC}"
-    printf "%s8. Enable/Disable Telegram notify%s\n" "${GREEN}" "${NC}"
+    printf "%s1. Notify SSH Login%s\n" "${GREEN}" "${NC}"
+    printf "%s2. Notify Service (Nginx, MariaDB, PHP)%s\n" "${GREEN}" "${NC}"
+    printf "%s3. Notify Disk Usage%s\n" "${GREEN}" "${NC}"
+    printf "%s4. Delete notify%s\n" "${GREEN}" "${NC}"
     printf "%s========================================%s\n" "${GREEN}" "${NC}"
     read -r -p " ${SELECT_OPTION} " CHOICE
     if [ -z "${CHOICE}" ]
@@ -34,15 +30,11 @@ do
         continue
     fi
     case ${CHOICE} in
-        1) clear; tools_compress_image;;
-        2) clear; tools_deploy_website ;;
-        3) clear; tools_decompress_file ;;
-        4) clear; website_disk_usage ;;
-        5) clear; find_large_file_folder ;;
-        6) clear; tools_install_av ;;
-        7) clear; tools_install_nodejs ;;
-        8) clear; telegram_notify ;;
-        0) clear; menu_primary ;;
+        1) clear; telegram_ssh_notify;;
+        2) clear; telegram_service_notify ;;
+        3) clear; telegram_disk_notify ;;
+        4) clear; telegram_delete_notify ;;
+        0) clear; menu_tools ;;
         *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
     esac
 done

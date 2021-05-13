@@ -1,0 +1,96 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+_select_notify_action(){
+    clear
+    printf "%s\n" "Lua chon thao tac ban muon thuc hien"
+    PS3="Nhap vao lua chon cua ban [ 1 - 4 ]: "
+    options_js=("Delete Service (Nginx, MariaDB, PHP) Notify" "Delete Disk notify" "Delete SSH notify" "Cancel")
+    select opt_js_minify in "${options_js[@]}"; do
+        case $opt_js_minify in
+        "Delete Service (Nginx, MariaDB, PHP) Notify")
+            action="delete_service_notify"
+            break
+            ;;
+        "Delete Disk notify")
+            action="delete_disk_notify"
+            break
+            ;;
+        "Delete SSH notify")
+            action="delete_ssh_service"
+            break
+            ;;
+        "Cancel")
+            action="cancel"
+            break
+            ;;
+        *) printf "${RED}%s${NC}\n" "Lua chon cua ban khong chinh xac. Vui long chon lai." ;;
+        esac
+    done
+}
+
+_delete_ssh_notify(){
+    if [ ! -f /etc/profile.d/ssh-notify.sh ]; then
+        ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh SSH Notify.${NC}")
+    else
+        rm -rf /etc/profile.d/ssh-notify.sh
+        ALERT=$(printf "%s\n" "${GREEN}Xoa cau hinh SSH Notify thanh cong.${NC}")
+    fi
+}
+
+_delete_disk_notify(){
+    if [ -f /var/hostvn/telegram/diskNotify.sh ]; then
+        rm -rf /var/hostvn/telegram/diskNotify.sh
+        cron_exists=$(crontab -l | grep -w 'diskNotify')
+        if [ -n "${cron_exists}" ]; then
+            crontab -u root -l | grep -v "diskNotify" | crontab -u root -
+        fi
+        ALERT=$(printf "%s\n" "${GREEN}Xoa cau hinh SSH Notify thanh cong.${NC}")
+    else
+        ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh Disk Notify.${NC}")
+    fi
+}
+
+_delete_service_notify(){
+    if [ -f /var/hostvn/telegram/servicesNotify.sh ]; then
+        rm -rf /var/hostvn/telegram/servicesNotify.sh
+        cron_exists=$(crontab -l | grep -w 'servicesNotify')
+        if [ -n "${cron_exists}" ]; then
+            crontab -u root -l | grep -v "servicesNotify" | crontab -u root -
+        fi
+        ALERT=$(printf "%s\n" "${GREEN}Xoa cau hinh Services Notify thanh cong.${NC}")
+    else
+        ALERT=$(printf "%s\n" "${RED}Ban chua cau hinh Services Notify.${NC}")
+    fi
+}
+
+_run(){
+    if [ $action == "delete_service_notify" ]; then
+        _delete_service_notify
+    elif [ $action == "delete_disk_notify" ]; then
+        _delete_disk_notify
+    elif [ $action == "delete_ssh_service" ]; then
+        _delete_ssh_notify
+    else
+        clear
+        ALERT=$(printf "%s\n" "${RED}Huy hanh dong.${NC}")
+    fi
+
+    clear
+    printf "%s\n" "$ALERT"
+}
+
+ALERT=""
+action=""
+_select_notify_action
+_run
+telegram_notify

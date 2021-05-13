@@ -13,24 +13,84 @@
 _create_service_notify_file(){
     mkdir -p /var/hostvn/telegram
     cat >> "/var/hostvn/telegram/servicesNotify.sh" << END
-#!/bin/sh
+#!/bin/bash
 
-USERID="$TELEGRAM_ID"
-KEY="$TELEGRAM_KEY"
+PHP1_VERSION=\$(grep -w "php1_version" "/var/hostvn/.hostvn.conf" | cut -f2 -d'=')
+PHP2_VERSION=\$(grep -w "php2_version" "/var/hostvn/.hostvn.conf" | cut -f2 -d'=')
+CHAT_ID="$TELEGRAM_ID"
+TOKEN="$TELEGRAM_TOKEN"
 TIMEOUT="10"
-URL="https://api.telegram.org/bot\$KEY/sendMessage"
+URL="https://api.telegram.org/bot\$TOKEN/sendMessage"
 DATE_EXEC="\$(date "+%d %b %Y %H:%M")"
-NGINX_STATUS=$(systemctl is-active nginx)
-MARIADB_STATUS=$(systemctl is-active mariadb)
+NGINX_STATUS=\$(systemctl is-active nginx)
+MARIADB_STATUS=\$(systemctl is-active mariadb)
+IPADDR=\$(curl -s http://cyberpanel.sh/?ip)
 
 if [ \$NGINX_STATUS != "active" ]; then
-    TEXT="\$DATE_EXEC: CANH BAO - Nginx hien khong hoat dong"
-    curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+    TEXT="\$DATE_EXEC: CANH BAO - Nginx tren VPS \$IPADDR hien khong hoat dong"
+    curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
 fi
 
 if [ \$MARIADB_STATUS != "active" ]; then
-    TEXT="\$DATE_EXEC: CANH BAO - Mysql hien khong hoat dong"
-    curl -s --max-time \$TIMEOUT -d "chat_id=\$USERID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+    TEXT="\$DATE_EXEC: CANH BAO - Mysql tren VPS \$IPADDR hien khong hoat dong"
+    curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+fi
+
+if [ -n \$PHP1_VERSION ]; then
+    PHP1_STATUS=\$(systemctl is-active php\$PHP1_VERSION-fpm.service)
+    if [ \$PHP1_STATUS != "active" ]; then
+        TEXT="\$DATE_EXEC: CANH BAO - PHP-FPM \$PHP1_VERSION tren VPS \$IPADDR hien khong hoat dong"
+        curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+    fi
+fi
+
+if [ -n \$PHP2_VERSION ]; then
+    PHP2_STATUS=\$(systemctl is-active php\$PHP2_VERSION-fpm.service)
+    if [ \$PHP2_STATUS != "active" ]; then
+        TEXT="\$DATE_EXEC: CANH BAO - PHP-FPM \$PHP2_VERSION tren VPS \$IPADDR hien khong hoat dong"
+        curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
+    fi
 fi
 END
+
+    service_cron_exists=$(crontab -l | grep -w 'servicesNotify')
+    if [ -z "${service_cron_exists}" ]; then
+        crontab -l >servicesNotify
+        echo "*/5 * * * * bash /var/hostvn/telegram/servicesNotify.sh >/dev/null 2>&1" >>servicesNotify
+        crontab servicesNotify
+        rm -rf servicesNotify
+    fi
 }
+
+_run(){
+    if [ -f /var/hostvn/telegram/servicesNotify.sh ]; then
+        ALERT=$(printf "%s" "${RED}Ban da tao Service Notify roi.${NC}")
+    else
+        read -r -p "Nhap vao Telegram Chat ID: " TELEGRAM_ID
+        read -r -p "Nhap vao Telegram Token: " TELEGRAM_TOKEN
+
+        if [ -z "$TELEGRAM_ID" ]; then
+            ALERT=$(printf "%s" "${RED}Ban chua nhap Telegram ID.${NC}")
+        fi
+
+        if [ -z "$TELEGRAM_TOKEN" ]; then
+            ALERT=$(printf "%s" "${RED}Ban chua nhap Telegram Token.${NC}")
+        fi
+    fi
+
+    if [ -z "$ALERT" ]; then
+        _create_service_notify_file
+        clear
+        printf "%s\n" "${GREEN}Tao Service Notify thanh cong.${NC}"
+    else
+        clear
+        printf "%s\n" "$ALERT"
+    fi
+}
+
+ALERT=''
+TELEGRAM_ID=''
+TELEGRAM_TOKEN=''
+
+_run
+telegram_notify

@@ -10,20 +10,6 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
-source /var/hostvn/menu/validate/rule
-source /var/hostvn/menu/helpers/function
-
-_check(){
-  if [ -f /etc/profile.d/ssh-notify.sh ]; then
-      echo ''
-  fi
-
-  if [ ! -f /usr/bin/jq ]; then
-      apt update && apt install jq -y
-      clear
-  fi
-}
-
 _create_ssh_notify_file(){
   cat >> "/etc/profile.d/ssh-notify.sh" << END
 #!/bin/sh
@@ -52,3 +38,40 @@ if [ -n "\$SSH_CLIENT" ]; then
 fi
 END
 }
+
+_run(){
+    if [ -f /etc/profile.d/ssh-notify.sh ]; then
+        ALERT=$(printf "%s" "${RED}Ban da tao SSH Notify roi.${NC}")
+    else
+        read -r -p "Nhap vao Telegram Chat ID: " TELEGRAM_ID
+        read -r -p "Nhap vao Telegram Token: " TELEGRAM_TOKEN
+
+        if [ -z "$TELEGRAM_ID" ]; then
+            ALERT=$(printf "%s" "${RED}Ban chua nhap Telegram ID.${NC}")
+        fi
+
+        if [ -z "$TELEGRAM_TOKEN" ]; then
+            ALERT=$(printf "%s" "${RED}Ban chua nhap Telegram Token.${NC}")
+        fi
+    fi
+
+    if [ -z "$ALERT" ]; then
+        if [ ! -f /usr/bin/jq ]; then
+            apt update -y && apt install jq -y
+            clear
+        fi
+        _create_ssh_notify_file
+        clear
+        printf "%s\n" "${GREEN}Tao SSH Notify thanh cong.${NC}"
+    else
+        clear
+        printf "%s\n" "$ALERT"
+    fi
+}
+
+ALERT=''
+TELEGRAM_ID=''
+TELEGRAM_TOKEN=''
+
+_run
+telegram_notify

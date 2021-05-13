@@ -26,9 +26,9 @@ _show_info(){
     printf "Redis                   : %s\n" "${redis_status}"
     printf "MariaDB version         : %s\n" "$(mysql --version | cut -f6 -d' ' | cut -f1 -d'-')"
     printf "Nginx version           : %s\n" "$(nginx -v 2>&1 | grep -o '[0-9.]*$')"
-    printf "PHP default version     : %s\n" "${php1_version}"
+    printf "PHP default version     : %s\n" "${php1_version} - $(systemctl is-active php"$php1_version"-fpm.service)"
     if [ "${php2_release}" == "yes" ]; then
-        printf "PHP 2 version           : %s\n" "${php2_version}"
+        printf "PHP 2 version           : %s\n" "${php2_version} - $(systemctl is-active php"$php2_version"-fpm.service)"
     fi
 }
 

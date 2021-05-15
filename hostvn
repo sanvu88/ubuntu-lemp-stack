@@ -2258,7 +2258,7 @@ default_index() {
 </html>
 EOdefault_index
 
-    cp "${DEFAULT_DIR_WEB}"/index.html ${DEFAULT_DIR_TOOL}/index.html
+    cp "${DEFAULT_DIR_WEB}"/index.html ${DEFAULT_DIR_TOOL}
 }
 
 default_error_page() {
@@ -2291,7 +2291,7 @@ default_error_page() {
 </html>
 EOdefault_index
 
-    cp "${DEFAULT_DIR_WEB}"/50x.html ${DEFAULT_DIR_TOOL}/50x.html
+    cp "${DEFAULT_DIR_WEB}"/50x.html ${DEFAULT_DIR_TOOL}
 }
 
 wp_rocket_nginx() {

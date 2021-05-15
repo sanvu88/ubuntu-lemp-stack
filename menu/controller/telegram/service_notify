@@ -17,6 +17,7 @@ _create_service_notify_file(){
 
 PHP1_VERSION=\$(grep -w "php1_version" "/var/hostvn/.hostvn.conf" | cut -f2 -d'=')
 PHP2_VERSION=\$(grep -w "php2_version" "/var/hostvn/.hostvn.conf" | cut -f2 -d'=')
+PHP2_RELEASE=\$(grep -w "php2_release" "/var/hostvn/.hostvn.conf" | cut -f2 -d'=')
 CHAT_ID="$TELEGRAM_ID"
 TOKEN="$TELEGRAM_TOKEN"
 TIMEOUT="10"
@@ -26,27 +27,27 @@ NGINX_STATUS=\$(systemctl is-active nginx)
 MARIADB_STATUS=\$(systemctl is-active mariadb)
 IPADDR=\$(curl -s http://cyberpanel.sh/?ip)
 
-if [ \$NGINX_STATUS != "active" ]; then
+if [ "\$NGINX_STATUS" == "inactive" ]; then
     TEXT="\$DATE_EXEC: CANH BAO - Nginx tren VPS \$IPADDR hien khong hoat dong"
     curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
 fi
 
-if [ \$MARIADB_STATUS != "active" ]; then
+if [ "\$MARIADB_STATUS" == "inactive" ]; then
     TEXT="\$DATE_EXEC: CANH BAO - Mysql tren VPS \$IPADDR hien khong hoat dong"
     curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
 fi
 
-if [ -n \$PHP1_VERSION ]; then
+if [ -n "\$PHP1_VERSION" ]; then
     PHP1_STATUS=\$(systemctl is-active php\$PHP1_VERSION-fpm.service)
-    if [ \$PHP1_STATUS != "active" ]; then
+    if [ "\$PHP1_STATUS" == "inactive" ]; then
         TEXT="\$DATE_EXEC: CANH BAO - PHP-FPM \$PHP1_VERSION tren VPS \$IPADDR hien khong hoat dong"
         curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
     fi
 fi
 
-if [ -n \$PHP2_VERSION ]; then
+if [[ -n "\$PHP2_VERSION" && "\$PHP2_RELEASE" == "yes" ]]; then
     PHP2_STATUS=\$(systemctl is-active php\$PHP2_VERSION-fpm.service)
-    if [ \$PHP2_STATUS != "active" ]; then
+    if [ "\$PHP2_STATUS" == "inactive" ]; then
         TEXT="\$DATE_EXEC: CANH BAO - PHP-FPM \$PHP2_VERSION tren VPS \$IPADDR hien khong hoat dong"
         curl -s --max-time \$TIMEOUT -d "chat_id=\$CHAT_ID&disable_web_page_preview=1&text=\$TEXT" \$URL > /dev/null
     fi

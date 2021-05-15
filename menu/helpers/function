@@ -121,6 +121,7 @@ _select_source(){
         "CS-Cart"
         "Magento 2"
         "Nextcloud"
+        "Moodle"
         "Other"
     )
     select opt_source in "${source_options[@]}"
@@ -140,9 +141,10 @@ _select_source(){
             "CakePHP") SOURCE="cakephp"; break;;
             "Discuz") SOURCE="discuz"; break;;
             "Ecshop") SOURCE="ecshop"; break;;
-            "Nextcloud") SOURCE="nextcloud"; break;;
-            "Magento 2") SOURCE="magento2"; break;;
             "CS-Cart") SOURCE="cscart"; break;;
+            "Magento 2") SOURCE="magento2"; break;;
+            "Nextcloud") SOURCE="nextcloud"; break;;
+            "Moodle") SOURCE="moodle"; break;;
             "Other") SOURCE="default"; break;;
             *) printf "%s\n" "${RED}${WRONG_SELECT}${NC}";;
         esac

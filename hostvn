@@ -1819,8 +1819,8 @@ location = /favicon.ico { allow all; log_not_found off; access_log off; }
 location = /robots.txt { allow all; log_not_found off; access_log off; }
 location ~* \.(gif|jpg|jpeg|png|ico|webp)\$ {
     gzip_static off;
-    ${BROTLI_STATIC_OFF}
-    add_header Access-Control-Allow-Origin *;
+    brotli_static off;
+    #add_header Access-Control-Allow-Origin *;
     add_header Cache-Control "public, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800";
     access_log off;
     expires 365d;
@@ -1828,31 +1828,31 @@ location ~* \.(gif|jpg|jpeg|png|ico|webp)\$ {
 }
 location ~* \.(3gp|wmv|avi|asf|asx|mpg|mpeg|mp4|pls|mp3|mid|wav|swf|flv|exe|zip|tar|rar|gz|tgz|bz2|uha|7z|doc|docx|xls|xlsx|pdf|iso)\$ {
     gzip_static off;
-    ${BROTLI_STATIC_OFF}
+    brotli_static off;
     sendfile off;
     sendfile_max_chunk 1m;
-    add_header Access-Control-Allow-Origin *;
+    #add_header Access-Control-Allow-Origin *;
     add_header Cache-Control "public, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800";
     access_log off;
     expires 365d;
     break;
 }
 location ~* \.(js)\$ {
-    add_header Access-Control-Allow-Origin *;
+    #add_header Access-Control-Allow-Origin *;
     add_header Cache-Control "public, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800";
     access_log off;
     expires 365d;
     break;
 }
 location ~* \.(css)\$ {
-    add_header Access-Control-Allow-Origin *;
+    #add_header Access-Control-Allow-Origin *;
     add_header Cache-Control "public, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800";
     access_log off;
     expires 365d;
     break;
 }
 location ~* \.(eot|svg|ttf|woff|woff2)\$ {
-    add_header Access-Control-Allow-Origin *;
+    #add_header Access-Control-Allow-Origin *;
     add_header Cache-Control "public, must-revalidate, proxy-revalidate";
     access_log off;
     expires 365d;
@@ -1890,7 +1890,7 @@ location / { try_files \$uri \$uri/ /index.php?\$query_string; }
 EOrewrite_default
 
     cat >>"${REWRITE_CONFIG_PATH}/codeigniter.conf" <<EOrewrite_ci
-location / { try_files \$uri \$uri/ /index.php?/\$request_uri; }
+location / { try_files \$uri \$uri/ /index.php\$args; }
 EOrewrite_ci
 
     cat >>"${REWRITE_CONFIG_PATH}/discuz.conf" <<EOrewrite_discuz

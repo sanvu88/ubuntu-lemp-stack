@@ -147,6 +147,8 @@ _install_php(){
         sed -i '/RestrictRealtime=true/a RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' "${php1_service_file_2}"
         systemctl daemon-reload
     fi
+
+    update-alternatives --set php /usr/bin/php"${PHP1_VERSION_NEW}"
 }
 
 # Install igbinary

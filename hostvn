@@ -573,6 +573,8 @@ EOF
         sed -i '/RestrictRealtime=true/a RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' /lib/systemd/system/php"${PHP_VERSION}"-fpm.service
         systemctl daemon-reload
     fi
+
+    update-alternatives --set php /usr/bin/php"${PHP_VERSION}"
 }
 
 install_php_2() {

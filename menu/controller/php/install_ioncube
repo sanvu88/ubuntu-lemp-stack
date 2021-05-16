@@ -38,55 +38,63 @@ _download_ioncube(){
 
 _install_ioncube_php1(){
     PHP1_VERSION=$(grep -w "php1_version" "${FILE_INFO}" | cut -f2 -d'=')
-    PHP1_CONFIG_PATH="/etc/php/${PHP1_VERSION}/fpm"
-    PHP1_CLI_PATH="/etc/php/${PHP1_VERSION}/cli/conf.d"
-    PHP1_INI_PATH="${PHP1_CONFIG_PATH}/conf.d"
-    notify_php1_ioncube="Cai dat ionCube cho PHP 1 that bai."
-    COLOR1="${RED}"
+    if [ "$PHP1_VERSION" == "8.0" ]; then
+        notify_php1_ioncube="ionCube chua ho tro PHP 8."
+    else
+        PHP1_CONFIG_PATH="/etc/php/${PHP1_VERSION}/fpm"
+        PHP1_CLI_PATH="/etc/php/${PHP1_VERSION}/cli/conf.d"
+        PHP1_INI_PATH="${PHP1_CONFIG_PATH}/conf.d"
+        notify_php1_ioncube="Cai dat ionCube cho PHP 1 that bai."
+        COLOR1="${RED}"
 
-    check_php1_module=$(php"${PHP1_VERSION}" -m | grep ionCube)
+        check_php1_module=$(php"${PHP1_VERSION}" -m | grep ionCube)
 
-    if [ -n "${check_php1_module}" ]; then
-        notify_php1_ioncube="Cai dat ionCube cho PHP 1 thanh cong."
-        COLOR1="${GREEN}"
-    fi
+        if [ -n "${check_php1_module}" ]; then
+            notify_php1_ioncube="Cai dat ionCube cho PHP 1 thanh cong."
+            COLOR1="${GREEN}"
+        fi
 
-    if [[ -f "/usr/local/ioncube/ioncube_loader_lin_${PHP1_VERSION}.so" && -z "${check_php1_module}" ]]; then
-        cat >> "${PHP1_INI_PATH}/00-hostvn-custom.ini" << END
-zend_extension = /usr/local/ioncube/ioncube_loader_lin_${PHP1_VERSION}.so
+        if [[ -f "/usr/local/ioncube/ioncube_loader_lin_${PHP1_VERSION}.so" && -z "${check_php1_module}" ]]; then
+            cat >> "${PHP1_INI_PATH}/00-hostvn-custom.ini" << END
+    zend_extension = /usr/local/ioncube/ioncube_loader_lin_${PHP1_VERSION}.so
 END
 
-        rm -rf "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
-        cp "${PHP1_INI_PATH}"/00-hostvn-custom.ini "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
-        notify_php1_ioncube="Cai dat ionCube cho PHP 1 thanh cong."
-        COLOR1="${GREEN}"
-        systemctl restart php"${PHP1_VERSION}"-fpm
+            rm -rf "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+            cp "${PHP1_INI_PATH}"/00-hostvn-custom.ini "${PHP1_CLI_PATH}"/00-hostvn-custom.ini
+            notify_php1_ioncube="Cai dat ionCube cho PHP 1 thanh cong."
+            COLOR1="${GREEN}"
+            systemctl restart php"${PHP1_VERSION}"-fpm
+        fi
     fi
 }
 
 _install_ioncube_php2(){
     PHP2_VERSION=$(grep -w "php2_version" "${FILE_INFO}" | cut -f2 -d'=')
-    PHP2_CONFIG_PATH="/etc/php/${PHP2_VERSION}/fpm"
-    PHP2_CLI_PATH="/etc/php/${PHP2_VERSION}/cli/conf.d"
-    PHP2_INI_PATH="${PHP2_CONFIG_PATH}/conf.d"
+    if [ "$PHP2_VERSION" == "8.0" ]; then
+        notify_php2_ioncube="ionCube chua ho tro PHP 8."
+    else
+        PHP2_CONFIG_PATH="/etc/php/${PHP2_VERSION}/fpm"
+        PHP2_CLI_PATH="/etc/php/${PHP2_VERSION}/cli/conf.d"
+        PHP2_INI_PATH="${PHP2_CONFIG_PATH}/conf.d"
 
-    check_php2_module=$(php"${PHP2_VERSION}" -m | grep ionCube)
+        check_php2_module=$(php"${PHP2_VERSION}" -m | grep ionCube)
 
-    if [ -n "${check_php2_module}" ]; then
-        notify_php2_ioncube="Cai dat ionCube cho PHP 2 thanh cong."
-        COLOR2="${GREEN}"
-    fi
+        if [ -n "${check_php2_module}" ]; then
+            notify_php2_ioncube="Cai dat ionCube cho PHP 2 thanh cong."
+            COLOR2="${GREEN}"
+        fi
 
-    if [[ -f "/usr/local/ioncube/ioncube_loader_lin_${PHP2_VERSION}.so" && -z "${check_php2_module}" ]]; then
-        cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" << END
-zend_extension = /usr/local/ioncube/ioncube_loader_lin_${PHP2_VERSION}.so
+        if [[ -f "/usr/local/ioncube/ioncube_loader_lin_${PHP2_VERSION}.so" && -z "${check_php2_module}" ]]; then
+            cat >> "${PHP2_INI_PATH}/00-hostvn-custom.ini" << END
+    zend_extension = /usr/local/ioncube/ioncube_loader_lin_${PHP2_VERSION}.so
 END
 
-        rm -rf "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
-        cp "${PHP2_INI_PATH}"/00-hostvn-custom.ini "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
-        notify_php2_ioncube="Cai dat ionCube cho PHP 2 thanh cong."
-        COLOR2="${GREEN}"
-        systemctl restart php"${PHP2_VERSION}"-fpm
+            rm -rf "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+            cp "${PHP2_INI_PATH}"/00-hostvn-custom.ini "${PHP2_CLI_PATH}"/00-hostvn-custom.ini
+            notify_php2_ioncube="Cai dat ionCube cho PHP 2 thanh cong."
+            COLOR2="${GREEN}"
+            systemctl restart php"${PHP2_VERSION}"-fpm
+        fi
     fi
 }
 

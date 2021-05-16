@@ -1211,6 +1211,7 @@ http {
     more_set_headers 'X-Content-Type-Options    "nosniff" always';
     more_set_headers 'X-XSS-Protection          "1; mode=block" always';
     more_set_headers 'Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always';
+    more_set_headers 'Referrer-Policy "no-referrer-when-downgrade"';
 
     # Custom Variables
     map \$scheme \$https_suffix { default ''; https '-https'; }
@@ -1360,11 +1361,7 @@ location ~ /wp-content/cache/minify/.*js_gzip\$ {
     if_modified_since exact;
     add_header Pragma "public";
     add_header Cache-Control "public";
-    add_header Strict-Transport-Security "max-age=31536000";
     add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
     add_header Vary "Accept-Encoding";
 }
 location ~ /wp-content/cache/minify/.*css_gzip\$ {
@@ -1377,11 +1374,7 @@ location ~ /wp-content/cache/minify/.*css_gzip\$ {
     if_modified_since exact;
     add_header Pragma "public";
     add_header Cache-Control "public";
-    add_header Strict-Transport-Security "max-age=31536000";
     add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
     add_header Vary "Accept-Encoding";
 }
 location ~ /wp-content/cache/page_enhanced.*gzip\$ {
@@ -1394,11 +1387,8 @@ location ~ /wp-content/cache/page_enhanced.*gzip\$ {
     if_modified_since exact;
     add_header Pragma "public";
     add_header Cache-Control "public";
-    add_header Strict-Transport-Security "max-age=31536000";
     add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
+    add_header Vary "Accept-Encoding";
 }
 location ~ \.(css|htc|less|js|js2|js3|js4)\$ {
     expires 31536000s;
@@ -1406,11 +1396,8 @@ location ~ \.(css|htc|less|js|js2|js3|js4)\$ {
     if_modified_since exact;
     add_header Pragma "public";
     add_header Cache-Control "public";
-    add_header Strict-Transport-Security "max-age=31536000";
     add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
+    add_header Vary "Accept-Encoding";
     try_files \$uri \$uri/ /index.php?\$args;
 }
 location ~ \.(html|htm|rtf|rtx|txt|xsd|xsl|xml)\$ {
@@ -1419,11 +1406,8 @@ location ~ \.(html|htm|rtf|rtx|txt|xsd|xsl|xml)\$ {
     if_modified_since exact;
     add_header Pragma "public";
     add_header Cache-Control "public";
-    add_header Strict-Transport-Security "max-age=31536000";
     add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
+    add_header Vary "Accept-Encoding";
     try_files \$uri \$uri/ /index.php?\$args;
 }
 location ~ \.(asf|asx|wax|wmv|wmx|avi|bmp|class|divx|doc|docx|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|webp|json|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|webm|mpp|_otf|odb|odc|odf|odg|odp|ods|odt|ogg|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|_ttf|wav|wma|wri|xla|xls|xlsx|xlt|xlw|zip)\$ {
@@ -1432,11 +1416,8 @@ location ~ \.(asf|asx|wax|wmv|wmx|avi|bmp|class|divx|doc|docx|exe|gif|gz|gzip|ic
     if_modified_since exact;
     add_header Pragma "public";
     add_header Cache-Control "public";
-    add_header Strict-Transport-Security "max-age=31536000";
     add_header X-Frame-Options "SAMEORIGIN";
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Content-Type-Options "nosniff";
-    add_header Referrer-Policy "no-referrer-when-downgrade";
+    add_header Vary "Accept-Encoding";
     try_files \$uri \$uri/ /index.php?\$args;
 }
 set \$w3tc_enc "";

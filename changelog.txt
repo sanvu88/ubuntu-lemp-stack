@@ -1,3 +1,4 @@
 v0.1.7
 
 - Fixed: Error Nginx Vhost when clone website use Fastcgi cache
+- Added: Tool download file via Google Drive

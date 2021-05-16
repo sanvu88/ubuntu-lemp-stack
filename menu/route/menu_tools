@@ -26,6 +26,7 @@ do
     printf "%s6. Install Anti Virus%s\n" "${GREEN}" "${NC}"
     printf "%s7. Install node.js & npm%s\n" "${GREEN}" "${NC}"
     printf "%s8. Enable/Disable Telegram notify%s\n" "${GREEN}" "${NC}"
+    printf "%s9. Download file via Google Drive%s\n" "${GREEN}" "${NC}"
     printf "%s========================================%s\n" "${GREEN}" "${NC}"
     read -r -p " ${SELECT_OPTION} " CHOICE
     if [ -z "${CHOICE}" ]
@@ -42,6 +43,7 @@ do
         6) clear; tools_install_av ;;
         7) clear; tools_install_nodejs ;;
         8) clear; telegram_notify ;;
+        9) clear; tools_download_gg_drive ;;
         0) clear; menu_primary ;;
         *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
     esac

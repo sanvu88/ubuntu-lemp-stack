@@ -502,6 +502,10 @@ tools_decompress_file(){
     . /var/hostvn/menu/controller/tools/decompress_file
 }
 
+tools_download_gg_drive(){
+    . /var/hostvn/menu/controller/tools/download_file_gg_drive
+}
+
 website_disk_usage(){
     . /var/hostvn/menu/controller/tools/website_disk_usage
 }

@@ -1,0 +1,55 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_run() {
+    read -r -p "Nhap vao ID cua file: " file_id
+    printf "Nhap vao duong dan muon luu file. VD: /home/example123/example.com/public_html\n"
+    read -r -p "Nhap vao duong dan: " path
+
+    if [ -z "$file_id" ]; then
+        ALERT="Ban chua nhap file ID."
+    fi
+
+    if [ -z "$path" ]; then
+        ALERT="Ban chua nhap duong dan luu file."
+    fi
+
+    if [ ! -d "$path" ]; then
+        ALERT="Duong dan luu file khong ton tai."
+    fi
+
+    if [ -z "$ALERT" ]; then
+        _cd_dir "$path"
+        curl -c ./"$file_id" -s -L "https://drive.google.com/uc?export=download&id=${file_id}" >/dev/null
+        curl -Lb ./"$file_id" "https://drive.google.com/uc?export=download&confirm=$(awk \
+            '/download/ {print $NF}' \
+            ./"$file_id")&id=${file_id}" -O -J -L
+
+        if [ -f ./"$file_id" ]; then
+            rm -rf ./"$file_id"
+        fi
+        clear
+        printf "%s\n" "${GREEN}Download file thanh cong.${NC}"
+    else
+        clear
+        printf "%s\n" "${RED}${ALERT}${NC}"
+    fi
+}
+
+ALERT=''
+file_id=''
+path=''
+_run
+menu_tools

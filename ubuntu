@@ -131,7 +131,7 @@ install_requirement(){
         libcrypt-openssl-rsa-perl libnuma-dev libnuma1 git dos2unix ipcalc unzip net-tools wget apache2-utils grc \
         libjpeg-dev libpng-dev libtiff-dev libgif-dev libwebp-dev imagemagick libpcre3 libpcre3-dev uuid-dev \
         gnupg2 ca-certificates lsb-release apache2-dev libxml2-dev libcurl4-openssl-dev liblmdb-dev libgeoip-dev pkgconf \
-        libpcre++-dev libyajl-dev apt-utils htop nano supervisor bc -y
+        libpcre++-dev libyajl-dev apt-utils htop nano supervisor bc libmaxminddb-dev -y
 
     service supervisor stop
     systemctl disable supervisor

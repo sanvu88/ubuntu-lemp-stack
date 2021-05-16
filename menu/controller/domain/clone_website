@@ -214,6 +214,20 @@ _copy_vhost() {
 
     sed -i "s|${source_domain}|${clone_domain}|g" "${VHOST_DIR}"/"${clone_domain}".conf
     sed -i "s|${user_source}|${user_clone}|g" "${VHOST_DIR}"/"${clone_domain}".conf
+    sed -i '/htpasswd.conf/d' "${VHOST_DIR}"/"${clone_domain}".conf
+    sed -i '/protect_dir.conf/d' "${VHOST_DIR}"/"${clone_domain}".conf
+
+    check_source_domain_keys_zone=$(grep -w "${user_source}" "${NGINX_CONF_DIR}/extra/nginx_cache.conf")
+
+    if [ -n "${check_source_domain_keys_zone}" ]; then
+        cat >>"${NGINX_CONF_DIR}/extra/nginx_cache.conf" <<END
+fastcgi_cache_path /home/${user_clone}/${clone_domain}/cache levels= keys_zone=${user_clone}:100m max_size=1G inactive=60m;
+END
+        if [ ! -d "/home/${user_clone}/${clone_domain}/cache" ]; then
+            mkdir -p "/home/${user_clone}/${clone_domain}/cache"
+            chown -R "${user_clone}":"${user_clone}" /home/"${user_clone}"/"${clone_domain}"/cache
+        fi
+    fi
 }
 
 _run() {

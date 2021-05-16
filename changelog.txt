@@ -1,5 +1,3 @@
-v0.1.5
+v0.1.7
 
-- Fixed: Khong tim thay file SQL trong Tool Deploy website
-- restart nginx to reload nginx
-- Telegram notify
+- Fixed: Error Nginx Vhost when clone website use Fastcgi cache

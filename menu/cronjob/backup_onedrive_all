@@ -1,0 +1,57 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/ipaddress
+source /var/hostvn/.hostvn.conf
+source /var/hostvn/menu/helpers/variable_common
+onedrive_folder_name=$(grep -w "onedrive_folder_name" "${FILE_INFO}" | cut -f2 -d'=')
+
+for users in /home/*; do
+    if [[ -d "${users}" ]]; then
+        user=${users##*/}
+        for domains in /home/"${user}"/*; do
+            if [[ -d "${domains}" ]]; then
+                domain=${domains##*/}
+                for publics in /home/${user}/${domain}/public_html; do
+                    if [[ -d "${publics}" ]]; then
+                        public=${publics##*/}
+                        #https://www.howtoforge.com/tutorial/linux-grep-command/
+                        #https://stackoverflow.com/a/6284370
+                        db_name=$(grep -w "db_name" "${USER_DIR}/.${domain}.conf" | cut -f2 -d'=')
+                        if [[ ! -d "/home/backup/${CURRENT_DATE}/${domain}" ]]; then
+                            mkdir -p /home/backup/"${CURRENT_DATE}"/"${domain}"
+                        fi
+                        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/*
+                        cd /home/backup/"${CURRENT_DATE}"/"${domain}" || exit
+                        mysqldump -uadmin -p"${mysql_pwd}" "${db_name}" | gzip > "${db_name}".sql.gz
+
+                        cd /home/"${user}"/"${domain}" || exit
+                        if [[ ! -f "/home/${user}/${domain}/public_html/wp-config.php" && -f "/home/${user}/${domain}/wp-config.php" ]]; then
+                            cp /home/"${user}"/"${domain}"/wp-config.php /home/"${user}"/"${domain}"/public_html/wp-config.php
+                        fi
+                        tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz "${public}" \
+                            --exclude "public_html/wp-content/cache" --exclude "public_html/storage/framework/cache" \
+                            --exclude "public_html/storage/framework/view"
+
+                        rclone copy /home/backup/"${CURRENT_DATE}"/"${domain}" "onedrive:${onedrive_folder_name}/${IPADDRESS}/${CURRENT_DATE}/${domain}" --bwlimit 30M >> /var/log/rclone.log 2>&1
+                        rclone -q --min-age "${backup_num}"d delete "onedrive:${onedrive_folder_name}/${IPADDRESS}/${CURRENT_DATE}" >> /var/log/rclone.log 2>&1
+                        rclone -q --min-age "${backup_num}"d rmdirs "onedrive:${onedrive_folder_name}/${IPADDRESS}/${CURRENT_DATE}" >> /var/log/rclone.log 2>&1
+                        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"
+                        if [[ -f "/home/${user}/${domain}/public_html/wp-config.php" && -f "/home/${user}/${domain}/wp-config.php" ]]; then
+                            rm -rf /home/"${user}"/"${domain}"/public_html/wp-config.php
+                        fi
+                    fi
+                done
+            fi
+        done
+    fi
+done

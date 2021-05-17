@@ -179,7 +179,7 @@ EOrobots_txt
 
 _copy_db() {
     _cd_dir /home/"${user_source}"
-    mysqldump -uadmin -p"${mysql_pwd}" "${db_source}" > "${db_source}".sql
+    mysqldump -uadmin -p"${mysql_pwd}" "${db_source}" >"${db_source}".sql
 
     #Empty DB
     tables=$(mysql -uadmin -p"${mysql_pwd}" "${db_clone}" -e 'show tables' | awk '{ print $1}' | grep -v '^Tables')
@@ -187,7 +187,7 @@ _copy_db() {
         mysql -uadmin -p"${mysql_pwd}" "${db_clone}" -e "drop table ${t}"
     done
 
-    mysql -uadmin -p"${mysql_pwd}" "${db_clone}" < "${db_source}".sql
+    mysql -uadmin -p"${mysql_pwd}" "${db_clone}" <"${db_source}".sql
     rm -rf "${db_source}".sql
 }
 
@@ -198,7 +198,7 @@ _change_url_if_is_wordpress() {
     fi
 }
 
-_copy_htpasswd(){
+_copy_htpasswd() {
     if [[ -f "/home/${user_source}/${source_domain}/htpasswd/.htpasswd" && -f "/home/${user_source}/${source_domain}/htpasswd/htpasswd.conf" ]]; then
         mkdir -p /home/"${user_clone}"/"${clone_domain}"/htpasswd
         cp /home/"${user_source}"/"${source_domain}"/htpasswd/.htpasswd /home/"${user_clone}"/"${clone_domain}"/htpasswd/.htpasswd
@@ -228,11 +228,42 @@ END
             chown -R "${user_clone}":"${user_clone}" /home/"${user_clone}"/"${clone_domain}"/cache
         fi
     fi
+
+    if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
+        expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+        if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+            sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            check_redirect=$(grep -w "https.conf" "${VHOST_DIR}"/"${clone_domain}".conf)
+            if [ -z "$check_redirect" ]; then
+                sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${clone_domain}".conf
+            fi
+            sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${clone_domain}".conf
+            sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${clone_domain}".conf
+
+            sed -i "/listen 443 ssl http2;/a ssl_certificate ${SSL_DIR}/${domain}/cert.pem;" "${VHOST_DIR}"/"${clone_domain}".conf
+            sed -i "/listen 443 ssl http2;/a ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;" "${VHOST_DIR}"/"${clone_domain}".conf
+        fi
+    fi
+
+    if [[ -f "${SSL_DIR}/${domain}/paid/key.pem" && -f "${SSL_DIR}/${domain}/paid/cert.pem" && -s "${SSL_DIR}/${domain}/paid/key.pem" && -s "${SSL_DIR}/${domain}/paid/cert.pem" ]]; then
+        expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/paid/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
+        if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
+            sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            check_redirect=$(grep -w "https.conf" "${VHOST_DIR}"/"${clone_domain}".conf)
+            if [ -z "$check_redirect" ]; then
+                sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${clone_domain}".conf
+            fi
+            sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${clone_domain}".conf
+            sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${clone_domain}".conf
+
+            sed -i "/listen 443 ssl http2;/a ssl_certificate ${SSL_DIR}/${domain}/paid/cert.pem;" "${VHOST_DIR}"/"${clone_domain}".conf
+            sed -i "/listen 443 ssl http2;/a ssl_certificate_key ${SSL_DIR}/${domain}/paid/key.pem;" "${VHOST_DIR}"/"${clone_domain}".conf
+        fi
+    fi
 }
 
 _run() {
-    while true
-    do
+    while true; do
         printf "%s\n" "Ban muon clone tu website ${RED}${source_domain}${NC} sang webiste ${RED}${clone_domain}${NC} ?"
         read -r -p "${INPUT_SELECT} (y/n)" prompt_clone
         echo
@@ -240,7 +271,7 @@ _run() {
             break
         else
             clear
-            printf "%s\n"  "${RED}${WRONG_SELECT}${NC}"
+            printf "%s\n" "${RED}${WRONG_SELECT}${NC}"
         fi
     done
 

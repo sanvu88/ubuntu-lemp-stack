@@ -411,7 +411,7 @@ check_duplicate_php() {
 install_nginx(){
     apt-get install build-essential zlib1g-dev libpcre3 libpcre3-dev unzip uuid-dev -y
     apt autoremove -y
-    UPDATE_LINK="https://scripts.hostvn.net/update"
+    UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
     MODULE_PATH="/usr/share/nginx_module"
     mkdir -p "${MODULE_PATH}"
     NGINX_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_version=" | cut -f2 -d'=')
@@ -421,6 +421,7 @@ install_nginx(){
     openssl_version=$(curl -s ${UPDATE_LINK}/version | grep "openssl_version=" | cut -f2 -d'=')
     pcre_version=$(curl -s ${UPDATE_LINK}/version | grep "pcre_version=" | cut -f2 -d'=')
     zlib_version=$(curl -s ${UPDATE_LINK}/version | grep "zlib_version=" | cut -f2 -d'=')
+    nginx_module_vts_v=$(curl -s ${UPDATE_LINK}/version | grep "nginx_module_vts_v=" | cut -f2 -d'=')
 
     cd_dir "${MODULE_PATH}"
 
@@ -441,6 +442,7 @@ install_nginx(){
     wget -O- http://scripts.hostvn.net/ubuntu/modules/pcre-"${pcre_version}".tar.gz | tar -xz
     wget -O- https://www.zlib.net/zlib-"${zlib_version}".tar.gz | tar -xz
     wget -O- http://scripts.hostvn.net/ubuntu/modules/headers-more-nginx-module-"${more_clear_headers_v}".tar.gz | tar -xz
+    wget -O- https://github.com/vozlt/nginx-module-vts/archive/refs/tags/v"${nginx_module_vts_v}".tar.gz | tar -xz
 
     git clone --depth 1 https://github.com/google/ngx_brotli
     cd_dir ngx_brotli && git submodule update --init
@@ -472,6 +474,7 @@ install_nginx(){
         "--add-module=../incubator-pagespeed-ngx-${NPS_VERSION}" \
         "--add-module=../headers-more-nginx-module-${more_clear_headers_v}" \
         "--add-module=../ngx_brotli" \
+        "--add-module=../nginx-module-vts-${nginx_module_vts_v}" \
         "--with-cc-opt='-D FD_SETSIZE=32768'"
 
     make && make install

@@ -15,7 +15,7 @@ _create_ssh_notify_file(){
 #!/bin/sh
 
 USERID="$TELEGRAM_ID"
-KEY="$TELEGRAM_KEY"
+KEY="$TELEGRAM_TOKEN"
 
 TIMEOUT="10"
 URL="https://api.telegram.org/bot\$KEY/sendMessage"

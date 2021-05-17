@@ -81,6 +81,7 @@ while [ "${CHOICE}" != "0" ]; do
             openssl_version=$(curl -s ${UPDATE_LINK}/version | grep "openssl_version=" | cut -f2 -d'=')
             pcre_version=$(curl -s ${UPDATE_LINK}/version | grep "pcre_version=" | cut -f2 -d'=')
             zlib_version=$(curl -s ${UPDATE_LINK}/version | grep "zlib_version=" | cut -f2 -d'=')
+            nginx_module_vts_v=$(curl -s ${UPDATE_LINK}/version | grep "nginx_module_vts_v=" | cut -f2 -d'=')
 
             cd "${MODULE_PATH}" || exit
 
@@ -102,7 +103,7 @@ while [ "${CHOICE}" != "0" ]; do
             wget -O- ftp://ftp.pcre.org/pub/pcre/pcre-"${pcre_version}".tar.gz | tar -xz
             wget -O- https://www.zlib.net/zlib-"${zlib_version}".tar.gz | tar -xz
             wget -O- http://scripts.hostvn.net/ubuntu/modules/headers-more-nginx-module-"${more_clear_headers_v}".tar.gz | tar -xz
-            wget -O- https://github.com/leev/ngx_http_geoip2_module/archive/refs/tags/3.3.tar.gz | tar -xz
+            wget -O- https://github.com/vozlt/nginx-module-vts/archive/refs/tags/v"${nginx_module_vts_v}".tar.gz | tar -xz
             git clone --depth 1 https://github.com/google/ngx_brotli
             cd ngx_brotli || exit
             git submodule update --init
@@ -135,7 +136,7 @@ while [ "${CHOICE}" != "0" ]; do
                 "--add-module=../incubator-pagespeed-ngx-${NPS_VERSION}" \
                 "--add-module=../headers-more-nginx-module-${more_clear_headers_v}" \
                 "--add-module=../ngx_brotli" \
-                "--add-module=../ngx_http_geoip2_module-3.3" \
+                "--add-module=../nginx-module-vts-${nginx_module_vts_v}" \
                 "--with-cc-opt='-D FD_SETSIZE=32768'"
 
             make && make install
@@ -169,6 +170,7 @@ while [ "${CHOICE}" != "0" ]; do
         openssl_version=$(curl -s ${UPDATE_LINK}/version | grep "openssl_version=" | cut -f2 -d'=')
         pcre_version=$(curl -s ${UPDATE_LINK}/version | grep "pcre_version=" | cut -f2 -d'=')
         zlib_version=$(curl -s ${UPDATE_LINK}/version | grep "zlib_version=" | cut -f2 -d'=')
+        nginx_module_vts_v=$(curl -s ${UPDATE_LINK}/version | grep "nginx_module_vts_v=" | cut -f2 -d'=')
 
         cd "${MODULE_PATH}" || exit
 
@@ -191,6 +193,7 @@ while [ "${CHOICE}" != "0" ]; do
         wget -O- https://www.zlib.net/zlib-"${zlib_version}".tar.gz | tar -xz
         wget -O- http://scripts.hostvn.net/ubuntu/modules/headers-more-nginx-module-"${more_clear_headers_v}".tar.gz | tar -xz
         wget -O- https://github.com/leev/ngx_http_geoip2_module/archive/refs/tags/3.3.tar.gz | tar -xz
+        wget -O- https://github.com/vozlt/nginx-module-vts/archive/refs/tags/v"${nginx_module_vts_v}".tar.gz | tar -xz
         git clone --depth 1 https://github.com/google/ngx_brotli
         cd ngx_brotli || exit
         git submodule update --init
@@ -223,7 +226,7 @@ while [ "${CHOICE}" != "0" ]; do
             "--add-module=../incubator-pagespeed-ngx-${NPS_VERSION}" \
             "--add-module=../headers-more-nginx-module-${more_clear_headers_v}" \
             "--add-module=../ngx_brotli" \
-            "--add-module=../ngx_http_geoip2_module-3.3" \
+            "--add-module=../nginx-module-vts-${nginx_module_vts_v}" \
             "--with-cc-opt='-D FD_SETSIZE=32768'"
 
         make && make install
@@ -237,7 +240,7 @@ while [ "${CHOICE}" != "0" ]; do
             mv /etc/nginx/nginx.conf.bak /etc/nginx/nginx.conf
         else
             rm -rf /etc/nginx/nginx.conf.bak
-            sed -i "s/MAX_CLIENT/$MAX_CLIENT/g"
+            sed -i "s/MAX_CLIENT/$MAX_CLIENT/g" /etc/nginx/nginx.conf
         fi
 
         if nginx -t; then

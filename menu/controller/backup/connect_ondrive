@@ -1,0 +1,82 @@
+#!/bin/bash
+
+######################################################################
+#           Auto Install & Optimize LEMP Stack on Ubuntu             #
+#                                                                    #
+#                Author: Sanvv - HOSTVN Technical                    #
+#                  Website: https://hostvn.vn                        #
+#                                                                    #
+#              Please do not remove copyright. Thank!                #
+#  Please do not copy under any circumstance for commercial reason!  #
+######################################################################
+
+source /var/hostvn/menu/validate/rule
+source /var/hostvn/menu/helpers/function
+
+_connect_onedrive() {
+    read -r -p " Your One Drive client ID: " ONEDRIVE_CLIENT_ID
+    read -r -p " Your One Drive client secret: " ONEDRIVE_CLIENT_SECRET
+
+    if [[ -z "${ONEDRIVE_CLIENT_ID}" || -z "${ONEDRIVE_CLIENT_SECRET}" ]]; then
+        ALERT="Vui long nhap day du thong tin."
+    fi
+
+    if [ -z "$ALERT" ]; then
+        read -r -p " Your One Drive folder name: " ONEDRIVE_FOLDER_NAME
+        if [ -z "$ONEDRIVE_FOLDER_NAME" ]; then
+            ALERT="Vui long nhap ten folder luu tru backup."
+        else
+            cat >> "${FILE_INFO}" << END
+onedrive_folder_name=${ONEDRIVE_FOLDER_NAME}
+END
+        fi
+    fi
+
+    if [ -z "$ALERT" ]; then
+        echo "Go to the following url in your browser:"
+        echo "https://login.live.com/oauth20_authorize.srf?client_id=${ONEDRIVE_CLIENT_ID}&scope=Files.Read+Files.ReadWrite+Files.Read.All+Files.ReadWrite.All+offline_access&response_type=code&redirect_uri=https%3A%2F%2Flogin.microsoftonline.com%2Fcommon%2Foauth2%2Fnativeclient"
+        echo ""
+        read -r -p " Enter verification code: " ONEDRIVE_VERIFY_CODE
+
+        if [ -z "$ONEDRIVE_VERIFY_CODE" ]; then
+            ALERT="Ban chua nhap verify code."
+        fi
+    fi
+
+    if [ -z "$ALERT" ]; then
+        ONEDRIVE_TOKEN=$(curl -s -X POST "https://login.live.com/oauth20_token.srf" --data-urlencode "redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient" --data-urlencode "client_id=${ONEDRIVE_CLIENT_ID}" --data-urlencode "client_secret=${ONEDRIVE_CLIENT_SECRET}" --data-urlencode "code=${ONEDRIVE_VERIFY_CODE}" --data-urlencode "grant_type=authorization_code")
+        ONEDRIVE_REAL_TOKEN=$(echo "${ONEDRIVE_TOKEN}" | sed 's/,/\n/g' | grep '"access_token":' | cut -d'"' -f4)
+        ONEDRIVE_DRIVE_ID=$(curl -s "https://graph.microsoft.com/v1.0/me/drive" --header "Authorization: Bearer ${ONEDRIVE_REAL_TOKEN}" | sed 's/,/\n/g' | grep '"id":' | head -1 | cut -d'"' -f4)
+        ONEDRIVE_DRIVE_TYPE=$(curl -s "https://graph.microsoft.com/v1.0/me/drive" --header "Authorization: Bearer ${ONEDRIVE_REAL_TOKEN}" | sed 's/,/\n/g' | grep '"driveType":' | head -1 | cut -d'"' -f4)
+        if [[ -z "$ONEDRIVE_TOKEN" || -z "$ONEDRIVE_REAL_TOKEN" || -z "$ONEDRIVE_DRIVE_ID" || -z "$ONEDRIVE_DRIVE_TYPE" ]]; then
+            ALERT="Khong the ket noi toi Onedrive, vui long kiem tra lai thong tin."
+        fi
+    fi
+
+    if [ -z "$ALERT" ]; then
+        cat >>"${RCLONE_CONF}" <<EOF
+[onedrive]
+type = onedrive
+drive_type = ${ONEDRIVE_DRIVE_TYPE}
+drive_id = ${ONEDRIVE_DRIVE_ID}
+client_id = ${ONEDRIVE_CLIENT_ID}
+client_secret = ${ONEDRIVE_CLIENT_SECRET}
+token = ${ONEDRIVE_TOKEN}
+EOF
+        clear
+        printf "%s\n" "${GREEN}Connect Onedrive thanh cong.${NC}"
+    else
+        printf "%s\n" "${RED}${ALERT}${NC}"
+    fi
+}
+
+ALERT=''
+ONEDRIVE_CLIENT_ID=''
+ONEDRIVE_CLIENT_SECRET=''
+ONEDRIVE_TOKEN=''
+ONEDRIVE_REAL_TOKEN=''
+ONEDRIVE_DRIVE_ID=''
+ONEDRIVE_DRIVE_TYPE=''
+
+_connect_onedrive
+menu_backup

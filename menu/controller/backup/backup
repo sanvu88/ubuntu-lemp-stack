@@ -15,8 +15,8 @@ source /var/hostvn/menu/helpers/function
 
 _select_backup_location() {
     clear
-    PS3="${INPUT_SELECT} [ 1 - 3 ]: "
-    location_options=("VPS (Local)" "Google Drive" "Cancel")
+    PS3="${INPUT_SELECT} [ 1 - 4 ]: "
+    location_options=("VPS (Local)" "Google Drive" "OneDrive" "Cancel")
     select opt_location in "${location_options[@]}"; do
         case $opt_location in
         "VPS (Local)")
@@ -25,6 +25,10 @@ _select_backup_location() {
             ;;
         "Google Drive")
             location="drive"
+            break
+            ;;
+        "OneDrive")
+            location="onedrive"
             break
             ;;
         "Cancel")
@@ -176,6 +180,14 @@ _run() {
             rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"
             notify="${GREEN}Backup success.${NC}"
         fi
+    elif [ "${location}" == "onedrive" ]; then
+        _run_backup
+        clear
+        printf "%s\n" "${GREEN}${PROCESSING}${NC}"
+        onedrive_folder_name=$(grep -w "onedrive_folder_name" "${FILE_INFO}" | cut -f2 -d'=')
+        rclone copy /home/backup/"${CURRENT_DATE}"/"${domain}" "onedrive:${onedrive_folder_name}/${IPADDRESS}/${CURRENT_DATE}/${domain}" --bwlimit 30M >> /var/log/rclone.log 2>&1
+        rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"
+        notify="${GREEN}Backup success.${NC}"
     else
         _run_backup
         notify="${GREEN}Backup success.${NC}"
@@ -223,6 +235,14 @@ else
                             clear
                             printf "${RED}%s${NC}\n" "${lang_cancel_action}"
                         fi
+                    else
+                        _run
+                    fi
+                elif [ "${location}" == "onedrive" ]; then
+                    check_onedrive_remote=$(grep -w "onedrive" "/root/.config/rclone/rclone.conf" | cut -f2 -d'=')
+                    if [ -z "$check_onedrive_remote" ]; then
+                        clear
+                        printf "${RED}%s${NC}\n" "Vui long connect OneDrive truoc khi backup."
                     else
                         _run
                     fi

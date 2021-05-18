@@ -42,8 +42,10 @@ _run(){
                 sql_file=$(echo "${sql}" | cut -f1 -d'.')
                 gzip -d "${sql}"
                 mysql -uadmin -p"${mysql_pwd}" "${db_name}" <  "${sql_file}".sql
+                rm -rf  "${sql_file}".sql
             else
                 mysql -uadmin -p"${mysql_pwd}" "${db_name}" < "${sql}"
+                rm -rf "${sql}"
             fi
             clear
             printf "%s\n" "${GREEN}Import Database thanh cong. File sql da duoc xoa vi ly do bao mat.${NC}"

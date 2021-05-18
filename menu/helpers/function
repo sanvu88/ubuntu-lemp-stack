@@ -122,6 +122,7 @@ _select_source(){
         "Magento 2"
         "Nextcloud"
         "Moodle"
+        "Mautic"
         "Other"
     )
     select opt_source in "${source_options[@]}"
@@ -145,6 +146,7 @@ _select_source(){
             "Magento 2") SOURCE="magento2"; break;;
             "Nextcloud") SOURCE="nextcloud"; break;;
             "Moodle") SOURCE="moodle"; break;;
+            "Mautic") SOURCE="mautic"; break;;
             "Other") SOURCE="default"; break;;
             *) printf "%s\n" "${RED}${WRONG_SELECT}${NC}";;
         esac

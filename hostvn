@@ -627,11 +627,16 @@ install_phpmyadmin() {
     if [ "${PHP_VERSION}" != "5.6" ]; then
         DECLARE="declare(strict_types=1);"
     fi
-    mkdir -p "${DEFAULT_DIR_TOOL}"
+    if [ -f "${DEFAULT_DIR_TOOL}" ]; then
+        rm -rf "${DEFAULT_DIR_TOOL}"
+    fi
+    if [ ! -d "${DEFAULT_DIR_TOOL}" ]; then
+        mkdir -p "${DEFAULT_DIR_TOOL}"
+    fi
     cd_dir "${DEFAULT_DIR_TOOL}"
-    wget https://files.phpmyadmin.net/phpMyAdmin/"${PHPMYADMIN_VERSION}"/phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.zip
 
-    unzip phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.zip
+    wget -O- https://scripts.hostvn.net/modules/phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.tar.gz | tar -xz
+
     mv phpMyAdmin-"${PHPMYADMIN_VERSION}"-english phpmyadmin
     rm -rf phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.zip
     rm -rf "${DEFAULT_DIR_TOOL}"/phpmyadmin/setup
@@ -664,7 +669,6 @@ ${DECLARE}
 \$cfg['DefaultConnectionCollation'] = 'utf8_general_ci';
 EOCONFIGINC
 
-    chown -R nginx:nginx "${DEFAULT_DIR_TOOL}"/phpmyadmin
     chown -R nginx:nginx "${DEFAULT_DIR_TOOL}"/phpmyadmin
 
     cat >> "/opt/phpmyadmin.temp" <<EOphpmyadmin_temp

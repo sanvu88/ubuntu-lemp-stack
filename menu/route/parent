@@ -403,7 +403,7 @@ update_opcache_panel(){
 }
 
 update_memcached_panel(){
-    . /var/hostvn/menu/controller/admin/memcached_panel
+    . /var/hostvn/menu/controller/admin/php_memcached_admin
 }
 
 update_redis_panel(){

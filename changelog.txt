@@ -1,9 +1,11 @@
 v0.1.7
 
-- Added: Tool download file via Google Drive
-- Added: Error notify when install ionCube Loader in PHP 8
-- Added: Menu Update and Rebuild Nginx
-- Added: High load notify
 - Fixed: Don't delete SQL file after import
 - Fixed: Error Nginx Vhost when clone website use Fastcgi cache
 - Fixed: Error when access menu Update memcached admin
+- Added: Tool download file via Google Drive
+- Added: Error notify when install ionCube Loader in PHP 8
+- Added: Menu Update and Rebuild Nginx
+- Added: Mautic, Moodle Vhost template
+- Added: Backup to Ondrive
+- Added: Error notify when website use https but no install SSL

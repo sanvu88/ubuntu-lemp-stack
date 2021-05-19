@@ -14,18 +14,19 @@ source /var/hostvn/menu/validate/rule
 source /var/hostvn/menu/helpers/function
 
 _connect_onedrive() {
-    read -r -p " Your One Drive client ID: " ONEDRIVE_CLIENT_ID
-    read -r -p " Your One Drive client secret: " ONEDRIVE_CLIENT_SECRET
+    read -r -p " Your OneDrive Application (client) ID: " ONEDRIVE_CLIENT_ID
+    read -r -p " Your OneDrive Client secrets Value: " ONEDRIVE_CLIENT_SECRET
 
     if [[ -z "${ONEDRIVE_CLIENT_ID}" || -z "${ONEDRIVE_CLIENT_SECRET}" ]]; then
         ALERT="Vui long nhap day du thong tin."
     fi
 
     if [ -z "$ALERT" ]; then
-        read -r -p " Your One Drive folder name: " ONEDRIVE_FOLDER_NAME
+        read -r -p " Your OneDrive folder name: " ONEDRIVE_FOLDER_NAME
         if [ -z "$ONEDRIVE_FOLDER_NAME" ]; then
             ALERT="Vui long nhap ten folder luu tru backup."
         else
+            sed -i "/onedrive_folder_name/d" "${FILE_INFO}"
             cat >> "${FILE_INFO}" << END
 onedrive_folder_name=${ONEDRIVE_FOLDER_NAME}
 END
@@ -52,9 +53,19 @@ END
             ALERT="Khong the ket noi toi Onedrive, vui long kiem tra lai thong tin."
         fi
     fi
+    if [ ! -d /root/.config/rclone ]; then
+        mkdir -p /root/.config/rclone
+    fi
+    rclone_config_file="/root/.config/rclone/rclone.conf"
+    if [ -f "${rclone_config_file}" ]; then
+        check_remote_name_exists=$(grep -w "onedrive" "${rclone_config_file}")
+        if [ -n "${check_remote_name_exists}" ]; then
+            ALERT="Ban da ket noi OneDrive roi."
+        fi
+    fi
 
     if [ -z "$ALERT" ]; then
-        cat >>"${RCLONE_CONF}" <<EOF
+        cat >>"$rclone_config_file" <<EOF
 [onedrive]
 type = onedrive
 drive_type = ${ONEDRIVE_DRIVE_TYPE}

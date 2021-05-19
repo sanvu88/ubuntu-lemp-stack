@@ -148,6 +148,7 @@ _redirect_http_to_https(){
         sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
 
         sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
         sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${domain}".conf
         sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${domain}".conf
 

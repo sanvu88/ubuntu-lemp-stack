@@ -470,6 +470,16 @@ END
     chmod 600 "${USER_DIR}"/."${domain}".conf
 }
 
+_added_error_ssl_page(){
+    if [ "${SOURCE}" == 'laravel' ]; then
+        cp "${TEMPLATE_DIR}"/error_page/hvn_404.html "/home/${user}/${domain}/public_html/public/"
+    elif [ "${SOURCE}" == 'cakephp' ]; then
+        cp "${TEMPLATE_DIR}"/error_page/hvn_404.html "/home/${user}/${domain}/public_html/webroot/"
+    else
+        cp "${TEMPLATE_DIR}"/error_page/hvn_404.html "/home/${user}/${domain}/public_html/"
+    fi
+}
+
 _show_info() {
     echo ""
     printf "Ban đa them domain thanh cong. Hay luu lai thong tin de su dung\n"
@@ -548,6 +558,7 @@ _run() {
             _wp_auto_install "$@"
 
             _create_vhost
+            _added_error_ssl_page
 
             _set_owner
             _save_user_config

@@ -1218,7 +1218,6 @@ http {
     more_set_headers 'X-Content-Type-Options    "nosniff" always';
     more_set_headers 'X-XSS-Protection          "1; mode=block" always';
     more_set_headers 'Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always';
-    more_set_headers 'Referrer-Policy "no-referrer-when-downgrade"';
 
     # Custom Variables
     map \$scheme \$https_suffix { default ''; https '-https'; }

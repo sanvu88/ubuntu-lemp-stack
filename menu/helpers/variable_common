@@ -42,4 +42,5 @@ DEFAULT_DIR_WEB="/usr/share/nginx/html"
 DEFAULT_DIR_TOOL="/usr/share/nginx/private"
 WORDPRESS_CRON_DIR="/var/hostvn/wpcron"
 RULE_FILE="${BASH_DIR}/validate/rule"
+RCLONE_CONF="/root/.config/rclone/rclone.conf"
 PLUGINS_LIST=("really-simple-ssl" "wps-hide-login" "wps-limit-login" "seo-by-rank-math")

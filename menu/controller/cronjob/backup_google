@@ -107,9 +107,27 @@ _set_backup_time(){
     echo "backup_num=${backup_num}" >> "${FILE_INFO}"
 }
 
+_delete_old_backup_cron(){
+    cron_local_backup=$(crontab -l | grep -w 'backup_local')
+    if [ -n "${cron_local_backup}" ]; then
+        crontab -u root -l | grep -v "${cron_local_backup}" | crontab -u root -
+    fi
+
+    cron_backup_onedrive_all=$(crontab -l | grep -w 'backup_onedrive_all')
+    if [ -n "${cron_backup_onedrive_all}" ]; then
+        crontab -u root -l | grep -v "${cron_backup_onedrive_all}" | crontab -u root -
+    fi
+
+    backup_onedrive_one=$(crontab -l | grep -w 'backup_onedrive_one')
+    if [ -n "${backup_onedrive_one}" ]; then
+        crontab -u root -l | grep -v "${backup_onedrive_one}" | crontab -u root -
+    fi
+}
+
 _create_cron_backup_all(){
     cron_all_exists=$(crontab -l | grep -w 'gg_drive_all')
     if [ -z "${cron_all_exists}" ]; then
+        _delete_old_backup_cron
         crontab -l > backupgg
         echo "${time} bash /var/hostvn/menu/cronjob/gg_drive_all >/dev/null 2>&1" >> backupgg
         crontab backupgg
@@ -120,6 +138,7 @@ _create_cron_backup_all(){
 _create_cron_backup_one(){
     cron_one_exists=$(crontab -l | grep -w 'gg_drive_one')
     if [ -z "${cron_one_exists}" ]; then
+        _delete_old_backup_cron
         crontab -l > backupgg
         echo "${time} bash /var/hostvn/menu/cronjob/gg_drive_one >/dev/null 2>&1" >> backupgg
         crontab backupgg

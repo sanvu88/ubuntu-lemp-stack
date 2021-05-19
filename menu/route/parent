@@ -386,6 +386,10 @@ connect_google_drive(){
     . /var/hostvn/menu/controller/backup/connect_google_drive
 }
 
+connect_onedrive(){
+    . /var/hostvn/menu/controller/backup/connect_ondrive
+}
+
 delete_connect_google_drive(){
     . /var/hostvn/menu/controller/backup/delete_connect_google_drive
 }

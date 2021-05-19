@@ -98,9 +98,27 @@ _set_backup_time() {
     echo "backup_num=${backup_num}" >>"${FILE_INFO}"
 }
 
+_delete_old_backup_cron(){
+    cron_local_backup=$(crontab -l | grep -w 'backup_local')
+    if [ -n "${cron_local_backup}" ]; then
+        crontab -u root -l | grep -v "${cron_local_backup}" | crontab -u root -
+    fi
+
+    cron_gg_all_backup=$(crontab -l | grep -w 'gg_drive_all')
+    if [ -n "${cron_gg_all_backup}" ]; then
+        crontab -u root -l | grep -v "${cron_gg_all_backup}" | crontab -u root -
+    fi
+
+    cron_gg_one_backup=$(crontab -l | grep -w 'gg_drive_one')
+    if [ -n "${cron_gg_one_backup}" ]; then
+        crontab -u root -l | grep -v "${cron_gg_one_backup}" | crontab -u root -
+    fi
+}
+
 _create_cron_backup_all() {
     cron_all_exists=$(crontab -l | grep -w 'backup_onedrive_all')
     if [ -z "${cron_all_exists}" ]; then
+        _delete_old_backup_cron
         crontab -l >backupOneDrive
         echo "${time} bash /var/hostvn/menu/cronjob/backup_onedrive_all >/dev/null 2>&1" >>backupOneDrive
         crontab backupOneDrive
@@ -111,6 +129,7 @@ _create_cron_backup_all() {
 _create_cron_backup_one() {
     cron_one_exists=$(crontab -l | grep -w 'backup_onedrive_one')
     if [ -z "${cron_one_exists}" ]; then
+        _delete_old_backup_cron
         crontab -l >backupOneDrive
         echo "${time} bash /var/hostvn/menu/cronjob/backup_onedrive_one >/dev/null 2>&1" >> backupOneDrive
         crontab backupOneDrive

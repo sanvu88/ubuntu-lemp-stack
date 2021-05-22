@@ -87,6 +87,7 @@ _create_vhost() {
 
     if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" ]]; then
         sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
         sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
         sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
         sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
@@ -94,6 +95,8 @@ _create_vhost() {
 
     if [[ -f "${SSL_DIR}/paid/${domain}/key.pem" && -f "${SSL_DIR}/paid/${domain}/cert.pem" && -s "${SSL_DIR}/paid/${domain}/key.pem" && -s "${SSL_DIR}/paid/${domain}/cert.pem" ]]; then
         sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
+        sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
         sed -i '/https.conf;/d' "${VHOST_DIR}"/"${domain}".conf
         sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
         sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/paid/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf

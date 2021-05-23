@@ -549,9 +549,13 @@ EOF
         php"${PHP_VERSION}"-xmlrpc php"${PHP_VERSION}"-tidy php"${PHP_VERSION}"-opcache php"${PHP_VERSION}"-cli \
         php"${PHP_VERSION}"-dev php"${PHP_VERSION}"-imagick php"${PHP_VERSION}"-sqlite3
 
-        if [ "${PHP_VERSION}" != "8.0" ]; then
-            apt -y install php"${PHP_VERSION}"-json
-        fi
+    if [ "${PHP_VERSION}" != "8.0" ]; then
+        apt -y install php"${PHP_VERSION}"-json
+    fi
+
+    if [ "${PHP_VERSION}" == "5.6" ]; then
+        apt -y install php5.6-mcrypt
+    fi
 
     if [ -f "/usr/lib/systemd/system/php${PHP_VERSION}-fpm.service" ]; then
         sed -i '/ExecReload=/a LimitNOFILE=65535' /usr/lib/systemd/system/php"${PHP_VERSION}"-fpm.service
@@ -591,6 +595,10 @@ install_php_2() {
 
     if [ "${PHP_VERSION_2}" != "8.0" ]; then
         apt -y install php"${PHP_VERSION_2}"-json
+    fi
+
+    if [ "${PHP_VERSION_2}" == "5.6" ]; then
+        apt -y install php5.6-mcrypt
     fi
 
     PHP2_RELEASE="yes"

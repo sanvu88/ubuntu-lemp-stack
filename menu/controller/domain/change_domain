@@ -62,6 +62,11 @@ _change_php_config(){
     sed -i "s|${domain}|${newDomain}|g" "${php_conf_path}"/"${newDomain}".conf
 }
 
+_change_php_include_path(){
+    mv /etc/nginx/php/"${domain}" /etc/nginx/php/"${newDomain}"
+}
+
+
 _change_user_config(){
     mv "${USER_DIR}"/."${domain}".conf "${USER_DIR}"/."${newDomain}".conf
 }
@@ -78,6 +83,7 @@ _run(){
     _change_user_config
     _change_vhost
     _change_php_config
+    _change_php_include_path
     _change_domain_in_db
 
     if nginx -t; then

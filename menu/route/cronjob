@@ -21,8 +21,9 @@ do
     printf "%s1. ${lang_list_cronjob} %s\n" "${GREEN}" "${NC}"
     printf "%s2. ${lang_cronjob_backup_local} %s\n" "${GREEN}" "${NC}"
     printf "%s3. ${lang_cronjob_backup_to_gg}%s\n" "${GREEN}" "${NC}"
-    printf "%s4. ${lang_custom_cronjob}%s\n" "${GREEN}" "${NC}"
-    printf "%s5. Delete cronjob%s\n" "${GREEN}" "${NC}"
+    printf "%s4. Cronjob backup to OneDrive%s\n" "${GREEN}" "${NC}"
+    printf "%s5. ${lang_custom_cronjob}%s\n" "${GREEN}" "${NC}"
+    printf "%s6. Delete cronjob%s\n" "${GREEN}" "${NC}"
     printf "%s=============================================%s\n" "${GREEN}" "${NC}"
     read -r -p " ${SELECT_OPTION} " CHOICE
     if [ -z "${CHOICE}" ]
@@ -39,7 +40,8 @@ do
             ;;
         2) clear; cron_backup_local ;;
         3) clear; cron_backup_google ;;
-        4)
+        4) clear; cron_backup_onedrive ;;
+        5)
             clear
             printf "%s\n" "${lang_open_nano}."
             printf "%s\n" "${lang_instructions_for_using_nano}: https://blog.hostvn.net/chia-se/huong-dan-su-dung-nano-tren-linux.html"
@@ -47,7 +49,7 @@ do
             EDITOR=nano crontab -e
             menu_cronjob
             ;;
-        5) clear; cron_destroy ;;
+        6) clear; cron_destroy ;;
         0) clear; menu_primary ;;
         *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
     esac

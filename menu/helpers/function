@@ -260,7 +260,7 @@ _select_remote(){
     list_remote=( "$(rclone listremotes)" )
     for entry in "${list_remote[@]}"; do
         rt=${entry//:}
-        if ! valid_ip "${rt}"; then
+        if ! valid_ip "${rt}" && [ "$rt" != 'onedrive' ]; then
             remotes+=("${rt}")
         fi
     done

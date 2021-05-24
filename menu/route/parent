@@ -486,6 +486,10 @@ cron_backup_google(){
     . /var/hostvn/menu/controller/cronjob/backup_google
 }
 
+cron_backup_onedrive(){
+    . /var/hostvn/menu/controller/cronjob/backup_onedrive
+}
+
 cron_destroy(){
     . /var/hostvn/menu/controller/cronjob/destroy_cron
 }

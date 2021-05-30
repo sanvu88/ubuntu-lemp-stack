@@ -2631,7 +2631,7 @@ innodb_file_per_table = 1
 innodb_open_files = ${innodb_open_files}
 innodb_data_file_path= ibdata1:10M:autoextend
 innodb_buffer_pool_size = ${innodb_buffer_pool_size}
-open_files_limit=100000
+#open_files_limit=100000
 
 ## https://mariadb.com/kb/en/mariadb/xtradbinnodb-server-system-variables/#innodb_buffer_pool_instances
 #innodb_buffer_pool_instances=2

@@ -63,7 +63,7 @@ _auto_install_plugins(){
     clear
     printf "%s\n" "${RED}Bat dau cai dat Plugins..${NC}"
     _cd_dir "/home/${user}/${domain}/public_html"
-#    plugins=$(curl -s https://scripts.hostvn.net/ubuntu/update/version | grep "list_plugins=" | cut -f2 -d'=')
+#    plugins=$(curl -s http://scripts.hostvn.net/ubuntu/update/version | grep "list_plugins=" | cut -f2 -d'=')
 #    read -ar plugins_list <<< "$plugins"
     for i in "${PLUGINS_LIST[@]}" ; do
         wp plugin install "${i}" --activate --allow-root

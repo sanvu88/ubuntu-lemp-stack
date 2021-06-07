@@ -42,7 +42,7 @@ _install_redis(){
 
     if [ ! -f "/etc/redis/redis.conf" ]; then
         VERSION_ID=$(grep -w "VERSION_ID" "/etc/os-release" | cut -f2 -d'=' | cut -f2 -d'"'  | cut -f1 -d'.')
-        wget https://scripts.hostvn.net/ubuntu/redis"${VERSION_ID}".conf
+        wget http://scripts.hostvn.net/ubuntu/redis"${VERSION_ID}".conf
         mv redis"${VERSION_ID}".conf /etc/redis/redis.conf
     fi
 

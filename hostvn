@@ -514,24 +514,24 @@ EOnginx_service
 
 install_mariadb() {
     apt-get install software-properties-common apt-transport-https -y
-    sudo apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' << EOF
-
-EOF
-
-    OS_VER=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-    if [ "${OS_VER}" == "18.04" ]; then
-        sudo add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu bionic main"
-    elif [ "${OS_VER}" == "20.04" ]; then
-        sudo add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu focal main"
-    else
-        clear
-        printf "%s" "${RED}VPS cua ban khong the ket noi toi server cua MaraiDB. Vui long kiem tra lai Network cua VPS${NC}"
-        printf "%s" "${RED}Huy cai dat.${NC}"
-        exit
-    fi
-
+#    sudo apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' << EOF
+#
+#EOF
+#
+#    OS_VER=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+#    if [ "${OS_VER}" == "18.04" ]; then
+#        sudo add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu bionic main"
+#    elif [ "${OS_VER}" == "20.04" ]; then
+#        sudo add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu focal main"
+#    else
+#        clear
+#        printf "%s" "${RED}VPS cua ban khong the ket noi toi server cua MaraiDB. Vui long kiem tra lai Network cua VPS${NC}"
+#        printf "%s" "${RED}Huy cai dat.${NC}"
+#        exit
+#    fi
+    curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
     sudo apt update
-    sudo apt install mariadb-server
+    sudo apt install mariadb-server -y
 }
 
 install_php() {
@@ -569,7 +569,7 @@ EOF
         systemctl daemon-reload
     fi
 
-    if [ -f "/lib/systemd/system/php${PHP_VERSION}-fpm.service" ]; then
+    if [[ -f "/lib/systemd/system/php${PHP_VERSION}-fpm.service" && ! -f "/usr/lib/systemd/system/php${PHP_VERSION}-fpm.service" ]]; then
         sed -i '/ExecReload=/a LimitNOFILE=65535' /lib/systemd/system/php"${PHP_VERSION}"-fpm.service
         sed -i '/ExecReload=/a LimitMEMLOCK=infinity' /lib/systemd/system/php"${PHP_VERSION}"-fpm.service
         sed -i '/LimitNOFILE=65535/a PrivateTmp=true' /lib/systemd/system/php"${PHP_VERSION}"-fpm.service
@@ -614,7 +614,7 @@ install_php_2() {
         systemctl daemon-reload
     fi
 
-    if [ -f "/lib/systemd/system/php${PHP_VERSION_2}-fpm.service" ]; then
+    if [[ -f "/lib/systemd/system/php${PHP_VERSION_2}-fpm.service" && ! -f "/usr/lib/systemd/system/php${PHP_VERSION_2}-fpm.service" ]]; then
         sed -i '/ExecReload=/a LimitNOFILE=65535' /lib/systemd/system/php"${PHP_VERSION_2}"-fpm.service
         sed -i '/ExecReload=/a LimitMEMLOCK=infinity' /lib/systemd/system/php"${PHP_VERSION_2}"-fpm.service
         sed -i '/LimitNOFILE=65535/a PrivateTmp=true' /lib/systemd/system/php"${PHP_VERSION_2}"-fpm.service
@@ -2756,7 +2756,7 @@ EOF
         systemctl daemon-reload
     fi
 
-    if [ -f "/lib/systemd/system/mariadb.service" ]; then
+    if [[ -f "/lib/systemd/system/mariadb.service" && ! -f "/usr/lib/systemd/system/mariadb.service" ]]; then
         sed -i "s/LimitNOFILE=.*/LimitNOFILE=655350/g" /lib/systemd/system/mariadb.service
         sed -i "s/PrivateTmp=false/PrivateTmp=true/g" /lib/systemd/system/mariadb.service
         systemctl daemon-reload
@@ -3434,6 +3434,10 @@ kernel_tweak(){
 
 # Controls the System Request debugging functionality of the kernel
 kernel.sysrq = 0
+
+#kernel.msgmni = 1024
+#kernel.sem = 500 256000 64 1024
+#fs.inotify.max_user_watches = 262144
 
 # Controls whether core dumps will append the PID to the core filename.
 # Useful for debugging multi-threaded applications.

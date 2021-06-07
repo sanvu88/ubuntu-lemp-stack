@@ -66,7 +66,7 @@ while [ "${CHOICE}" != "0" ]; do
         ;;
     3)
         clear
-        UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
+        UPDATE_LINK="http://scripts.hostvn.net/ubuntu/update"
         NGINX_NEW_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_new_version=" | cut -f2 -d'=')
         NGINX_CURRENT_VERSION=$(
             nginx -v 2>&1 | grep -o '[0-9.]*$'
@@ -161,7 +161,7 @@ while [ "${CHOICE}" != "0" ]; do
             nginx -v 2>&1 | grep -o '[0-9.]*$'
             echo
         )
-        UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
+        UPDATE_LINK="http://scripts.hostvn.net/ubuntu/update"
         MODULE_PATH="/usr/share/nginx_module"
         mkdir -p "${MODULE_PATH}"
         NPS_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nps_version=" | cut -f2 -d'=')

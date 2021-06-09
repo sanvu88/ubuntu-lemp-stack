@@ -33,7 +33,7 @@ _select_ssl_le_website(){
             fi
         done
         if [ ${#le_domains[@]} -eq 0 ]; then
-            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc cau hinh Nginx Fastcgi cache.${NC}")
+            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc cai dat SSL.${NC}")
         else
             echo "Lua chon website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "

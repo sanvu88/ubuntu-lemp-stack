@@ -21,7 +21,9 @@ _list_domain(){
         for entry in .*.conf; do
             domain=${entry/./}
             domain=${domain//.conf/}
-            domains+=("${domain}")
+            if [ "$domain" != '*' ]; then
+                domains+=("${domain}")
+            fi
         done
 
         if [ ${#domains[@]} -eq 0 ]; then

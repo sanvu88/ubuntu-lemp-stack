@@ -97,7 +97,7 @@ while [ "${CHOICE}" != "0" ]; do
             [ -e scripts/format_binary_url.sh ] && psol_url=$(scripts/format_binary_url.sh PSOL_BINARY_URL)
             wget -O- "${psol_url}" | tar -xz
             cd "${MODULE_PATH}" || exit
-            wget -O- http://nginx.org/download/nginx-"${NGINX_VERSION}".tar.gz | tar -xz
+            wget -O- http://nginx.org/download/nginx-"${NGINX_NEW_VERSION}".tar.gz | tar -xz
             wget -O- http://scripts.hostvn.net/ubuntu/modules/ngx_cache_purge-"${ngx_cache_purge_version}".tar.gz | tar -xz
             wget -O- http://scripts.hostvn.net/ubuntu/modules/openssl-OpenSSL_"${openssl_version}".tar.gz | tar -xz
             wget -O- ftp://ftp.pcre.org/pub/pcre/pcre-"${pcre_version}".tar.gz | tar -xz
@@ -109,7 +109,7 @@ while [ "${CHOICE}" != "0" ]; do
             git submodule update --init
 
             service nginx stop
-            cd "${MODULE_PATH}"/nginx-"${NGINX_VERSION}"/ || exit
+            cd "${MODULE_PATH}"/nginx-"${NGINX_NEW_VERSION}"/ || exit
             ./configure \
                 "--user=nginx" \
                 "--group=nginx" \

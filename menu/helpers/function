@@ -56,7 +56,9 @@ _select_domain(){
         for entry_domain in .*.conf; do
             domain=${entry_domain/.}
             domain=${domain//.conf}
-            domains+=("${domain}")
+            if [ "$domain" != '*' ]; then
+                domains+=("${domain}")
+            fi
         done
         PS3="${INPUT_SELECT} [0 = Thoat]: "
         select opt_domain in "${domains[@]}"

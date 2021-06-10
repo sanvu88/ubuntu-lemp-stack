@@ -68,10 +68,7 @@ while [ "${CHOICE}" != "0" ]; do
         clear
         UPDATE_LINK="http://scripts.hostvn.net/ubuntu/update"
         NGINX_NEW_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_new_version=" | cut -f2 -d'=')
-        NGINX_CURRENT_VERSION=$(
-            nginx -v 2>&1 | grep -o '[0-9.]*$'
-            echo
-        )
+        NGINX_CURRENT_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_version=" | cut -f2 -d'=')
         if [[ -n "$NGINX_NEW_VERSION" && "$NGINX_NEW_VERSION" != "$NGINX_CURRENT_VERSION" ]]; then
             MODULE_PATH="/usr/share/nginx_module"
             mkdir -p "${MODULE_PATH}"
@@ -157,11 +154,8 @@ while [ "${CHOICE}" != "0" ]; do
         ;;
     4)
         clear
-        NGINX_VERSION=$(
-            nginx -v 2>&1 | grep -o '[0-9.]*$'
-            echo
-        )
         UPDATE_LINK="http://scripts.hostvn.net/ubuntu/update"
+        NGINX_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_version=" | cut -f2 -d'=')
         MODULE_PATH="/usr/share/nginx_module"
         mkdir -p "${MODULE_PATH}"
         NPS_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nps_version=" | cut -f2 -d'=')

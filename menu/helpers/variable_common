@@ -21,7 +21,8 @@ NC=$(tput sgr0)
 MENU_NAME="hostvn"
 AUTHOR="HOSTVN.VN"
 AUTHOR_WEB="HOSTVN.VN"
-UPDATE_LINK="http://scripts.hostvn.net/ubuntu/update"
+HOMEPAGE_LINK="http://scripts.hostvn.net"
+UPDATE_LINK="${HOMEPAGE_LINK}/ubuntu/update"
 CURRENT_DATE=$(date +%Y-%m-%d)
 
 # Set directory variables

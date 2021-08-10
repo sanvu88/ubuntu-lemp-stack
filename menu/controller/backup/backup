@@ -128,9 +128,13 @@ _backup_source() {
         cp /home/"${user}"/"${domain}"/wp-config.php /home/"${user}"/"${domain}"/public_html/wp-config.php
     fi
 
-    tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz public_html \
-                    --exclude "public_html/wp-content/cache" --exclude "public_html/storage/framework/cache" \
-                    --exclude "public_html/storage/framework/view"
+    if [ -d "/home/${user}/${domain}/public_html/storage" ]; then
+        tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz \
+                    --exclude "public_html/storage/framework/cache" --exclude "public_html/storage/framework/view" public_html
+    else
+        tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz \
+                    --exclude "public_html/wp-content/cache" public_html
+    fi
 
     if [[ -f "/home/${user}/${domain}/wp-config.php" && -f "/home/${user}/${domain}/public_html/wp-config.php" ]]; then
         rm -rf /home/"${user}"/"${domain}"/public_html/wp-config.php

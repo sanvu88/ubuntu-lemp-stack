@@ -33,9 +33,9 @@ _backup() {
     if [ -f "/home/backup/${CURRENT_DATE}/${domain}/${domain}.tar.gz" ]; then
         rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz
     fi
-    tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz public_html \
+    tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz \
         --exclude "public_html/wp-content/cache" --exclude "public_html/storage/framework/*" \
-        --exclude "public_html/storage/logs/*"
+        --exclude "public_html/storage/logs/*" public_html
 }
 
 _run() {

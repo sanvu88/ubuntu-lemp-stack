@@ -40,8 +40,8 @@ _backup() {
     if [[ -f "/home/backup/${CURRENT_DATE}/${domain}/${domain}.tar.gz" ]]; then
         rm -rf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz
     fi
-    tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz public_html \
-        --exclude "public_html/wp-content/cache"
+    tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz \
+        --exclude "public_html/wp-content/cache" public_html
 
     _cd_dir /home/"${user}"/"${domain}"/public_html
     if [[ -f "/home/backup/${CURRENT_DATE}/${domain}/${db_name}.sql" ]]; then

@@ -37,9 +37,15 @@ for users in /home/*; do
                         if [[ ! -f "/home/${user}/${domain}/public_html/wp-config.php" && -f "/home/${user}/${domain}/wp-config.php" ]]; then
                             cp /home/"${user}"/"${domain}"/wp-config.php /home/"${user}"/"${domain}"/public_html/wp-config.php
                         fi
-                        tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz "${public}" \
-                            --exclude "public_html/wp-content/cache" --exclude "public_html/storage/framework/cache" \
-                            --exclude "public_html/storage/framework/view"
+
+                        if [ -d "/home/${user}/${domain}/public_html/storage" ]; then
+                            tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz \
+                                --exclude "public_html/storage/framework/cache" --exclude "public_html/storage/framework/views" "${public}"
+                        else
+                            tar -cpzvf /home/backup/"${CURRENT_DATE}"/"${domain}"/"${domain}".tar.gz \
+                                --exclude "public_html/wp-content/cache" "${public}"
+                        fi
+
                         if [[ -f "/home/${user}/${domain}/public_html/wp-config.php" && -f "/home/${user}/${domain}/wp-config.php" ]]; then
                             rm -rf /home/"${user}"/"${domain}"/public_html/wp-config.php
                         fi

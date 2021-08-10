@@ -13,7 +13,7 @@
 source /var/hostvn/menu/helpers/variable_common
 source /var/hostvn/menu/helpers/function
 DIR="/opt/php-extension"
-MODULE_LINK="http://scripts.hostvn.net/modules"
+MODULE_LINK="${HOMEPAGE_LINK}/modules"
 IG_BINARY_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep "igbinary_version=" | cut -f2 -d'=')
 PHP_REDIS_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep "php_redis_version=" | cut -f2 -d'=')
 PHP1_VERSION=$(grep -w "php1_version" "/var/hostvn/.hostvn.conf" | cut -f2 -d'=')

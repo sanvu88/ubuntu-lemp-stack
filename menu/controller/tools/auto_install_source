@@ -46,7 +46,7 @@ _select_app(){
 }
 
 _install_nextcloud(){
-    wget -O- http://scripts.hostvn.net/app/nextcloud.tar.gz | tar -xz
+    wget -O- "${HOMEPAGE_LINK}"/app/nextcloud.tar.gz | tar -xz
 
     sed -i "s/WEBSITE_DOMAIN/${domain}/g" /home/"${user}"/"${domain}"/public_html/config/config.php
     sed -i "s/WEBSITE_USER/${user}/g" /home/"${user}"/"${domain}"/public_html/config/config.php

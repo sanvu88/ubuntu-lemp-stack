@@ -128,7 +128,7 @@ _conditions() {
     fi
 
     if [[ "${type}" == "full" ]]; then
-        if [ ! -f "/home/backup/${date}/${domain}/${db_name}.sql.gz" ]; then
+        if [[ ! -f "/home/backup/${date}/${domain}/${db_name}.sql.gz" && ! -f "/home/backup/${date}/${domain}/${db_name}.sql" ]]; then
             ALERT="Ten mien nay khong co backup database."
         fi
     fi

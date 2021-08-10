@@ -14,6 +14,8 @@ source /var/hostvn/menu/validate/rule
 source /var/hostvn/menu/helpers/function
 
 _input() {
+    echo "Tutorial: https://blog.hostvn.net/chia-se/ubuntu-huong-dan-backup-du-lieu-len-google-drive-tren-hostvn-scripts.html"
+    echo
     while true; do
         echo "${lang_remote_name_notify}"
         read -r -p "Input Remote Name [0 = Exit]: " remote_name

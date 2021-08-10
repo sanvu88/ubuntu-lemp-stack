@@ -32,17 +32,22 @@ _confirm(){
 _config_my_cnf(){
     mv /etc/mysql/my.cnf /etc/mysql/my.cnf."${CURRENT_DATE}"
     cat >>"/etc/mysql/my.cnf" <<EOmy_cnf
-[client-server]
+[client]
+port = 3306
 socket = /run/mysqld/mysqld.sock
+default-character-set = utf8mb4
 
 [mysql]
 max_allowed_packet = ${max_allowed_packet}
 
 [mysqld]
+port = 3306
+
 local-infile=0
 #ignore-db-dir=lost+found
-character-set-server  = utf8
-collation-server      = utf8_general_ci
+init-connect = 'SET NAMES utf8mb4'
+character-set-server = utf8mb4
+#collation-server      = utf8mb4_unicode_ci
 datadir=/var/lib/mysql
 socket = /run/mysqld/mysqld.sock
 
@@ -91,7 +96,7 @@ query_alloc_block_size = 65536
 transaction_alloc_block_size = 8192
 transaction_prealloc_size = 4096
 default-storage-engine = InnoDB
-
+ft_min_word_len = 3
 log_warnings=1
 slow_query_log=0
 long_query_time=1
@@ -106,6 +111,7 @@ innodb_file_per_table = 1
 innodb_open_files = ${innodb_open_files}
 innodb_data_file_path= ibdata1:10M:autoextend
 innodb_buffer_pool_size = ${innodb_buffer_pool_size}
+#open_files_limit=100000
 
 ## https://mariadb.com/kb/en/mariadb/xtradbinnodb-server-system-variables/#innodb_buffer_pool_instances
 #innodb_buffer_pool_instances=2

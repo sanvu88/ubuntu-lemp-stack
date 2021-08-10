@@ -18,6 +18,28 @@ printf "%s Cau hinh Let's Encrypt %s\n" "${GREEN}" "${NC}"
 printf "%s========================%s\n" "${GREEN}" "${NC}"
 echo
 
+_select_ssl_type(){
+    echo "Lua chon loai SSL mien phi muon su dung"
+    PS3="Nhap vao cau tra loi cua ban: "
+    options_ssl_type=(
+        "Let's Encrypt"
+        "Zero SSL"
+    )
+    select opt_ssl_type in "${options_ssl_type[@]}"; do
+        case $opt_ssl_type in
+        "Let's Encrypt")
+            ssl_type="1"
+            break
+            ;;
+        "Zero SSL")
+            ssl_type="2"
+            break
+            ;;
+        *) printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long chon lai${NC}" ;;
+        esac
+    done
+}
+
 _confirm_sign_ssl() {
     printf "${RED}%s${NC}\n" "Luu y: Let's Encrypt gioi han so request SSL vi vay viec tao qua nhieu request SSL se bi chan ko tao duoc SSL."
     while true; do
@@ -50,6 +72,8 @@ _confirm_sign_ssl() {
             *) printf "%s\n" "${RED}Lua chon cua ban khong chinh xac. Vui long chon lai${NC}" ;;
             esac
         done
+
+        _select_ssl_type
     fi
 }
 
@@ -86,17 +110,33 @@ _sign_ssl() {
 
     if [[ -n "${method}" && "${method}" == "cf_api" ]]; then
         if [ "${domain_type}" == "2" ]; then
-            /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --force
+            if [ "${ssl_type}" == "1" ]; then
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --server letsencrypt --force
+            else
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --force
+            fi
         else
-            /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --force
+            if [ "${ssl_type}" == "1" ]; then
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --server letsencrypt --force
+            else
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --force
+            fi
         fi
     elif [[ -n "${method}" && "${method}" == "cancel" ]]; then
         cancel="${RED}Huy thao tac.${NC}"
     else
         if [ "${domain_type}" == "2" ]; then
-            /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" --force
+            if [ "${ssl_type}" == "1" ]; then
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --server letsencrypt --force
+            else
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --force
+            fi
         else
-            /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" -d "www.${domain}" --force
+            if [ "${ssl_type}" == "1" ]; then
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --server letsencrypt --force
+            else
+                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --force
+            fi
         fi
     fi
 

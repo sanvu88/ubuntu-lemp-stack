@@ -29,7 +29,7 @@ _confirm(){
 }
 
 _set_var(){
-    MODULE_LINK="http://scripts.hostvn.net/modules"
+    MODULE_LINK="${HOMEPAGE_LINK}/modules"
     #https://www.howtoforge.com/tutorial/linux-grep-command/
     #https://stackoverflow.com/a/6284370
     IG_BINARY_VERSION=$(curl -s "${UPDATE_LINK}"/version | grep -w "igbinary_version" | cut -f2 -d'=')
